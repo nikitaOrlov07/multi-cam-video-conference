@@ -1,0 +1,51 @@
+version: '3.8'
+
+services:
+  web:
+    image: jitsi/web:stable
+    ports:
+      - '8000:80'
+      - '8443:443'
+    environment:
+      - ENABLE_AUTH=1
+      - JWT_ENABLED=1
+      - JWT_SECRET=YOUR_SECRET
+      - JWT_APP_ID=YOUR_APP_ID
+      - JWT_ISSUER=YOUR_JWT_ISSUER
+
+  prosody:
+    image: jitsi/prosody:stable
+    ports:
+      - '5222:5222'
+      - '5280:5280'
+    environment:
+      - AUTH_TYPE=internal
+      - ENABLE_AUTH=1
+      - JICOFO_AUTH_PASSWORD=YOUR_JICOFO_AUTH_PASSWORD
+      - JVB_AUTH_PASSWORD=YOUR_JVB_AUTH_PASSWORD
+
+  jicofo:
+    image: jitsi/jicofo:stable
+    environment:
+      - XMPP_DOMAIN=meet.jitsi
+      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+      - XMPP_BREWERS_DOMAIN=internal.auth.meet.jitsi
+      - XMPP_MUC_DOMAIN=conference.meet.jitsi
+      - JICOFO_AUTH_PASSWORD=YOUR_JICOFO_AUTH_PASSWORD
+
+  jvb:
+    image: jitsi/jvb:stable
+    ports:
+      - '10000:10000/udp'
+    environment:
+      - XMPP_SERVER=prosody
+      - JVB_AUTH_USER=jvb
+      - JVB_BREWERS_DOMAIN=internal.auth.meet.jitsi
+      - JVB_AUTH_PASSWORD=YOUR_JVB_AUTH_PASSWORD
+
+  # webrtc-server:
+      #  build:
+      # context: .
+      # dockerfile: Dockerfile.webrtc
+      # ports:
+      # - '8080:8080' пока вручную создал
