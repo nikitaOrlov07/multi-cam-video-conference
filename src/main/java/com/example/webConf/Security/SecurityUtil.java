@@ -12,8 +12,8 @@ public class SecurityUtil {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if(!(authentication instanceof AnonymousAuthenticationToken))// user logged in
         {
-            String currentUsername =authentication.getName();
-            return currentUsername;
+            String surname =authentication.getName();
+            return surname;
         }
         return null; // if user not logged in
     }

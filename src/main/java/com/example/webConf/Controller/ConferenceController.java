@@ -12,7 +12,7 @@ import java.util.Map;
 @Controller
 @Slf4j
 public class ConferenceController {
-    @GetMapping("/home")
+    @GetMapping({"/", "/home"})
     public String getHomePage()
     {
         log.info("Home page is working");

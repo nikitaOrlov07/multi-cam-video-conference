@@ -19,35 +19,42 @@ import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 @EnableWebSecurity
 @EnableGlobalMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
-    //// Configure Security Filter chain - chain  of methods , that will control how your security works
+
     UserDetailsService userDetailsService;
+
     @Autowired
-    public SecurityConfig(UserDetailsService userDetailsService) {this.userDetailsService = userDetailsService;}
+    public SecurityConfig(UserDetailsService userDetailsService) {
+        this.userDetailsService = userDetailsService;
+    }
 
     @Bean
-    public static PasswordEncoder passwordEncoder(){return new BCryptPasswordEncoder();}
+    public static PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(csrf -> csrf.disable())
                 .authorizeRequests(authorize -> authorize
-                        .anyRequest().permitAll()) //other URLs are only allowed authenticated users.
-
+                        .anyRequest().permitAll()
+                )
                 .formLogin(form -> form
-                        .loginPage("/login")
-                        .defaultSuccessUrl("/home?successLogin",true)
+                        .loginPage("/home")
+                        .defaultSuccessUrl("/home?successLogin", true)
                         .loginProcessingUrl("/login")
-                        .failureUrl("/login?error=true")// = ?fail
+                        .failureUrl("/home?error")
                         .permitAll()
                 )
                 .logout(logout -> logout
                         .logoutRequestMatcher(new AntPathRequestMatcher("/logout"))
+                        .logoutSuccessUrl("/home")
                         .permitAll()
                 );
-        return http.build();}
-    //Authentication Manager
-    public void configure(AuthenticationManagerBuilder builder) throws Exception
-    {
+        return http.build();
+    }
+
+    @Autowired
+    public void configure(AuthenticationManagerBuilder builder) throws Exception {
         builder.userDetailsService(userDetailsService).passwordEncoder(passwordEncoder());
     }
 }

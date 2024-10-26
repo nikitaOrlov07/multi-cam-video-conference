@@ -3,7 +3,7 @@ package com.example.webConf.Security;
 
 
 import com.example.webConf.Model.UserEntity;
-import com.example.webConf.Repository.UserRepository;
+import com.example.webConf.Repository.UserEntityRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -14,28 +14,27 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
-    private UserRepository userRepository;
+    private UserEntityRepository userEntityRepository;
 
     @Autowired
-    public CustomUserDetailsService(UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public CustomUserDetailsService(UserEntityRepository userEntityRepository) {
+        this.userEntityRepository = userEntityRepository;
     }
     // configure "loadByUsername"
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {//It loads the user by username.
+    public UserDetails loadUserByUsername(String surname) throws UsernameNotFoundException {//It loads the user by username.
         //If the user is found, the method returns a UserDetails object that represents the user in the Spring Security context.
         //If the user is not found, the method throws a UsernameNotFoundException exception.
-        UserEntity userEntity=userRepository.findFirstByUsername(username);
+        UserEntity userEntity= userEntityRepository.findFirstBySurname(surname);
         if( userEntity != null)
         {
             List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + userEntity.getRole()));
             User  authUser= new User(
-                    userEntity.getUsername(),
+                    userEntity.getSurname(),
                     userEntity.getPassword() ,
                     authorities
             );

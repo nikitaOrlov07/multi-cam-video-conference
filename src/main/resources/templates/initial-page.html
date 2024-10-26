@@ -42,6 +42,21 @@
             margin: 0 auto;
             display: none;
         }
+        .modal-content {
+            border-radius: 15px;
+        }
+        .modal-header {
+            background-color: #4a90e2;
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        .form-control:focus {
+            border-color: #4a90e2;
+            box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+        }
+        .alert {
+            margin-bottom: 1rem;
+        }
     </style>
 </head>
 <body layout:fragment="body">
@@ -51,20 +66,17 @@
             <h1 class="main-title">Welcome to the Page</h1>
 
             <div class="d-flex flex-column align-items-center gap-3">
-                <button class="btn btn-primary btn-custom">
+                <button class="btn btn-primary btn-custom" data-bs-toggle="modal" data-bs-target="#loginModal">
                     Sign In
                 </button>
 
-                <button class="btn btn-primary btn-custom">
-                    Register
-                </button>
+                <a href="/register" class="btn btn-primary btn-custom">Register</a>
 
                 <button class="btn btn-primary btn-custom" onclick="showConferenceForm()">
                     Start New Conference
                 </button>
             </div>
 
-            <!-- Conference Form -->
             <form id="conferenceForm" action="/setDevices" method="GET" class="mt-4">
                 <div class="form-group">
                     <label for="userName" class="form-label">Enter your name:</label>
@@ -79,10 +91,79 @@
     </div>
 </div>
 
+<!-- Login Modal -->
+<div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="loginModalLabel">Sign In</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form th:action="@{/login}" method="post" id="loginForm">
+                    <div id="loginError" class="alert alert-danger" style="display: none;">
+                        Invalid email or password. Please try again.
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email address</label>
+                        <input type="email" class="form-control" id="email" name="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">Password</label>
+                        <input type="password" class="form-control" id="password" name="password" required>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-primary">Sign In</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script>
     function showConferenceForm() {
         document.getElementById('conferenceForm').style.display = 'block';
     }
+
+    // Initialize Bootstrap Modal
+    let loginModal;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize the modal
+        loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+
+        // Check for error parameter in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.has('error')) {
+            // Show error message
+            document.getElementById('loginError').style.display = 'block';
+            // Show modal
+            loginModal.show();
+
+            // Remove error parameter from URL without refreshing the page
+            window.history.replaceState({}, document.title, window.location.pathname);
+        }
+    });
+
+    // Save and restore email functionality
+    const loginForm = document.getElementById('loginForm');
+    const emailInput = document.getElementById('email');
+
+    // Restore email from localStorage
+    if (localStorage.getItem('lastEmail')) {
+        emailInput.value = localStorage.getItem('lastEmail');
+    }
+
+    loginForm.addEventListener('submit', function() {
+        // Save email before form submission
+        localStorage.setItem('lastEmail', emailInput.value);
+    });
+
+    // Reset error message when modal is closed
+    document.getElementById('loginModal').addEventListener('hidden.bs.modal', function () {
+        document.getElementById('loginError').style.display = 'none';
+    });
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
 </body>

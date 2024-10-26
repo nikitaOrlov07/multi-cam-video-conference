@@ -14,12 +14,14 @@ import java.util.List;
 @NoArgsConstructor
 @Builder
 @Data
+@Table(name = "users")
 public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String username;
+    private String name;
+    private String surname;
     private String password;
     private String email;
     private String city;

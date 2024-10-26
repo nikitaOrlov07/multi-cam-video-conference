@@ -1,0 +1,50 @@
+package com.example.webConf.Controller;
+
+import com.example.webConf.Dto.RegistrationDto;
+import com.example.webConf.Model.UserEntity;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.PostMapping;
+import com.example.webConf.Service.UserEntityService;
+@Controller
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final UserEntityService userService;
+       @GetMapping("/register")
+       public String getRegisterForm(Model model)
+       {
+           RegistrationDto user = new RegistrationDto();
+           model.addAttribute("user", user); // we add empty object into a View ,
+           // but if we don`t do it --> we will get an error
+           return"register";
+       }
+       @PostMapping("/register/save")
+       public String register(@Valid @ModelAttribute("user")RegistrationDto user,
+                              BindingResult result, Model model) {
+       // Check by email
+       UserEntity existingUserEmail = userService.findByEmail(user.getEmail());
+
+       if(existingUserEmail != null && existingUserEmail.getEmail() != null && !existingUserEmail.getEmail().isEmpty()) {
+           model.addAttribute("user", user);
+           return "redirect:/register?fail";
+       }
+
+
+       if(result.hasErrors()) {
+           // Add user object to model to preserve form data
+           model.addAttribute("user", user);
+           return "register";
+       }
+
+
+       String redirect = (userService.saveUser(user) == true) ? "redirect:/home?successfullyRegistered" : "redirect:/register?error";
+       return redirect;
+   }
+}
+
