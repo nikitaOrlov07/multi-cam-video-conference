@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layout}">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome Page</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .welcome-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            padding: 2rem;
+        }
+        .welcome-card {
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 2rem;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+        }
+        .btn-custom {
+            padding: 1rem 2rem;
+            font-size: 1.2rem;
+            margin: 0.5rem;
+            width: 100%;
+            max-width: 400px;
+            transition: transform 0.2s;
+        }
+        .btn-custom:hover {
+            transform: translateY(-3px);
+        }
+        .main-title {
+            color: #2c3e50;
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        #conferenceForm {
+            max-width: 400px;
+            margin: 0 auto;
+            display: none;
+        }
+    </style>
+</head>
+<body layout:fragment="body">
+<div class="welcome-container">
+    <div class="container">
+        <div class="welcome-card text-center">
+            <h1 class="main-title">Welcome to the Page</h1>
+
+            <div class="d-flex flex-column align-items-center gap-3">
+                <button class="btn btn-primary btn-custom">
+                    Sign In
+                </button>
+
+                <button class="btn btn-primary btn-custom">
+                    Register
+                </button>
+
+                <button class="btn btn-primary btn-custom" onclick="showConferenceForm()">
+                    Start New Conference
+                </button>
+            </div>
+
+            <!-- Conference Form -->
+            <form id="conferenceForm" action="/setDevices" method="GET" class="mt-4">
+                <div class="form-group">
+                    <label for="userName" class="form-label">Enter your name:</label>
+                    <input type="text" class="form-control form-control-lg mb-3"
+                           id="userName" name="userName" required>
+                    <button type="submit" class="btn btn-success btn-lg">
+                        Continue to Conference
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function showConferenceForm() {
+        document.getElementById('conferenceForm').style.display = 'block';
+    }
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
