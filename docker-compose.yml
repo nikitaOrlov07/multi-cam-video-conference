@@ -12,6 +12,10 @@ services:
       - JWT_SECRET=YOUR_SECRET
       - JWT_APP_ID=YOUR_APP_ID
       - JWT_ISSUER=YOUR_JWT_ISSUER
+      - XMPP_SERVER=prosody
+      - XMPP_BOSH_URL_BASE=http://prosody:5280
+    networks:
+      - jitsi-net
 
   prosody:
     image: jitsi/prosody:stable
@@ -23,15 +27,19 @@ services:
       - ENABLE_AUTH=1
       - JICOFO_AUTH_PASSWORD=YOUR_JICOFO_AUTH_PASSWORD
       - JVB_AUTH_PASSWORD=YOUR_JVB_AUTH_PASSWORD
+    networks:
+      - jitsi-net
 
   jicofo:
     image: jitsi/jicofo:stable
     environment:
       - XMPP_DOMAIN=meet.jitsi
       - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_BREWERS_DOMAIN=internal.auth.meet.jitsi
-      - XMPP_MUC_DOMAIN=conference.meet.jitsi
+      - XMPP_INTERNAL_MUC_DOMAIN=internal.auth.meet.jitsi
+      - XMPP_SERVER=prosody
       - JICOFO_AUTH_PASSWORD=YOUR_JICOFO_AUTH_PASSWORD
+    networks:
+      - jitsi-net
 
   jvb:
     image: jitsi/jvb:stable
@@ -40,12 +48,27 @@ services:
     environment:
       - XMPP_SERVER=prosody
       - JVB_AUTH_USER=jvb
-      - JVB_BREWERS_DOMAIN=internal.auth.meet.jitsi
+      - JVB_INTERNAL_MUC_DOMAIN=internal.auth.meet.jitsi
       - JVB_AUTH_PASSWORD=YOUR_JVB_AUTH_PASSWORD
+    networks:
+      - jitsi-net
 
-  # webrtc-server:
-      #  build:
-      # context: .
-      # dockerfile: Dockerfile.webrtc
-      # ports:
-      # - '8080:8080' пока вручную создал
+  java-app:
+    build: .
+    volumes:
+      - D:\Programing\Bachelor's work\3D-video-conferencing-system:/app
+    command: java -jar /app/your-java-app.jar
+    environment:
+      - JVB_HOST=jvb
+      - JVB_PORT=10000
+    devices:
+      - "/dev/video0:/dev/video0"
+      - "/dev/video1:/dev/video1"
+    depends_on:
+      - jvb
+    networks:
+      - jitsi-net
+
+networks:
+  jitsi-net:
+    driver: bridge
