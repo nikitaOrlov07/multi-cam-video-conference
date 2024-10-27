@@ -1,5 +1,6 @@
 package com.example.webConf.Controller;
 
+import com.example.webConf.Security.SecurityUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -23,7 +24,15 @@ public class ConferenceController {
                                       Model model)
     {
         log.info("Initial device setting page is working");
-        model.addAttribute("userName");
+        if(userName != null && !userName.isEmpty()) {
+            model.addAttribute("userName", userName);
+        }
+        else if (SecurityUtil.getSessionUser() != null && !SecurityUtil.getSessionUser().isEmpty()){
+            model.addAttribute("userName", SecurityUtil.getSessionUser());
+        }
+        else {
+            return "redirect:/home?error";
+        }
         return "device-setting";
     }
     // Метод для приема POST-запроса с выбранными камерами

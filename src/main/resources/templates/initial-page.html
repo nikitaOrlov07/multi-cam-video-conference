@@ -61,9 +61,12 @@
 </head>
 <body layout:fragment="body">
 <div class="welcome-container">
+    <div th:if="${param.error}" class="alert alert-danger">
+        Error
+    </div>
     <div class="container">
         <div class="welcome-card text-center">
-            <h1 class="main-title">Welcome to the Page</h1>
+            <h1 class="main-title">Welcome to the Conference Application</h1>
 
             <div class="d-flex flex-column align-items-center gap-3">
                 <button class="btn btn-primary btn-custom" data-bs-toggle="modal" data-bs-target="#loginModal">
