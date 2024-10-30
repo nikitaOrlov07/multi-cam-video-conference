@@ -1,7 +1,7 @@
 package com.example.webConf.Mappers;
 
 import com.example.webConf.Dto.RegistrationDto;
-import com.example.webConf.Model.UserEntity;
+import com.example.webConf.Model.User.UserEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -22,6 +22,7 @@ public class UserEntityMapper {
                .email(registrationDto.getEmail())
                .city(registrationDto.getCity())
                .country(registrationDto.getCountry())
+               .accountType(UserEntity.AccountType.PERMANENT)
                .build();
        return userEntity;
     }

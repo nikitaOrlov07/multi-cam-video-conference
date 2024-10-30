@@ -1,5 +1,6 @@
-package com.example.webConf.Model;
+package com.example.webConf.Model.Conference;
 
+import com.example.webConf.Model.User.UserEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;

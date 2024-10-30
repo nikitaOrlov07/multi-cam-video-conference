@@ -7,13 +7,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 //// Security Context Holder - information storage about user after successful authentication
 
 public class SecurityUtil {
-    public static  String getSessionUser()
+    public static  String getSessionUserEmail()
     {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if(!(authentication instanceof AnonymousAuthenticationToken))// user logged in
         {
-            String surname =authentication.getName();
-            return surname;
+            String email = authentication.getName(); // return user email
+            return email;
         }
         return null; // if user not logged in
     }

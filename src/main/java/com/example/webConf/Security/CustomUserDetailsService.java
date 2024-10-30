@@ -2,7 +2,7 @@ package com.example.webConf.Security;
 
 
 
-import com.example.webConf.Model.UserEntity;
+import com.example.webConf.Model.User.UserEntity;
 import com.example.webConf.Repository.UserEntityRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -34,7 +34,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         {
             List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + userEntity.getRole()));
             User  authUser= new User(
-                    userEntity.getSurname(),
+                    userEntity.getEmail(),
                     userEntity.getPassword() ,
                     authorities
             );

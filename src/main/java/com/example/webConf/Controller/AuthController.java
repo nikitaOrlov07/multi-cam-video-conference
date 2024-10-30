@@ -1,7 +1,7 @@
 package com.example.webConf.Controller;
 
 import com.example.webConf.Dto.RegistrationDto;
-import com.example.webConf.Model.UserEntity;
+import com.example.webConf.Model.User.UserEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -43,7 +43,7 @@ public class AuthController {
        }
 
 
-       String redirect = (userService.saveUser(user) == true) ? "redirect:/home?successfullyRegistered" : "redirect:/register?error";
+       String redirect = (userService.createUser(user) == true) ? "redirect:/home?successfullyRegistered" : "redirect:/register?error";
        return redirect;
    }
 }

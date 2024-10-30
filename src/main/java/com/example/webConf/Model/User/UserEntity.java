@@ -1,5 +1,6 @@
-package com.example.webConf.Model;
+package com.example.webConf.Model.User;
 
+import com.example.webConf.Model.Conference.Conference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -16,6 +17,7 @@ import java.util.List;
 @Data
 @Table(name = "users")
 public class UserEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -27,6 +29,9 @@ public class UserEntity {
     private String city;
     private String country;
 
+    @Enumerated(EnumType.STRING)
+    private AccountType accountType;
+
     @ManyToMany
     @JoinTable(
             name = "user_conference",
@@ -34,6 +39,11 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "conference_id")
     )
     private List<Conference> conferences = new ArrayList<>();
-    private String role ="USER" ;
 
+    private String role = "USER";
+
+    public enum AccountType {
+        PERMANENT, TEMPORARY
+    }
 }
+

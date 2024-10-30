@@ -21,11 +21,11 @@
         <div class="row">
             <div class="col-md-3">
                 <label for="gridRows">Number of Rows (n):</label>
-                <input type="number" id="gridRows" class="form-control" min="1" value="2">
+                <input type="number" id="gridRows" class="form-control" min="1" value="1">
             </div>
             <div class="col-md-3">
                 <label for="gridCols">Number of Columns (k):</label>
-                <input type="number" id="gridCols" class="form-control" min="1" value="2">
+                <input type="number" id="gridCols" class="form-control" min="1" value="1">
             </div>
         </div>
     </div>
@@ -58,8 +58,7 @@
     </div>
 </div>
 
-<!-- Preview Modal -->
-<div id="previewModal" class="modal">
+<div class="modal" id="previewModal">
     <div class="modal-content">
         <div class="modal-header">
             <h3>Preview Selected Devices</h3>
@@ -74,12 +73,41 @@
         </div>
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closePreviewModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="confirmDevices()">Confirm</button>
+            <button class="btn btn-success" onclick="createNewConference()">Create New Conference</button>
+            <button class="btn btn-primary" onclick="openJoinModal()">Join Existing Conference</button>
+        </div>
+    </div>
+</div>
+
+<!-- Join Conference Modal -->
+<div id="joinConferenceModal" class="modal">
+    <div class="modal-content" style="max-width: 500px;">
+        <div class="modal-header">
+            <h3>Join Conference</h3>
+            <span class="close" onclick="closeJoinModal()">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label for="conferenceIdentifier">Conference Identifier:</label>
+                <input type="text" class="form-control" id="conferenceIdentifier" placeholder="Enter conference identifier">
+            </div>
+            <div id="errorAlert" class="alert alert-danger mt-3" style="display: none;">
+                Conference with this identifier does not exist
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeJoinModal()">Cancel</button>
+            <button class="btn btn-primary" onclick="joinConference()">Connect</button>
         </div>
     </div>
 </div>
 
 <script>
+
+    window.onload = function() {
+        getDevices();
+    }
+
     let audioContext;
     let mediaRecorder;
     let audioChunks = [];
@@ -88,10 +116,23 @@
 
     async function getDevices() {
         try {
+            console.log("getDevices function is called");
+            // Stop any existing streams
+            const existingVideos = document.querySelectorAll('video');
+            existingVideos.forEach(video => {
+                if (video.srcObject) {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                }
+            });
+
             const devices = await navigator.mediaDevices.enumerateDevices();
 
             const videoDevices = devices.filter(device => device.kind === 'videoinput');
             const audioDevices = devices.filter(device => device.kind === 'audioinput');
+
+            if (videoDevices.length === 0 && audioDevices.length === 0) {
+                throw new Error('No media devices found');
+            }
 
             const cameraList = document.getElementById('cameraList');
             const audioList = document.getElementById('audioList');
@@ -146,6 +187,7 @@
                         console.error('Error accessing video stream: ', error);
                     });
             });
+
 
             audioDevices.forEach((device, index) => {
                 const li = document.createElement('li');
@@ -205,8 +247,11 @@
             });
 
         } catch (error) {
-            console.error('Error fetching device list: ', error);
-        }
+        console.error('Error fetching device list:', error);
+        document.getElementById('errorAlert').textContent =
+            `Error accessing media devices: ${error.message}`;
+        document.getElementById('errorAlert').style.display = 'block';
+    }
     }
 
     async function startAudioTest(deviceId) {
@@ -306,6 +351,7 @@
     }
 
     async function openPreviewModal() {
+        console.log("open Preview model");
         const rows = parseInt(document.getElementById('gridRows').value);
         const cols = parseInt(document.getElementById('gridCols').value);
         const requiredCameras = rows * cols;
@@ -403,7 +449,7 @@
         activeStreams = [];
     }
 
-    function confirmDevices() {
+    function createNewConference() {
         const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'))
             .map(checkbox => ({
                 deviceId: checkbox.value,
@@ -429,7 +475,60 @@
             gridSize: gridSize
         };
 
-        fetch('/connect-devices', {
+        sendDeviceData(requestBody);
+    }
+
+    function openJoinModal() {
+        document.getElementById('joinConferenceModal').style.display = 'block';
+        document.getElementById('errorAlert').style.display = 'none';
+        document.getElementById('conferenceIdentifier').value = '';
+    }
+
+    function closeJoinModal() {
+        document.getElementById('joinConferenceModal').style.display = 'none';
+        window.location.href = '/home';
+    }
+
+    function joinConference() {
+        const identifier = document.getElementById('conferenceIdentifier').value.trim();
+
+        if (!identifier) {
+            alert('Please enter a conference identifier');
+            return;
+        }
+
+        const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'))
+            .map(checkbox => ({
+                deviceId: checkbox.value,
+                label: checkbox.dataset.label,
+                order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
+            }))
+            .sort((a, b) => a.order - b.order);
+
+        const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
+        const audioDevice = selectedAudio ? [{
+            deviceId: selectedAudio.value,
+            label: selectedAudio.dataset.label
+        }] : [];
+
+        const gridSize = {
+            rows: parseInt(document.getElementById('gridRows').value),
+            cols: parseInt(document.getElementById('gridCols').value)
+        };
+
+        const requestBody = {
+            cameras: selectedCameras,
+            audio: audioDevice,
+            gridSize: gridSize
+        };
+
+        sendDeviceData(requestBody, identifier);
+    }
+
+    function sendDeviceData(requestBody, identifier = null) {
+        const url = '/connect-devices' + (identifier ? `?identifier=${identifier}` : '');
+
+        fetch(url, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -441,7 +540,13 @@
                     stopAllStreams();
                     window.location.href = '/connect-devices';
                 } else {
-                    console.error('Error sending devices to the server');
+                    return response.text().then(text => {
+                        if (text === "No conference with identifier") {
+                            document.getElementById('errorAlert').style.display = 'block';
+                        } else {
+                            console.error('Error:', text);
+                        }
+                    });
                 }
             })
             .catch(error => {
@@ -449,29 +554,16 @@
             });
     }
 
-    window.onload = getDevices;
-
-    // Close modal if clicked outside of modal content
+    // Update window.onclick to handle both modals
     window.onclick = function(event) {
-        const modal = document.getElementById('previewModal');
-        if (event.target == modal) {
+        const previewModal = document.getElementById('previewModal');
+        const joinModal = document.getElementById('joinConferenceModal');
+
+        if (event.target == previewModal) {
             closePreviewModal();
         }
-    }
-
-    // Add validation for grid size inputs
-    document.getElementById('gridRows').addEventListener('change', validateGridSize);
-    document.getElementById('gridCols').addEventListener('change', validateGridSize);
-
-    function validateGridSize() {
-        const rows = parseInt(document.getElementById('gridRows').value);
-        const cols = parseInt(document.getElementById('gridCols').value);
-        const totalCameras = document.querySelectorAll('input[type="checkbox"][id^="camera-"]').length;
-
-        if (rows * cols > totalCameras) {
-            alert(`Grid size (${rows}×${cols} = ${rows * cols}) cannot exceed total available cameras (${totalCameras})`);
-            document.getElementById('gridRows').value = Math.floor(Math.sqrt(totalCameras));
-            document.getElementById('gridCols').value = Math.floor(Math.sqrt(totalCameras));
+        if (event.target == joinModal) {
+            closeJoinModal();
         }
     }
 </script>

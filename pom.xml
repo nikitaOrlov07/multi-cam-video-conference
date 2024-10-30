@@ -109,7 +109,11 @@
 			<artifactId>libjitsi</artifactId>
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
-
+        <!-- For storing camerasConfiguration -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+		</dependency>
 	</dependencies>
 
 	<repositories>
