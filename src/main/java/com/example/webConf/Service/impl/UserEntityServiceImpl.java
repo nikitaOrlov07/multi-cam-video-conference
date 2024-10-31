@@ -33,6 +33,8 @@ public class UserEntityServiceImpl implements UserEntityService{
 
     @Override
     public UserEntity findByEmail(String email) {
+        if(email == null || email.isEmpty())
+            return null;
         return  userEntityRepository.findByEmail(email);
     }
 

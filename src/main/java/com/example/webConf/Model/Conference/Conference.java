@@ -3,6 +3,7 @@ package com.example.webConf.Model.Conference;
 import com.example.webConf.Model.User.UserEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -15,6 +16,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Data
+@Builder
 public class Conference {
     @Id
     private String id;

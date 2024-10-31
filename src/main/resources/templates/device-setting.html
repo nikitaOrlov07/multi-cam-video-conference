@@ -140,5 +140,82 @@
     }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const modal = document.getElementById('joinConferenceModal');
+        const modalContent = modal.querySelector('.modal-content');
+        const modalHeader = modal.querySelector('.modal-header');
+
+        let isDragging = false;
+        let currentX;
+        let currentY;
+        let initialX;
+        let initialY;
+        let xOffset = 0;
+        let yOffset = 0;
+
+        // Устанавливаем начальное положение в центр
+        function centerModal() {
+            const rect = modalContent.getBoundingClientRect();
+            xOffset = (window.innerWidth - rect.width) / 2;
+            yOffset = (window.innerHeight - rect.height) / 2;
+            setTranslate(xOffset, yOffset, modalContent);
+        }
+
+        function dragStart(e) {
+            if (e.target.closest('.modal-header')) {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+                isDragging = true;
+            }
+        }
+
+        function drag(e) {
+            if (isDragging) {
+                e.preventDefault();
+
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+
+                // Ограничиваем перемещение в пределах окна
+                const rect = modalContent.getBoundingClientRect();
+                currentX = Math.max(0, Math.min(currentX, window.innerWidth - rect.width));
+                currentY = Math.max(0, Math.min(currentY, window.innerHeight - rect.height));
+
+                xOffset = currentX;
+                yOffset = currentY;
+
+                setTranslate(currentX, currentY, modalContent);
+            }
+        }
+
+        function dragEnd() {
+            initialX = currentX;
+            initialY = currentY;
+            isDragging = false;
+        }
+
+        function setTranslate(xPos, yPos, el) {
+            el.style.transform = `translate(${xPos}px, ${yPos}px)`;
+        }
+
+        // Добавляем обработчики событий
+        modalHeader.addEventListener('mousedown', dragStart);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', dragEnd);
+
+        // Центрируем модальное окно при открытии
+        window.addEventListener('load', centerModal);
+        window.addEventListener('resize', centerModal);
+
+        // Обновляем функцию открытия модального окна
+        window.openJoinModal = function() {
+            modal.style.display = 'block';
+            centerModal();
+            document.getElementById('errorAlert').style.display = 'none';
+            document.getElementById('conferenceIdentifier').value = '';
+        };
+    });
+</script>
 </body>
 </html>

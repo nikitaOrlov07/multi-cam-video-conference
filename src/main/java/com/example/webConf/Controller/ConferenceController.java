@@ -1,13 +1,17 @@
 package com.example.webConf.Controller;
 
 import com.example.webConf.Dto.Devices.DeviceSelectionDTO;
+import com.example.webConf.Mappers.ConferenceMapper;
+import com.example.webConf.Model.User.UserEntity;
 import com.example.webConf.Security.SecurityUtil;
+import com.example.webConf.Service.ConferenceDevicesService;
 import com.example.webConf.Service.ConferenceService;
 import com.example.webConf.Service.UserEntityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.servlet.http.HttpServletRequest;
+import com.example.webConf.Model.Devices.ConferenceDevices;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,6 +25,7 @@ public class ConferenceController {
     private final ConferenceService conferenceService;
     private final ObjectMapper objectMapper;
     private final UserEntityService userService;
+    private final ConferenceDevicesService conferenceDevicesService;
 
     @GetMapping({"/", "/home"})
     public String getHomePage()
@@ -44,6 +49,7 @@ public class ConferenceController {
         }
         return "device-setting";
     }
+
     // Метод для приема POST-запроса с выбранными камерами
     @PostMapping("/connect-devices")
     @ResponseBody
@@ -66,13 +72,13 @@ public class ConferenceController {
          return  ResponseEntity.badRequest().body("No conference with identifier");
         }
         log.info("if-ы прошли");
-        /*
+
         try {
             // Create new conference devices entry
-            UserEntity currentUser = userService.findUserByUsername(SecurityUtil.getSessionUser());
-            String conferenceId = (identifier != null && !identifier.isEmpty()) ? identifier : conferenceService.createConference();
+            UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail());
+            String conferenceId = (identifier != null && !identifier.isEmpty()) ? identifier : conferenceService.createConference(currentUser,userName);
             ConferenceDevices devices = ConferenceDevices.builder()
-                    .conference(conferenceId) // You'll need to implement this
+                    .conference(ConferenceMapper.getConferenceFromConferenceDto(conferenceService.findConferenceById(conferenceId))) // You'll need to implement this
                     .microphoneDeviceId(deviceSelection.getAudio().get(0).getDeviceId())
                     .microphoneLabel(deviceSelection.getAudio().get(0).getLabel())
                     .cameraConfiguration(objectMapper.writeValueAsString(deviceSelection.getCameras()))
@@ -80,15 +86,14 @@ public class ConferenceController {
                     .gridCols(deviceSelection.getGridSize().getCols())
                     .build();
 
-            conferenceDevicesRepository.save(devices);
-
-            return ResponseEntity.ok("Devices connected and saved successfully");
+            conferenceDevicesService.save(devices);
+            log.info("Devices connected and saved successfully");
         } catch (Exception e) {
             log.error("Error saving device configuration", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error saving device configuration");
         }
-         */
+
         return ResponseEntity.ok("Devices connected successfully");
     }
 

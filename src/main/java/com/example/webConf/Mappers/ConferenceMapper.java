@@ -12,4 +12,12 @@ public class ConferenceMapper {
                 .users(conference.getUsers())
                 .build();
     }
+    public static Conference getConferenceFromConferenceDto(ConferenceDto conferenceDto)
+    {
+        return Conference.builder()
+                .id(conferenceDto.getId())
+                .conferenceDate(conferenceDto.getConferenceDate())
+                .users(conferenceDto.getUsers())
+                .build();
+    }
 }

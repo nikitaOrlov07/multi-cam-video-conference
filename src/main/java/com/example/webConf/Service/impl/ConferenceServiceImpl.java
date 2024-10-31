@@ -36,10 +36,12 @@ public class ConferenceServiceImpl implements ConferenceService {
         savedConference.setConferenceDate(new Date());
         if(userEntity != null && (userName == null || userName.isEmpty())) {
             /// If user is registered
+            log.info("User is registered");
             savedConference.getUsers().add(userEntity);
         } else if (userName != null && !userName.isEmpty() && userEntity == null) {
             /// If user is not registered , but write his name
             //  Create temporary user profile
+            log.info("User doesn`t registered , temporaryName: " + userName);
             UserEntity temporaryUser = UserEntity.builder()
                     .surname(userName)
                     .password(null)

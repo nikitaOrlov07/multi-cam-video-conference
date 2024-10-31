@@ -377,9 +377,21 @@ function openJoinModal() {
 }
 
 function closeJoinModal() {
+    // Скрываем Join Conference модальное окно
     document.getElementById('joinConferenceModal').style.display = 'none';
-    window.location.href = '/home';
+
+    // Очищаем поле ввода и скрываем сообщение об ошибке
+    document.getElementById('conferenceIdentifier').value = '';
+    document.getElementById('errorAlert').style.display = 'none';
+
+    // Возвращаем модальное окно в исходное положение
+    const modalContent = document.querySelector('#joinConferenceModal .modal-content');
+    modalContent.style.transform = 'translate(-50%, -50%)';
+
+    // Показываем Preview модальное окно
+    previewModal.show();
 }
+
 
 function joinConference() {
     const identifier = document.getElementById('conferenceIdentifier').value.trim();
