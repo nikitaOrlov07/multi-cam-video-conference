@@ -1,6 +1,6 @@
 package com.example.webConf.Service;
 
-import com.example.webConf.Dto.RegistrationDto;
+import com.example.webConf.Dto.Registration.RegistrationDto;
 import com.example.webConf.Model.User.UserEntity;
 
 public interface UserEntityService {

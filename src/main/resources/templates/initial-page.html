@@ -4,6 +4,7 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
       layout:decorate="~{layout}">
+
 <head>
     <meta charset="UTF-8">
     <title>Welcome Page</title>
@@ -11,27 +12,33 @@
     <link href="/css/initial-page.css" rel="stylesheet">
 </head>
 <body layout:fragment="body">
-<div  class="welcome-container">
-    <div th:if="${param.error}" class="alert alert-danger">
+<div class="welcome-container">
+    <div th:if="${param.error}" id="errorMessage" class="alert alert-danger">
         Error
+    </div>
+    <div th:if="${param.successLogin}" id="successLogin" class="alert alert-success">
+        You have successfully logged in
+    </div>
+    <div th:if="${param.successLogout}" id="successLogout" class="alert alert-success">
+        You have successfully logout
     </div>
     <div class="container">
         <div class="welcome-card text-center">
             <h1 class="main-title">Welcome to the Conference Application</h1>
 
             <div class="d-flex flex-column align-items-center gap-3">
-                <button class="btn btn-primary btn-custom" data-bs-toggle="modal" data-bs-target="#loginModal">
+                <button sec:authorize="!isAuthenticated()" class="btn btn-primary btn-custom" data-bs-toggle="modal" data-bs-target="#loginModal">
                     Sign In
                 </button>
 
-                <a href="/register" class="btn btn-primary btn-custom">Register</a>
+                <a sec:authorize="!isAuthenticated()" href="/register" class="btn btn-primary btn-custom">Register</a>
 
-                <button class="btn btn-primary btn-custom" onclick="showConferenceForm()">
-                    Start New Conference
+                <button class="btn btn-primary btn-custom" th:attr="onclick=${isAuthorized} ? 'window.location.href=\'/setDevices\'' : 'showConferenceForm()'">
+                    Start Conference
                 </button>
             </div>
 
-            <form id="conferenceForm" action="/setDevices" method="GET" class="mt-4">
+            <form id="conferenceForm" action="/setDevices" method="GET" class="mt-4" style="display: none;">
                 <div class="form-group">
                     <label for="userName" class="form-label">Enter your name:</label>
                     <input type="text" class="form-control form-control-lg mb-3"
@@ -74,7 +81,7 @@
         </div>
     </div>
 </div>
-
+<script src="/js/commonFunctions.js"></script>
 <script>
     function showConferenceForm() {
         document.getElementById('conferenceForm').style.display = 'block';
@@ -89,7 +96,7 @@
 
         // Check for error parameter in URL
         const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('error')) {
+        if (urlParams.has('loginError')) {
             // Show error message
             document.getElementById('loginError').style.display = 'block';
             // Show modal
@@ -118,6 +125,12 @@
     document.getElementById('loginModal').addEventListener('hidden.bs.modal', function () {
         document.getElementById('loginError').style.display = 'none';
     });
+</script>
+
+<script>
+    hideElementAfterDelay("errorMessage");
+    hideElementAfterDelay("successLogin");
+    hideElementAfterDelay("successLogout");
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/js/bootstrap.bundle.min.js"></script>
 </body>

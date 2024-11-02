@@ -8,7 +8,7 @@ import java.util.Optional;
 @Repository
 public interface UserEntityRepository extends JpaRepository<UserEntity,Long> {
 
-    UserEntity findFirstBySurname(String surname);
+    UserEntity findFirstByEmail(String email);
 
     UserEntity findByEmail(String email);
     UserEntity findBySurname(String surname);

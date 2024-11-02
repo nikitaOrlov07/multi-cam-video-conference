@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang ="en"
-      xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:th="http://www.thymeleaf.org"
       xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
 >
 <head>
@@ -35,6 +35,7 @@
     }
   </style>
 </head>
+
 <!-- Navigation-->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
   <div class="container px-5">
@@ -43,12 +44,18 @@
     <div class="collapse navbar-collapse" id="navbarSupportedContent">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a class="nav-link active" aria-current="page" href="#">Home</a>
+          <a class="nav-link active" aria-current="page" th:href="@{/home}">Home</a>
+        </li>
+      </ul>
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item" sec:authorize="isAuthenticated()">
+          <a class="nav-link" th:href="@{/logout}">Logout</a>
         </li>
       </ul>
     </div>
   </div>
 </nav>
+
 
 
 <body layout:fragment="body"> </body>

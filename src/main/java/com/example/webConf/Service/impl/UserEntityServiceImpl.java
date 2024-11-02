@@ -1,6 +1,6 @@
 package com.example.webConf.Service.impl;
 
-import com.example.webConf.Dto.RegistrationDto;
+import com.example.webConf.Dto.Registration.RegistrationDto;
 import com.example.webConf.Mappers.UserEntityMapper;
 import com.example.webConf.Model.User.UserEntity;
 import com.example.webConf.Repository.UserEntityRepository;
@@ -27,6 +27,7 @@ public class UserEntityServiceImpl implements UserEntityService{
     @Override
     public Boolean createUser(RegistrationDto user) {
         log.info("Saving user service method is called");
+        log.info("Name: " + user.getName());
         UserEntity savedUser = userEntityRepository.save(userEntityMapper.registrationDtoToUserEntity(user));
         return savedUser != null;
     }

@@ -28,9 +28,24 @@ public class ConferenceController {
     private final ConferenceDevicesService conferenceDevicesService;
 
     @GetMapping({"/", "/home"})
-    public String getHomePage()
+    public String getHomePage(Model model)
     {
         log.info("Home page is working");
+        String currentUserEmail = (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) ? SecurityUtil.getSessionUserEmail() : "User is not authorized";
+        log.info(currentUserEmail);
+        UserEntity user;
+        if (!currentUserEmail.equals("User is not authorized"))
+        {
+            user = userService.findByEmail(currentUserEmail);
+            if(user != null) {
+                model.addAttribute("isAuthorized", true);
+            }
+        }
+        else
+        {
+            model.addAttribute("isAuthorized", false);
+        }
+
         return  "initial-page";
     }
     @GetMapping("/setDevices")
@@ -42,7 +57,9 @@ public class ConferenceController {
             model.addAttribute("userName", userName);
         }
         else if (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()){
-            model.addAttribute("userName", SecurityUtil.getSessionUserEmail());
+            UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail());
+            String nameSurname = user.getName() +" "+ user.getSurname();
+            model.addAttribute("userName", nameSurname);
         }
         else {
             return "redirect:/home?error";

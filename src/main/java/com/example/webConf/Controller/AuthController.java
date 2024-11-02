@@ -1,6 +1,6 @@
 package com.example.webConf.Controller;
 
-import com.example.webConf.Dto.RegistrationDto;
+import com.example.webConf.Dto.Registration.RegistrationDto;
 import com.example.webConf.Model.User.UserEntity;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +32,7 @@ public class AuthController {
 
        if(existingUserEmail != null && existingUserEmail.getEmail() != null && !existingUserEmail.getEmail().isEmpty()) {
            model.addAttribute("user", user);
-           return "redirect:/register?fail";
+           return "redirect:/register?existingEmail";
        }
 
 

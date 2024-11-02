@@ -26,10 +26,10 @@ public class CustomUserDetailsService implements UserDetailsService {
     // configure "loadByUsername"
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String surname) throws UsernameNotFoundException {//It loads the user by username.
+    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {//It loads the user by username.
         //If the user is found, the method returns a UserDetails object that represents the user in the Spring Security context.
         //If the user is not found, the method throws a UsernameNotFoundException exception.
-        UserEntity userEntity= userEntityRepository.findFirstBySurname(surname);
+        UserEntity userEntity= userEntityRepository.findFirstByEmail(email);
         if( userEntity != null)
         {
             List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_" + userEntity.getRole()));
