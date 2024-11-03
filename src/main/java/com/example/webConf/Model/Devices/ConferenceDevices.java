@@ -33,5 +33,7 @@ public class ConferenceDevices {
     // Grid configuration
     private Integer gridRows;
     private Integer gridCols;
+    // Username
+    private String userName;
 
 }

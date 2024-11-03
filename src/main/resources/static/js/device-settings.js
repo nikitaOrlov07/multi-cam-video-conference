@@ -361,10 +361,14 @@ function createNewConference() {
         cols: parseInt(document.getElementById('gridCols').value)
     };
 
+    // Get userName from hidden input
+    const userName = document.getElementById('userNameInput').value;
+
     const requestBody = {
         cameras: selectedCameras,
         audio: audioDevice,
-        gridSize: gridSize
+        gridSize: gridSize,
+        userName: userName  // Add userName to request body
     };
 
     sendDeviceData(requestBody);
@@ -420,17 +424,25 @@ function joinConference() {
         cols: parseInt(document.getElementById('gridCols').value)
     };
 
+    // Get userName from hidden input
+    const userName = document.getElementById('userNameInput').value;
+
     const requestBody = {
         cameras: selectedCameras,
         audio: audioDevice,
-        gridSize: gridSize
+        gridSize: gridSize,
+        userName: userName  // Add userName to request body
     };
 
     sendDeviceData(requestBody, identifier);
 }
 
 function sendDeviceData(requestBody, identifier = null) {
-    const url = '/connect-devices' + (identifier ? `?identifier=${identifier}` : '');
+    // Add userName to URL parameters
+    const userName = encodeURIComponent(requestBody.userName);
+    const url = '/connect-devices' +
+        (identifier ? `?identifier=${identifier}` : '') +
+        (userName ? `${identifier ? '&' : '?'}userName=${userName}` : '');
 
     fetch(url, {
         method: 'POST',
@@ -441,8 +453,11 @@ function sendDeviceData(requestBody, identifier = null) {
     })
         .then(response => {
             if (response.ok) {
-                stopAllStreams();
-                window.location.href = '/connect-devices';
+                return response.text().then(conferenceId => {
+                    stopAllStreams();
+                    // Include userName in redirect URL
+                    window.location.href = `/conference?conferenceId=${conferenceId}&userName=${userName}`;
+                });
             } else {
                 return response.text().then(text => {
                     if (text === "No conference with identifier") {

@@ -72,7 +72,7 @@ public class ConferenceController {
     @ResponseBody
     public ResponseEntity<String> connectDevices(@RequestBody DeviceSelectionDTO deviceSelection,
                                                  @RequestParam(value = "identifier", required = false) String identifier,
-                                                 @RequestParam(value = "userName", required = false)String userName) {
+                                                 @RequestParam(value = "userName", required = false)   String userName) {
         log.info("\"connectDevices\" controller method is working");
 
         if (deviceSelection.getCameras() == null || deviceSelection.getCameras().isEmpty()) {
@@ -89,13 +89,14 @@ public class ConferenceController {
          return  ResponseEntity.badRequest().body("No conference with identifier");
         }
         log.info("if-ы прошли");
-
+        String conferenceId;
         try {
             // Create new conference devices entry
             UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail());
-            String conferenceId = (identifier != null && !identifier.isEmpty()) ? identifier : conferenceService.createConference(currentUser,userName);
+            conferenceId = (identifier != null && !identifier.isEmpty()) ? identifier : conferenceService.createConference(currentUser,userName);
             ConferenceDevices devices = ConferenceDevices.builder()
                     .conference(ConferenceMapper.getConferenceFromConferenceDto(conferenceService.findConferenceById(conferenceId))) // You'll need to implement this
+                    .userName(deviceSelection.getUserName())
                     .microphoneDeviceId(deviceSelection.getAudio().get(0).getDeviceId())
                     .microphoneLabel(deviceSelection.getAudio().get(0).getLabel())
                     .cameraConfiguration(objectMapper.writeValueAsString(deviceSelection.getCameras()))
@@ -111,13 +112,15 @@ public class ConferenceController {
                     .body("Error saving device configuration");
         }
 
-        return ResponseEntity.ok("Devices connected successfully");
+        return ResponseEntity.ok(conferenceId);
     }
 
     @GetMapping("/conference")
-    public String conferencePage(@RequestParam(value = "userName" , required = false) String userName)
+    public String conferencePage(@RequestParam(value = "userName"    , required = false) String userName,
+                                 @RequestParam(value = "conferenceId") String conferenceId)
     {
-      return "conference-page";
+       log.info("Conference page is working for conference id " + conferenceId + "to user with userName: "+  userName);
+       return "conference-page";
     }
 
 }

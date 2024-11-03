@@ -14,4 +14,5 @@ public class DeviceSelectionDTO {
     private List<AudioDeviceDTO> audio;
     private GridSizeDTO gridSize;
     private String conferenceId;
+    private String userName;
 }

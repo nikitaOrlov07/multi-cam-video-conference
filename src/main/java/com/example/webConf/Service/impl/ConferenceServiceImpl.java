@@ -54,13 +54,13 @@ public class ConferenceServiceImpl implements ConferenceService {
                     .build();
             userService.save(temporaryUser);
             savedConference.getUsers().add(temporaryUser);
-            temporaryUser.getConferences().add(conference);
         }
         Conference updatedConference = conferenceRepository.save(savedConference);
-        if(!updatedConference.getId().equals(savedConference)) {
+        if(!updatedConference.getId().equals(savedConference.getId())) {
             log.error("Error while saving conference");
             throw new Exception("Error while saving conference");
         }
+        log.info("Successfully saved conference");
         return savedConference.getId();
     }
 }
