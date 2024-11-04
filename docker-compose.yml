@@ -7,11 +7,8 @@ services:
       - '8000:80'
       - '8443:443'
     environment:
-      - ENABLE_AUTH=1
-      - JWT_ENABLED=1
-      - JWT_SECRET=YOUR_SECRET
-      - JWT_APP_ID=YOUR_APP_ID
-      - JWT_ISSUER=YOUR_JWT_ISSUER
+      - ENABLE_AUTH=0
+      - JWT_ENABLED=0
       - XMPP_SERVER=prosody
       - XMPP_BOSH_URL_BASE=http://prosody:5280
     networks:

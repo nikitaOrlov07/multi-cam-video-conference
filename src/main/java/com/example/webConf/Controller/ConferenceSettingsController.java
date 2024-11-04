@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.*;
 @Controller
 @Slf4j
 @RequiredArgsConstructor
-public class ConferenceController {
+public class ConferenceSettingsController {
 
     private final ConferenceService conferenceService;
     private final ObjectMapper objectMapper;
@@ -114,13 +114,4 @@ public class ConferenceController {
 
         return ResponseEntity.ok(conferenceId);
     }
-
-    @GetMapping("/conference")
-    public String conferencePage(@RequestParam(value = "userName"    , required = false) String userName,
-                                 @RequestParam(value = "conferenceId") String conferenceId)
-    {
-       log.info("Conference page is working for conference id " + conferenceId + "to user with userName: "+  userName);
-       return "conference-page";
-    }
-
 }

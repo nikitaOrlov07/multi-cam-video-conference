@@ -4,4 +4,6 @@ import com.example.webConf.Model.Devices.ConferenceDevices;
 
 public interface ConferenceDevicesService {
     void save(ConferenceDevices devices);
+
+    ConferenceDevices findByConferenceId(String conferenceId);
 }

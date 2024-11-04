@@ -114,18 +114,24 @@
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
-		<!--For layout file applying -->
+		<!-- For layout file applying -->
 		<dependency>
 			<groupId>nz.net.ultraq.thymeleaf</groupId>
 			<artifactId>thymeleaf-layout-dialect</artifactId>
 			<version>3.0.0</version>
 		</dependency>
-		<!--For using sec attribute in html -->
+		<!-- For using sec attribute in html -->
 		<dependency>
 		<groupId>org.thymeleaf.extras</groupId>
 		<artifactId>thymeleaf-extras-springsecurity6</artifactId>
 		<version>3.1.1.RELEASE</version>
-	</dependency>
+	    </dependency>
+		<!-- Dependency for WebClient -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-webflux</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<repositories>

@@ -18,4 +18,9 @@ public class ConferenceDevicesServiceImpl implements ConferenceDevicesService {
         log.info("Saving conference devices information");
         conferenceDeviceRepository.save(devices);
     }
+
+    @Override
+    public ConferenceDevices findByConferenceId(String conferenceId) {
+        return conferenceDeviceRepository.findByConferenceId(conferenceId);
+    }
 }
