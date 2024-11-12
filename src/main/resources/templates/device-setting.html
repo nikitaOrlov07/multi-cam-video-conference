@@ -60,15 +60,15 @@
 
 <!-- Preview Modal -->
 <div class="modal fade" id="previewModal" tabindex="-1" aria-labelledby="previewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header">
                 <h3 class="modal-title" id="previewModalLabel">Preview Selected Devices</h3>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <div id="previewGrid" class="preview-grid">
-                    <!-- Camera previews will be added here -->
+                <div class="d-flex justify-content-center">
+                    <div id="previewGrid" class="preview-grid"></div>
                 </div>
                 <div class="audio-info mt-4">
                     <h4>Selected Audio Device:</h4>
@@ -93,7 +93,7 @@
         </div>
         <div class="modal-body">
             <div class="form-group">
-                <label for="conferenceIdentifier">Conference Identifier:</label>
+                <label for="conferenceidentifier">Conference Identifier:</label>
                 <input type="text" class="form-control" id="conferenceIdentifier" placeholder="Enter conference identifier">
             </div>
             <div id="errorAlert" class="alert alert-danger mt-3" style="display: none;">

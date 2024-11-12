@@ -8,5 +8,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface ConferenceDeviceRepository extends JpaRepository<ConferenceDevices,Long> {
     ConferenceDevices findByConferenceId(String conferenceId);
-    ConferenceDevices findFirstByByUserNameAndConference(String userName, Conference conference);
+    ConferenceDevices findFirstByUserNameAndConference(String userName, Conference conference);
 }

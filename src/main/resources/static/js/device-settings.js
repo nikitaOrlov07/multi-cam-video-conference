@@ -262,7 +262,9 @@ async function openPreviewModal() {
     stopAllStreams();
 
     // Set grid layout
+    previewGrid.style.display = 'grid';
     previewGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+    previewGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
     // Sort cameras by order
     const sortedCameras = selectedCameras
@@ -398,6 +400,11 @@ function closeJoinModal() {
 
 
 function joinConference() {
+    const input = document.getElementById('conferenceIdentifier');
+    console.log('Input disabled:', input.disabled);
+    console.log('Input readonly:', input.readOnly);
+    console.log('Input style:', window.getComputedStyle(input));
+
     const identifier = document.getElementById('conferenceIdentifier').value.trim();
 
     if (!identifier) {

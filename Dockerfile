@@ -10,13 +10,11 @@ libopencv-dev \
 WORKDIR /app
 
   # Copy the application jar file into the container
-COPY target/your-java-app.jar /app/your-java-app.jar
+COPY target/demo-0.0.1-SNAPSHOT.jar /app/app.jar
 
-  # Copy OpenCV native library
-COPY lib/libopencv_java454.so /usr/lib/libopencv_java454.so
 
   # Make port 8080 available to the world outside this container
 EXPOSE 8080
 
   # Run the jar file
-CMD ["java", "-jar", "/app/your-java-app.jar"]
+CMD ["java", "-jar", "/app/app.jar"]
