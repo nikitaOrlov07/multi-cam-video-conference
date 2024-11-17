@@ -328,11 +328,11 @@ async function openPreviewModal() {
     previewModal.show();
 }
 
-
-
-
 function closePreviewModal() {
     stopAllStreams();
+    if (document.getElementById('joinConferenceModal').style.display === 'block') {
+        return; // Не закрываем preview модальное окно, если открыто join модальное окно
+    }
     previewModal.hide();
 }
 
@@ -377,34 +377,33 @@ function createNewConference() {
 }
 
 function openJoinModal() {
-    document.getElementById('joinConferenceModal').style.display = 'block';
+    previewModal.hide(); // Close preview modal first
+    const joinModal = document.getElementById('joinConferenceModal');
+    const conferenceInput = document.getElementById('conferenceIdentifier');
+
     document.getElementById('errorAlert').style.display = 'none';
-    document.getElementById('conferenceIdentifier').value = '';
+    conferenceInput.value = '';
+
+    joinModal.style.display = 'block';
+
+    // Reset modal position and remove transform
+    const modalContent = joinModal.querySelector('.modal-content');
+    modalContent.style.transform = 'none';
+
+    // Set focus after a small delay
+    setTimeout(() => {
+        conferenceInput.focus();
+    }, 100);
 }
 
 function closeJoinModal() {
-    // Скрываем Join Conference модальное окно
-    document.getElementById('joinConferenceModal').style.display = 'none';
-
-    // Очищаем поле ввода и скрываем сообщение об ошибке
-    document.getElementById('conferenceIdentifier').value = '';
+    const joinModal = document.getElementById('joinConferenceModal');
+    joinModal.style.display = 'none';
     document.getElementById('errorAlert').style.display = 'none';
-
-    // Возвращаем модальное окно в исходное положение
-    const modalContent = document.querySelector('#joinConferenceModal .modal-content');
-    modalContent.style.transform = 'translate(-50%, -50%)';
-
-    // Показываем Preview модальное окно
-    previewModal.show();
 }
 
 
 function joinConference() {
-    const input = document.getElementById('conferenceIdentifier');
-    console.log('Input disabled:', input.disabled);
-    console.log('Input readonly:', input.readOnly);
-    console.log('Input style:', window.getComputedStyle(input));
-
     const identifier = document.getElementById('conferenceIdentifier').value.trim();
 
     if (!identifier) {
@@ -431,14 +430,13 @@ function joinConference() {
         cols: parseInt(document.getElementById('gridCols').value)
     };
 
-    // Get userName from hidden input
     const userName = document.getElementById('userNameInput').value;
 
     const requestBody = {
         cameras: selectedCameras,
         audio: audioDevice,
         gridSize: gridSize,
-        userName: userName  // Add userName to request body
+        userName: userName
     };
 
     sendDeviceData(requestBody, identifier);

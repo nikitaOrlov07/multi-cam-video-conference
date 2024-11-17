@@ -85,138 +85,58 @@
 </div>
 
 <!-- Join Conference Modal -->
-<div id="joinConferenceModal" class="modal">
-    <div class="modal-content" style="max-width: 500px;">
-        <div class="modal-header">
-            <h3>Join Conference</h3>
-            <span class="close" onclick="closeJoinModal()">&times;</span>
-        </div>
-        <div class="modal-body">
-            <div class="form-group">
-                <label for="conferenceidentifier">Conference Identifier:</label>
-                <input type="text" class="form-control" id="conferenceIdentifier" placeholder="Enter conference identifier">
+<div class="modal" id="joinConferenceModal" tabindex="-1" role="dialog">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Join Conference</h3>
+                <button type="button" class="btn-close" onclick="closeJoinModal()" aria-label="Close"></button>
             </div>
-            <div id="errorAlert" class="alert alert-danger mt-3" style="display: none;">
-                Conference with this identifier does not exist
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="conferenceIdentifier">Conference Identifier:</label>
+                    <input type="text"
+                           class="form-control"
+                           id="conferenceIdentifier"
+                           placeholder="Enter conference identifier"
+                           autocomplete="off">
+                </div>
+                <div id="errorAlert" class="alert alert-danger mt-3" style="display: none;">
+                    Conference with this identifier does not exist
+                </div>
             </div>
-        </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeJoinModal()">Cancel</button>
-            <button class="btn btn-primary" onclick="joinConference()">Connect</button>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="closeJoinModal()">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="joinConference()">Connect</button>
+            </div>
         </div>
     </div>
 </div>
+
 <script src="/js/device-settings.js"></script>
 <script>
-
     let previewModal;
-
-    window.onload = function() {
-        getDevices();
-        // Инициализация модального окна Bootstrap
-        previewModal = new bootstrap.Modal(document.getElementById('previewModal'), {
-            backdrop: 'static',
-            keyboard: false
-        });
-    }
     let audioContext;
     let mediaRecorder;
     let audioChunks = [];
     let currentTestingMicrophone = null;
     let activeStreams = [];
 
+    window.onload = function() {
+        getDevices();
+        previewModal = new bootstrap.Modal(document.getElementById('previewModal'), {
+            backdrop: 'static',
+            keyboard: false
+        });
+    }
 
-
-    // Update window.onclick to handle both modals
     window.onclick = function(event) {
-        const previewModal = document.getElementById('previewModal');
         const joinModal = document.getElementById('joinConferenceModal');
-
-        if (event.target == previewModal) {
-            closePreviewModal();
-        }
         if (event.target == joinModal) {
             closeJoinModal();
         }
     }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const modal = document.getElementById('joinConferenceModal');
-        const modalContent = modal.querySelector('.modal-content');
-        const modalHeader = modal.querySelector('.modal-header');
-
-        let isDragging = false;
-        let currentX;
-        let currentY;
-        let initialX;
-        let initialY;
-        let xOffset = 0;
-        let yOffset = 0;
-
-        // Устанавливаем начальное положение в центр
-        function centerModal() {
-            const rect = modalContent.getBoundingClientRect();
-            xOffset = (window.innerWidth - rect.width) / 2;
-            yOffset = (window.innerHeight - rect.height) / 2;
-            setTranslate(xOffset, yOffset, modalContent);
-        }
-
-        function dragStart(e) {
-            if (e.target.closest('.modal-header')) {
-                initialX = e.clientX - xOffset;
-                initialY = e.clientY - yOffset;
-                isDragging = true;
-            }
-        }
-
-        function drag(e) {
-            if (isDragging) {
-                e.preventDefault();
-
-                currentX = e.clientX - initialX;
-                currentY = e.clientY - initialY;
-
-                // Ограничиваем перемещение в пределах окна
-                const rect = modalContent.getBoundingClientRect();
-                currentX = Math.max(0, Math.min(currentX, window.innerWidth - rect.width));
-                currentY = Math.max(0, Math.min(currentY, window.innerHeight - rect.height));
-
-                xOffset = currentX;
-                yOffset = currentY;
-
-                setTranslate(currentX, currentY, modalContent);
-            }
-        }
-
-        function dragEnd() {
-            initialX = currentX;
-            initialY = currentY;
-            isDragging = false;
-        }
-
-        function setTranslate(xPos, yPos, el) {
-            el.style.transform = `translate(${xPos}px, ${yPos}px)`;
-        }
-
-        // Добавляем обработчики событий
-        modalHeader.addEventListener('mousedown', dragStart);
-        document.addEventListener('mousemove', drag);
-        document.addEventListener('mouseup', dragEnd);
-
-        // Центрируем модальное окно при открытии
-        window.addEventListener('load', centerModal);
-        window.addEventListener('resize', centerModal);
-
-        // Обновляем функцию открытия модального окна
-        window.openJoinModal = function() {
-            modal.style.display = 'block';
-            centerModal();
-            document.getElementById('errorAlert').style.display = 'none';
-            document.getElementById('conferenceIdentifier').value = '';
-        };
-    });
-</script>
 </body>
 </html>

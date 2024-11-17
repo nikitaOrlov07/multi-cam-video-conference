@@ -1,13 +1,8 @@
-version: '3.8'
+version: '3'
 services:
-  java-app:
+  video-conference:
     build: .
     ports:
       - "8080:8080"
-    volumes:
-      - ./:/app
-    command: java -jar /app/your-java-app.jar
-
-networks:
-  default:
-    driver: bridge
+    environment:
+      - AGORA_APP_ID=${AGORA_APP_ID}

@@ -126,19 +126,17 @@
 		<artifactId>thymeleaf-extras-springsecurity6</artifactId>
 		<version>3.1.1.RELEASE</version>
 	    </dependency>
-		<!-- Dependency for WebClient -->
+		<!-- Depenency for Agora API-->
 		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-webflux</artifactId>
-		</dependency>
-		<!-- Dependency for webSocket -->
-		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-websocket</artifactId>
+			<groupId>io.agora</groupId>
+			<artifactId>agora-rtm</artifactId>
+			<version>2.2.0</version>
+			<scope>runtime</scope>
 		</dependency>
 		<dependency>
-			<groupId>org.springframework</groupId>
-			<artifactId>spring-messaging</artifactId>
+			<groupId>com.github.AgoraIO</groupId>
+			<artifactId>Java-RTC</artifactId>
+			<version>4.2.2</version>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
@@ -171,6 +169,10 @@
 				<enabled>true</enabled>
 			</snapshots>
 			<url>https://github.com/jitsi/jitsi-maven-repository/raw/master/snapshots/</url>
+		</repository>
+		<repository>
+			<id>jitpack.io</id>
+			<url>https://jitpack.io</url>
 		</repository>
 	</repositories>
 
