@@ -15,6 +15,8 @@
 	<description>Demo project for Spring Boot</description>
 	<properties>
 		<java.version>17</java.version>
+		<maven.compiler.source>17</maven.compiler.source>
+		<maven.compiler.target>17</maven.compiler.target>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -126,23 +128,30 @@
 		<artifactId>thymeleaf-extras-springsecurity6</artifactId>
 		<version>3.1.1.RELEASE</version>
 	    </dependency>
-		<!-- Depenency for Agora API-->
-		<dependency>
-			<groupId>io.agora</groupId>
-			<artifactId>agora-rtm</artifactId>
-			<version>2.2.0</version>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.github.AgoraIO</groupId>
-			<artifactId>Java-RTC</artifactId>
-			<version>4.2.2</version>
-		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
 			<artifactId>jackson-databind</artifactId>
 		</dependency>
-
+		<!-- OpenCV-->
+		<dependency>
+			<groupId>org.openpnp</groupId>
+			<artifactId>opencv</artifactId>
+			<version>4.7.0-0</version>
+		</dependency>
+		<dependency>
+			<groupId>org.jitsi</groupId>
+			<artifactId>jitsi-videobridge</artifactId>
+			<version>2.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-websocket</artifactId>
+		</dependency>
+		<!-- WebSocket -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-websocket</artifactId>
+		</dependency>
 	</dependencies>
 
 	<repositories>
@@ -170,10 +179,6 @@
 			</snapshots>
 			<url>https://github.com/jitsi/jitsi-maven-repository/raw/master/snapshots/</url>
 		</repository>
-		<repository>
-			<id>jitpack.io</id>
-			<url>https://jitpack.io</url>
-		</repository>
 	</repositories>
 
 	<build>
@@ -181,6 +186,13 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<release>17</release>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>
