@@ -1,5 +1,6 @@
 package com.example.webConf.Model.Conference;
 
+import com.example.webConf.Model.Devices.ConferenceDevices;
 import com.example.webConf.Model.User.UserEntity;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -25,6 +26,9 @@ public class Conference {
 
     @ManyToMany(mappedBy = "conferences")
     private List<UserEntity> users = new ArrayList<>();
+
+    @OneToMany(mappedBy = "conference", cascade = CascadeType.ALL)
+    private List<ConferenceDevices> devices = new ArrayList<>();
 
     @PrePersist // will be executed before store value to database
     public void generateIdKey(){

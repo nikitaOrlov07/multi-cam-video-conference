@@ -18,8 +18,8 @@ public class ConferenceDevices {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
-    @JoinColumn(name = "conference_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conference_id", nullable = false)
     private Conference conference;
 
     // Microphone information

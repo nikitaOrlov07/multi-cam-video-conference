@@ -17,6 +17,7 @@ if (subdomain) {
 config.hosts.muc = 'muc.' + subdomain + 'meet.jitsi';
 config.bosh = '/http-bind';
 
+config.websocket = 'wss://http://localhost:8090/' + subdir + 'xmpp-websocket';
 
 // Video configuration.
 //
@@ -147,7 +148,7 @@ config.enableRemb = true;
 config.enableTcc = true;
 
 // Enable IPv6 support.
-config.useIPv6 = false;
+config.useIPv6 = true;
 
 // Transcriptions (subtitles and buttons can be configured in interface_config)
 config.transcription = { enabled: false };

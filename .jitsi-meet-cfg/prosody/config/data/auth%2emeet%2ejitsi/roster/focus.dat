@@ -1,7 +1,7 @@
 return {
 	[false] = {
-		["version"] = 2;
 		["pending"] = {};
+		["version"] = 2;
 	};
 	["focus.meet.jitsi"] = {
 		["groups"] = {};

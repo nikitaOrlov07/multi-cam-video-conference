@@ -27,6 +27,15 @@ public class ConferenceServiceImpl implements ConferenceService {
         Optional<Conference> conference = conferenceRepository.findById(identifier);
         return conference.map(ConferenceMapper::getConferenceDtoFromConference).orElse(null);
     }
+    @Override
+    public Conference findById(String identifier) {
+        Optional<Conference> conference = conferenceRepository.findById(identifier);
+        if(conference.isEmpty()){
+            log.error("Could not find conference");
+            return null;
+        }
+        return conference.get();
+    }
 
     @Override
     public String createConference(UserEntity userEntity,String userName) throws Exception {

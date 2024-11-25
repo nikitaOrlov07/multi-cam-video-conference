@@ -61,4 +61,5 @@ public class ConferenceDevicesServiceImpl implements ConferenceDevicesService {
             throw new RuntimeException("Error parsing camera configuration", e);
         }
     }
+
 }

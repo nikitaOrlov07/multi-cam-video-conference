@@ -138,7 +138,7 @@ Component "muc.meet.jitsi" "muc"
     muc_room_default_public_jids = true
     
     muc_password_whitelist = {
-        "focus@auth.meet.jitsi"
+        "focus@<no value>"
     }
 
 Component "focus.meet.jitsi" "client_proxy"

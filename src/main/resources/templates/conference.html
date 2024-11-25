@@ -22,12 +22,13 @@
             padding: 20px;
             width: 100%;
             height: 100vh;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         }
 
         .video-wrapper {
             position: relative;
             width: 100%;
-            height: 100%;
+            aspect-ratio: 16/9;
             background: #2a2a2a;
             border-radius: 8px;
             overflow: hidden;
@@ -102,6 +103,7 @@
             display: none;
             z-index: 2000;
         }
+
         .loading-overlay {
             position: fixed;
             top: 0;
@@ -129,7 +131,8 @@
             100% { transform: rotate(360deg); }
         }
     </style>
-    <script src="https://meet.jitsi.org/external_api.js"></script>
+    <script src="http://localhost:8090/libs/lib-jitsi-meet.min.js"></script>
+    <script src="http://localhost:8090/external_api.js"></script>
 </head>
 <body>
 <div id="loading" class="loading-overlay">
@@ -166,210 +169,312 @@
         constructor() {
             this.conferenceId = /*[[${conferenceId.id}]]*/ 'default-conf-id';
             this.userName = /*[[${userName}]]*/ 'default-username';
-            this.jitsiApi = null;
+            this.connection = null;
+            this.room = null;
             this.localTracks = {
                 audio: null,
                 video: []
             };
+            this.remoteTracks = new Map();
             this.isInitialized = false;
+            this.deviceConfig = null;
+            this.participants = new Map();
         }
-        async loadJitsiAPI() {
-            return new Promise((resolve, reject) => {
-                // Проверяем, загружен ли уже API
-                if (typeof JitsiMeetExternalAPI !== 'undefined') {
-                    resolve();
-                    return;
-                }
-
-                const script = document.createElement('script');
-                script.src = 'http://localhost:8090/external_api.js';
-                script.async = true;
-                script.onload = () => resolve();
-                script.onerror = () => reject(new Error('Failed to load Jitsi API'));
-                document.body.appendChild(script);
-            });
-        }
-
-        async init() {
+        async loadDeviceConfig() {
             try {
-                // Показываем загрузку
-                document.getElementById('loading').style.display = 'flex';
-
-                // Загружаем Jitsi API
-                await this.loadJitsiAPI();
-
-                // Получаем конфигурацию устройств
                 const response = await fetch(`/api/conference/devices?conferenceId=${this.conferenceId}&userName=${this.userName}`);
                 if (!response.ok) {
-                    throw new Error('Failed to fetch device configuration');
+                    throw new Error('Failed to load device configuration');
                 }
-                const deviceConfig = await response.json();
-
-                // Настраиваем сетку для видео
-                this.configureVideoGrid(deviceConfig);
-
-                // Инициализируем Jitsi Meet с правильным доменом
-                const options = {
-                    roomName: this.conferenceId,
-                    width: 0,
-                    height: 0,
-                    parentNode: document.createElement('div'),
-                    configOverwrite: {
-                        startWithAudioMuted: false,
-                        startWithVideoMuted: false,
-                        prejoinPageEnabled: false,
-                        disableDeepLinking: true
-                    },
-                    interfaceConfigOverwrite: {
-                        filmStripOnly: true,
-                        TOOLBAR_BUTTONS: []
-                    }
-                };
-
-                this.jitsiApi = new JitsiMeetExternalAPI('localhost:8090', options);
-                await this.setupEventListeners();
-                await this.initializeDevices(deviceConfig.cameras);
-                this.setupControlButtons();
-
-                this.isInitialized = true;
-                // Скрываем загрузку
-                document.getElementById('loading').style.display = 'none';
+                this.deviceConfig = await response.json();
+                return this.deviceConfig;
             } catch (error) {
-                this.showError(`Ошибка инициализации: ${error.message}`);
-                console.error('Initialization error:', error);
-                // Скрываем загрузку при ошибке
-                document.getElementById('loading').style.display = 'none';
-            }
-        }
-
-        async initializeConference() {
-            try {
-                // Получаем конфигурацию устройств с сервера
-                const response = await fetch(`/api/conference/devices?conferenceId=${this.conferenceId}&userName=${this.userName}`);
-                const deviceConfig = await response.json();
-
-                // Настраиваем сетку для видео
-                this.configureVideoGrid(deviceConfig);
-
-                // Инициализируем Jitsi Meet
-                const options = {
-                    roomName: this.conferenceId,
-                    width: 0,
-                    height: 0,
-                    parentNode: document.createElement('div'),
-                    configOverwrite: {
-                        startWithAudioMuted: false,
-                        startWithVideoMuted: false,
-                        prejoinPageEnabled: false
-                    },
-                    interfaceConfigOverwrite: {
-                        filmStripOnly: true,
-                        TOOLBAR_BUTTONS: []
-                    }
-                };
-
-                this.jitsiApi = new JitsiMeetExternalAPI(this.domain, options);
-
-                // Подключаем обработчики событий
-                this.setupEventListeners();
-
-                // Инициализируем устройства
-                await this.initializeDevices(deviceConfig.cameras);
-
-            } catch (error) {
-                this.showError('Ошибка инициализации конференции: ' + error.message);
-            }
-        }
-
-        configureVideoGrid(deviceConfig) {
-            const container = document.getElementById('video-container');
-            container.style.gridTemplateColumns = `repeat(${deviceConfig.gridSize.cols}, 1fr)`;
-            container.style.gridTemplateRows = `repeat(${deviceConfig.gridSize.rows}, 1fr)`;
-
-            deviceConfig.cameras.forEach((camera, index) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'video-wrapper';
-                wrapper.id = `video-wrapper-${camera.deviceId}`;
-
-                const video = document.createElement('video');
-                video.id = `video-${camera.deviceId}`;
-                video.autoplay = true;
-                video.playsInline = true;
-                video.muted = true;
-
-                const label = document.createElement('div');
-                label.className = 'camera-label';
-                label.textContent = camera.label || `Камера ${index + 1}`;
-
-                wrapper.appendChild(video);
-                wrapper.appendChild(label);
-                container.appendChild(wrapper);
-            });
-        }
-
-        async initializeDevices(cameras) {
-            try {
-                // Запрашиваем разрешения на доступ к медиа устройствам
-                await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
-
-                for (const camera of cameras) {
-                    try {
-                        const stream = await navigator.mediaDevices.getUserMedia({
-                            video: {
-                                deviceId: { exact: camera.deviceId }
-                            }
-                        });
-
-                        const videoTrack = stream.getVideoTracks()[0];
-                        this.localTracks.video.push(videoTrack);
-
-                        const videoElement = document.getElementById(`video-${camera.deviceId}`);
-                        if (videoElement) {
-                            videoElement.srcObject = new MediaStream([videoTrack]);
-                        }
-                    } catch (e) {
-                        console.error(`Error initializing camera ${camera.deviceId}:`, e);
-                        this.showError(`Ошибка инициализации камеры: ${camera.label}`);
-                    }
-                }
-
-                // Инициализируем аудио отдельно
-                const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                this.localTracks.audio = audioStream.getAudioTracks()[0];
-
-            } catch (error) {
-                this.showError('Ошибка доступа к устройствам: ' + error.message);
+                console.error('Error loading device configuration:', error);
+                this.showError('Ошибка загрузки конфигурации устройств');
                 throw error;
             }
         }
 
+        async init() {
+            try {
+                document.getElementById('loading').style.display = 'flex';
 
-        setupEventListeners() {
-            this.jitsiApi.addEventListeners({
-                videoConferenceJoined: () => {
-                    console.log('Присоединились к конференции');
-                },
-                participantJoined: (participant) => {
-                    console.log('Участник присоединился:', participant);
-                },
-                participantLeft: (participant) => {
-                    console.log('Участник покинул конференцию:', participant);
-                }
+                // Загрузка конфигурации устройств перед инициализацией
+                await this.loadDeviceConfig();
+
+                // Initialize JitsiMeetJS
+                JitsiMeetJS.init({
+                    disableAudioLevels: true,
+                    websocket: 'ws://localhost:8090/xmpp-websocket',
+                    bosh: 'http://localhost:8090/http-bind',
+                    enableWindowOnErrorHandler: true
+                });
+
+                JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
+
+                const options = {
+                    hosts: {
+                        domain: 'meet.jitsi',
+                        muc: 'muc.meet.jitsi'
+                    },
+                    serviceUrl: 'http://localhost:8090/http-bind',
+                    websocket: 'ws://localhost:8090/xmpp-websocket',
+                    clientNode: 'http://jitsi.org/jitsimeet'
+                };
+
+                this.connection = new JitsiMeetJS.JitsiConnection(null, null, options);
+
+                this.connection.addEventListener(
+                    JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
+                    () => this.onConnectionSuccess()
+                );
+                this.connection.addEventListener(
+                    JitsiMeetJS.events.connection.CONNECTION_FAILED,
+                    () => this.onConnectionFailed()
+                );
+                this.connection.addEventListener(
+                    JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED,
+                    () => this.onDisconnected()
+                );
+
+                await this.connection.connect();
+                await this.initializeDevices();
+                this.setupControlButtons();
+
+            } catch (error) {
+                console.error('Initialization error:', error);
+                this.showError(`Ошибка инициализации: ${error.message}`);
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        async onConnectionSuccess() {
+            try {
+                console.log('Connection established successfully');
+
+                const conferenceOptions = {
+                    openBridgeChannel: true,
+                    enableLipSync: false,
+                    p2p: {
+                        enabled: false
+                    }
+                };
+
+                this.room = this.connection.initJitsiConference(this.conferenceId, conferenceOptions);
+
+                // Обновленные обработчики событий
+                this.room.on(JitsiMeetJS.events.conference.TRACK_ADDED,
+                    track => this.onRemoteTrackAdded(track));
+                this.room.on(JitsiMeetJS.events.conference.TRACK_REMOVED,
+                    track => this.onRemoteTrackRemoved(track));
+                this.room.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED,
+                    () => this.onConferenceJoined());
+                this.room.on(JitsiMeetJS.events.conference.USER_JOINED,
+                    (id, user) => this.onUserJoined(id, user));
+                this.room.on(JitsiMeetJS.events.conference.USER_LEFT,
+                    (id) => this.onUserLeft(id));
+
+                await this.room.join();
+                this.room.setDisplayName(this.userName);
+
+                // После успешного подключения запрашиваем список текущих участников
+                const participants = this.room.getParticipants();
+                participants.forEach(participant => {
+                    this.onUserJoined(participant.getId(), participant);
+                });
+
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error('Conference connection error:', error);
+                this.showError('Ошибка подключения к конференции');
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        // Новый метод для обработки присоединения пользователя
+        onUserJoined(id, user) {
+            console.log('User joined:', id, user);
+            this.participants.set(id, {
+                id,
+                displayName: user.getDisplayName() || 'Участник',
+                tracks: new Map()
             });
+        }
+
+        // Новый метод для обработки выхода пользователя
+        onUserLeft(id) {
+            console.log('User left:', id);
+            this.participants.delete(id);
+
+            // Удаляем все видео контейнеры пользователя
+            const containers = document.querySelectorAll(`[data-participant-id="${id}"]`);
+            containers.forEach(container => container.remove());
+
+            // Очищаем треки
+            if (this.remoteTracks.has(id)) {
+                this.remoteTracks.get(id).forEach(track => track.dispose());
+                this.remoteTracks.delete(id);
+            }
+        }
+
+        onRemoteTrackAdded(track) {
+            if (track.isLocal()) {
+                return;
+            }
+
+            const participantId = track.getParticipantId();
+            const trackType = track.getType();
+
+            // Инициализация структуры для треков участника
+            if (!this.remoteTracks.has(participantId)) {
+                this.remoteTracks.set(participantId, new Map());
+            }
+
+            // Сохраняем трек
+            this.remoteTracks.get(participantId).set(track.getId(), track);
+
+            // Добавляем только видео треки в DOM
+            if (trackType === 'video') {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'video-wrapper';
+                wrapper.setAttribute('data-participant-id', participantId);
+                wrapper.setAttribute('data-track-id', track.getId());
+
+                const video = document.createElement('video');
+                video.autoplay = true;
+                video.playsInline = true;
+                track.attach(video);
+
+                const label = document.createElement('div');
+                label.className = 'camera-label';
+                const participant = this.participants.get(participantId);
+                label.textContent = participant ? participant.displayName : 'Участник';
+
+                wrapper.appendChild(video);
+                wrapper.appendChild(label);
+                document.getElementById('video-container').appendChild(wrapper);
+            }
+        }
+
+        onRemoteTrackRemoved(track) {
+            if (track.isLocal()) {
+                return;
+            }
+
+            const participantId = track.getParticipantId();
+            const trackId = track.getId();
+
+            // Отсоединяем и удаляем трек
+            track.detach();
+
+            // Удаляем контейнер конкретного трека
+            const container = document.querySelector(`[data-participant-id="${participantId}"][data-track-id="${trackId}"]`);
+            if (container) {
+                container.remove();
+            }
+
+            // Удаляем трек из хранилища
+            if (this.remoteTracks.has(participantId)) {
+                this.remoteTracks.get(participantId).delete(trackId);
+                if (this.remoteTracks.get(participantId).size === 0) {
+                    this.remoteTracks.delete(participantId);
+                }
+            }
+        }
+
+
+        async initializeDevices() {
+            try {
+                if (!this.deviceConfig || !this.deviceConfig.cameras) {
+                    throw new Error('Device configuration not loaded');
+                }
+
+                // Инициализация камер из конфигурации
+                for (const camera of this.deviceConfig.cameras) {
+                    try {
+                        const tracks = await JitsiMeetJS.createLocalTracks({
+                            devices: ['video'],
+                            cameraDeviceId: camera.deviceId,
+                            constraints: {
+                                video: {
+                                    deviceId: camera.deviceId,
+                                    height: { ideal: 720 },
+                                    width: { ideal: 1280 }
+                                }
+                            }
+                        });
+
+                        this.localTracks.video.push(tracks[0]);
+                        this.createVideoPreview(tracks[0], camera.label);
+
+                        if (this.room) {
+                            await this.room.addTrack(tracks[0]);
+                        }
+                    } catch (e) {
+                        console.error(`Error accessing camera: ${camera.label}`, e);
+                        this.showError(`Ошибка доступа к камере: ${camera.label}`);
+                    }
+                }
+
+                // Создание аудио трека
+                try {
+                    const tracks = await JitsiMeetJS.createLocalTracks({
+                        devices: ['audio']
+                    });
+
+                    this.localTracks.audio = tracks[0];
+                    if (this.room) {
+                        await this.room.addTrack(tracks[0]);
+                    }
+                } catch (e) {
+                    console.error('Error accessing microphone:', e);
+                    this.showError('Ошибка доступа к микрофону');
+                }
+            } catch (error) {
+                console.error('Error initializing devices:', error);
+                this.showError('Ошибка инициализации устройств');
+            }
+        }
+
+        createVideoPreview(track, label) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'video-wrapper';
+
+            const video = document.createElement('video');
+            video.autoplay = true;
+            video.playsInline = true;
+            video.muted = true;
+            track.attach(video);
+
+            const labelDiv = document.createElement('div');
+            labelDiv.className = 'camera-label';
+            labelDiv.textContent = label || 'Камера';
+
+            wrapper.appendChild(video);
+            wrapper.appendChild(labelDiv);
+            document.getElementById('video-container').appendChild(wrapper);
         }
 
         setupControlButtons() {
             document.getElementById('toggleVideo').addEventListener('click', () => {
                 this.localTracks.video.forEach(track => {
-                    track.enabled = !track.enabled;
+                    if (track.isMuted()) {
+                        track.unmute();
+                    } else {
+                        track.mute();
+                    }
+                    this.updateButtonState('toggleVideo', !track.isMuted());
                 });
-                this.updateButtonState('toggleVideo', this.localTracks.video[0].enabled);
             });
 
             document.getElementById('toggleAudio').addEventListener('click', () => {
                 if (this.localTracks.audio) {
-                    this.localTracks.audio.enabled = !this.localTracks.audio.enabled;
-                    this.updateButtonState('toggleAudio', this.localTracks.audio.enabled);
+                    if (this.localTracks.audio.isMuted()) {
+                        this.localTracks.audio.unmute();
+                    } else {
+                        this.localTracks.audio.mute();
+                    }
+                    this.updateButtonState('toggleAudio', !this.localTracks.audio.isMuted());
                 }
             });
 
@@ -380,48 +485,90 @@
 
         updateButtonState(buttonId, enabled) {
             const button = document.getElementById(buttonId);
-            if (enabled) {
-                button.classList.remove('muted');
-            } else {
-                button.classList.add('muted');
+            if (button) {
+                button.classList.toggle('muted', !enabled);
             }
         }
+        async leaveConference() {
+            // Очищаем все удаленные треки
+            this.remoteTracks.forEach((tracks, participantId) => {
+                tracks.forEach(track => track.detach());
+                const container = document.querySelector(`[data-participant-id="${participantId}"]`);
+                if (container) {
+                    container.remove();
+                }
+            });
+            this.remoteTracks.clear();
 
-        leaveConference() {
-            // Останавливаем все треки
-            if (this.localTracks.audio) {
-                this.localTracks.audio.stop();
+            // Отключение всех локальных треков
+            Object.values(this.localTracks).flat().forEach(track => {
+                if (track) {
+                    track.dispose();
+                }
+            });
+
+            // Выход из конференции
+            if (this.room) {
+                this.room.leave();
             }
-            this.localTracks.video.forEach(track => track.stop());
 
-            // Отключаемся от конференции
-            if (this.jitsiApi) {
-                this.jitsiApi.dispose();
+            // Отключение соединения
+            if (this.connection) {
+                this.connection.disconnect();
             }
 
-            // Перенаправляем на домашнюю страницу
+            // Перенаправление на домашнюю страницу
             window.location.href = '/home';
+        }
+
+        onConnectionFailed() {
+            this.showError('Ошибка подключения к серверу');
+            document.getElementById('loading').style.display = 'none';
+        }
+
+        onDisconnected() {
+            console.log('Соединение разорвано');
+        }
+
+        onConferenceJoined() {
+            console.log('Конференция успешно подключена');
+            this.isInitialized = true;
         }
 
         showError(message) {
             const errorElement = document.getElementById('error-message');
-            errorElement.textContent = message;
-            errorElement.style.display = 'block';
-            console.error(message);
-            setTimeout(() => {
-                errorElement.style.display = 'none';
-            }, 5000);
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.style.display = 'block';
+                console.error(message);
+
+                // Автоматически скрываем сообщение об ошибке через 5 секунд
+                setTimeout(() => {
+                    errorElement.style.display = 'none';
+                }, 5000);
+            }
         }
     }
-
-
     // Инициализация при загрузке страницы
     document.addEventListener('DOMContentLoaded', async () => {
+        if (typeof JitsiMeetJS === 'undefined') {
+            console.error('JitsiMeetJS not loaded');
+            const errorElement = document.getElementById('error-message');
+            if (errorElement) {
+                errorElement.textContent = 'Ошибка загрузки JitsiMeetJS';
+                errorElement.style.display = 'block';
+            }
+            document.getElementById('loading').style.display = 'none';
+            return;
+        }
+
         const conference = new VideoConference();
         try {
             await conference.init();
         } catch (error) {
             console.error('Failed to initialize conference:', error);
+            conference.showError('Ошибка инициализации конференции');
+            document.getElementById('loading').style.display = 'none';
         }
     });
 </script>

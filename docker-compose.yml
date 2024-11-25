@@ -1,68 +1,44 @@
 version: '3.8'
-
 services:
-
-  db:
-    image: postgres:14-alpine
-    environment:
-      - POSTGRES_DB=videoconf
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   jitsi-web:
     image: jitsi/web:stable-8960
     ports:
       - "8090:80"
     volumes:
       - ./.jitsi-meet-cfg/web:/config:Z
-      - ./.jitsi-meet-cfg/web/letsencrypt:/etc/letsencrypt:Z
-      - ./.jitsi-meet-cfg/transcripts:/usr/share/jitsi-meet/transcripts:Z
     environment:
       - DISABLE_HTTPS=1
       - ENABLE_HTTP_REDIRECT=0
-      - ENABLE_XMPP_WEBSOCKET=0
       - ENABLE_AUTH=0
       - ENABLE_GUESTS=0
-      - ENABLE_IPV6=0
+      - ENABLE_XMPP_WEBSOCKET=1
       - PUBLIC_URL=http://localhost:8090
-      - JICOFO_AUTH_USER=focus
-      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-some_secure_password}
       - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
       - XMPP_BOSH_URL_BASE=http://xmpp.meet.jitsi:5280
-      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - XMPP_WEBSOCKET=ws://localhost:8090/xmpp-websocket
     networks:
       meet.jitsi:
         aliases:
-          - ${XMPP_DOMAIN:-meet.jitsi}
+          - meet.jitsi
 
   prosody:
     image: jitsi/prosody:stable-8960
     ports:
       - "5280:5280"
+      - "5222:5222"  # Add XMPP client port
+
     volumes:
       - ./.jitsi-meet-cfg/prosody/config:/config:Z
-      - ./.jitsi-meet-cfg/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
     environment:
+      - ENABLE_XMPP_WEBSOCKET=1
+      - XMPP_DOMAIN=meet.jitsi
       - DISABLE_HTTPS=1
       - ENABLE_AUTH=0
-      - ENABLE_GUESTS=0
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
+      - ENABLE_GUESTS=1  # Allow guest access
       - JICOFO_AUTH_USER=focus
-      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-some_secure_password}
+      - JICOFO_AUTH_PASSWORD=some_secure_password
       - JVB_AUTH_USER=jvb
-      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD:-another_secure_password}
+      - JVB_AUTH_PASSWORD=another_secure_password
     networks:
       meet.jitsi:
         aliases:
@@ -71,16 +47,15 @@ services:
   jicofo:
     image: jitsi/jicofo:stable-8960
     volumes:
-      - ./.jitsi-meet-cfg/jicofo:/config:Z
+        - ./.jitsi-meet-cfg/jicofo:/config:Z
     environment:
-      - DISABLE_HTTPS=1
-      - ENABLE_AUTH=0
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_SERVER=xmpp.meet.jitsi
-      - JICOFO_AUTH_USER=focus
-      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-some_secure_password}
-      - JICOFO_ENABLE_HEALTH_CHECKS=0
+        - DISABLE_HTTPS=1
+        - ENABLE_AUTH=0
+        - XMPP_DOMAIN=meet.jitsi
+        - XMPP_SERVER=xmpp.meet.jitsi
+        - ENABLE_GUESTS=1  # Allow guest access
+        - JICOFO_AUTH_USER=focus
+        - JICOFO_AUTH_PASSWORD=some_secure_password
     depends_on:
       - prosody
     networks:
@@ -95,13 +70,13 @@ services:
     environment:
       - DISABLE_HTTPS=1
       - ENABLE_AUTH=0
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
       - XMPP_SERVER=xmpp.meet.jitsi
       - JVB_PORT=10000
-      - JVB_ENABLE_APIS=rest,colibri
       - PUBLIC_URL=http://localhost:8090
       - JVB_AUTH_USER=jvb
-      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD:-another_secure_password}
+      - JVB_AUTH_PASSWORD=another_secure_password
+      - JVB_COLIBRI_WS_DOMAIN=localhost:8090
+      - JVB_COLIBRI_WS_SERVER=ws://localhost:8090/colibri-ws/
     depends_on:
       - prosody
     networks:
@@ -109,6 +84,3 @@ services:
 
 networks:
   meet.jitsi:
-
-volumes:
-  postgres_data:

@@ -15,7 +15,6 @@ public class ConferenceMapper {
     public static Conference getConferenceFromConferenceDto(ConferenceDto conferenceDto)
     {
         return Conference.builder()
-                .id(conferenceDto.getId())
                 .conferenceDate(conferenceDto.getConferenceDate())
                 .users(conferenceDto.getUsers())
                 .build();

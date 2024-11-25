@@ -2,6 +2,7 @@ package com.example.webConf.Controller;
 
 import com.example.webConf.Dto.Devices.DeviceSelectionDTO;
 import com.example.webConf.Mappers.ConferenceMapper;
+import com.example.webConf.Model.Conference.Conference;
 import com.example.webConf.Model.User.UserEntity;
 import com.example.webConf.Security.SecurityUtil;
 import com.example.webConf.Service.ConferenceDevicesService;
@@ -72,9 +73,10 @@ public class ConferenceSettingsController {
     @ResponseBody
     public ResponseEntity<String> connectDevices(@RequestBody DeviceSelectionDTO deviceSelection,
                                                  @RequestParam(value = "identifier", required = false) String identifier,
-                                                 @RequestParam(value = "userName", required = false)   String userName) {
+                                                 @RequestParam(value = "userName", required = false) String userName) {
         log.info("\"connectDevices\" controller method is working");
 
+        // Validate device selection
         if (deviceSelection.getCameras() == null || deviceSelection.getCameras().isEmpty()) {
             log.error("No cameras selected");
             return ResponseEntity.badRequest().body("No cameras selected");
@@ -83,19 +85,33 @@ public class ConferenceSettingsController {
             log.warn("No microphone selected");
             return ResponseEntity.badRequest().body("No microphone selected");
         }
-        if(identifier != null && identifier.isEmpty() && (conferenceService.findConferenceById(identifier) == null)) // check if user add conference identifier ,but it does nnot exist
-        {
-         log.error("No conference with {} identifier",identifier);
-         return  ResponseEntity.badRequest().body("No conference with identifier");
+
+        // Validate conference identifier if provided
+        if (identifier != null && !identifier.isEmpty()) {
+            Conference existingConference = conferenceService.findById(identifier);
+            if (existingConference == null) {
+                log.error("No conference found with identifier: {}", identifier);
+                return ResponseEntity.badRequest().body("No conference with identifier");
+            }
         }
-        log.info("if-ы прошли");
-        String conferenceId;
+
         try {
-            // Create new conference devices entry
             UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail());
-            conferenceId = (identifier != null && !identifier.isEmpty()) ? identifier : conferenceService.createConference(currentUser,userName);
+            Conference conference;
+            String conferenceId;
+
+            // Handle existing or new conference
+            if (identifier != null && !identifier.isEmpty()) {
+                conference = conferenceService.findById(identifier);
+                conferenceId = identifier;
+            } else {
+                conferenceId = conferenceService.createConference(currentUser, userName);
+                conference = conferenceService.findById(conferenceId);
+            }
+
+            // Create and save conference devices
             ConferenceDevices devices = ConferenceDevices.builder()
-                    .conference(ConferenceMapper.getConferenceFromConferenceDto(conferenceService.findConferenceById(conferenceId))) // You'll need to implement this
+                    .conference(conference)
                     .userName(deviceSelection.getUserName())
                     .microphoneDeviceId(deviceSelection.getAudio().get(0).getDeviceId())
                     .microphoneLabel(deviceSelection.getAudio().get(0).getLabel())
@@ -105,13 +121,13 @@ public class ConferenceSettingsController {
                     .build();
 
             conferenceDevicesService.save(devices);
-            log.info("Devices connected and saved successfully");
+            log.info("Devices connected and saved successfully for conference: {}", conferenceId);
+
+            return ResponseEntity.ok(conferenceId);
         } catch (Exception e) {
             log.error("Error saving device configuration", e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Error saving device configuration");
         }
-
-        return ResponseEntity.ok(conferenceId);
     }
 }
