@@ -3,12 +3,14 @@
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 2rem;
 }
+
 .welcome-card {
     background: rgba(255, 255, 255, 0.9);
     border-radius: 15px;
     padding: 2rem;
     box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
 }
+
 .btn-custom {
     padding: 1rem 2rem;
     font-size: 1.2rem;
@@ -17,32 +19,103 @@
     max-width: 400px;
     transition: transform 0.2s;
 }
+
 .btn-custom:hover {
     transform: translateY(-3px);
 }
+
 .main-title {
     color: #2c3e50;
     font-size: 3rem;
     margin-bottom: 2rem;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
 }
+
 #conferenceForm {
     max-width: 400px;
     margin: 0 auto;
     display: none;
 }
+
 .modal-content {
     border-radius: 15px;
 }
+
 .modal-header {
     background-color: #4a90e2;
     color: white;
     border-radius: 15px 15px 0 0;
 }
+
 .form-control:focus {
     border-color: #4a90e2;
     box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
 }
+
 .alert {
     margin-bottom: 1rem;
+}
+
+.past-conferences {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 10px;
+    border: 1px solid #0b5ed7;
+    padding: 1.5rem;
+    height: fit-content;
+    max-height: 500px;
+    overflow: auto;
+    margin-top: 2rem;
+}
+
+.past-conferences h3 {
+    font-weight: 700;
+    font-size: 1.75rem;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
+
+.past-conference-item {
+    padding: 1rem;
+    margin: 0;
+    background: white;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.past-conference-item:first-child {
+    border-top: 1px solid #dee2e6;
+}
+
+.conference-name {
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+.split-content {
+    display: grid;
+    gap: 2rem;
+    align-items: start;
+}
+
+/* Responsive design */
+@media (min-width: 768px) {
+    .split-content {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .past-conferences {
+        margin-top: 0;
+    }
+}
+
+@media (max-width: 767px) {
+    .split-content {
+        grid-template-columns: 1fr;
+    }
+
+    .main-title {
+        font-size: 2rem;
+    }
 }

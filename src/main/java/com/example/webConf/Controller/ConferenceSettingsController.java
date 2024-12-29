@@ -18,6 +18,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @Controller
 @Slf4j
 @RequiredArgsConstructor
@@ -29,40 +31,43 @@ public class ConferenceSettingsController {
     private final ConferenceDevicesService conferenceDevicesService;
 
     @GetMapping({"/", "/home"})
-    public String getHomePage(Model model)
-    {
+    public String getHomePage(Model model) {
         log.info("Home page is working");
         String currentUserEmail = (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) ? SecurityUtil.getSessionUserEmail() : "User is not authorized";
         log.info(currentUserEmail);
         UserEntity user;
-        if (!currentUserEmail.equals("User is not authorized"))
-        {
+        if (!currentUserEmail.equals("User is not authorized")) {
+            // User is authorized
             user = userService.findByEmail(currentUserEmail);
-            if(user != null) {
+            if (user != null) {
+                List<Conference> pastConferences = conferenceService.findConferencesByUser(user.getId());
+                String userName = user.getName() +" "+ user.getSurname();
+                log.info("Size of past conferences: {}", pastConferences.size());
+                model.addAttribute("pastConferences", pastConferences);
                 model.addAttribute("isAuthorized", true);
+                model.addAttribute("activeConferences", user.getActiveConferences());
+                log.info("User name : {}",userName);
+                model.addAttribute("userName" , userName);
             }
-        }
-        else
-        {
+        } else {
+            // User is not authorized
             model.addAttribute("isAuthorized", false);
         }
 
-        return  "initial-page";
+        return "initial-page";
     }
+
     @GetMapping("/setDevices")
     public String getAvailableCameras(@RequestParam(value = "userName", required = false) String userName,
-                                      Model model)
-    {
+                                      Model model) {
         log.info("Initial device setting page is working");
-        if(userName != null && !userName.isEmpty()) {
+        if (userName != null && !userName.isEmpty()) {
             model.addAttribute("userName", userName);
-        }
-        else if (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()){
+        } else if (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) {
             UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail());
-            String nameSurname = user.getName() +" "+ user.getSurname();
+            String nameSurname = user.getName() + " " + user.getSurname();
             model.addAttribute("userName", nameSurname);
-        }
-        else {
+        } else {
             return "redirect:/home?error";
         }
         return "device-setting";

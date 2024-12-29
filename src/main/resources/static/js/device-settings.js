@@ -370,7 +370,7 @@ function createNewConference() {
         cameras: selectedCameras,
         audio: audioDevice,
         gridSize: gridSize,
-        userName: userName  // Add userName to request body
+        userName: userName
     };
 
     sendDeviceData(requestBody);

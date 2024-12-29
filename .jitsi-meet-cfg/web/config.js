@@ -1,13 +1,12 @@
 // Jitsi Meet configuration.
+
 var config = {};
 
-if (!config.hasOwnProperty('hosts')) config.hosts = {};
-
+config.hosts = {};
 config.hosts.domain = 'meet.jitsi';
-config.focusUserJid = 'focus@auth.meet.jitsi';
 
 var subdir = '<!--# echo var="subdir" default="" -->';
-var subdomain = "<!--# echo var="subdomain" default="" -->";
+var subdomain = '<!--# echo var="subdomain" default="" -->';
 if (subdir.startsWith('<!--')) {
     subdir = '';
 }
@@ -15,33 +14,35 @@ if (subdomain) {
     subdomain = subdomain.substring(0,subdomain.length-1).split('.').join('_').toLowerCase() + '.';
 }
 config.hosts.muc = 'muc.' + subdomain + 'meet.jitsi';
-config.bosh = '/http-bind';
+config.bosh = 'https://http://localhost:8080/' + subdir + 'http-bind';
+config.websocket = 'wss://http://localhost:8080/' + subdir + 'xmpp-websocket';
+config.bridgeChannel = {
+    preferSctp: true
+};
 
-config.websocket = 'wss://http://localhost:8090/' + subdir + 'xmpp-websocket';
 
 // Video configuration.
 //
 
-if (!config.hasOwnProperty('constraints')) config.constraints = {};
-if (!config.constraints.hasOwnProperty('video')) config.constraints.video = {};
-
 config.resolution = 720;
-config.constraints.video.height = { ideal: 720, max: 720, min: 180 };
-config.constraints.video.width = { ideal: 1280, max: 1280, min: 320};
-config.disableSimulcast = false;
+config.constraints = {
+    video: {
+        height: { ideal: 720, max: 720, min: 180 },
+        width: { ideal: 1280, max: 1280, min: 320},
+    }
+};
+
 config.startVideoMuted = 10;
 config.startWithVideoMuted = false;
 
-if (!config.hasOwnProperty('flags')) config.flags = {};
-config.flags.sourceNameSignaling = true;
-config.flags.sendMultipleVideoStreams = true;
-config.flags.receiveMultipleVideoStreams = true;
-
+config.flags = {
+    sourceNameSignaling: true,
+    sendMultipleVideoStreams: true,
+    receiveMultipleVideoStreams: true
+};
 
 // ScreenShare Configuration.
 //
-
-config.desktopSharingFrameRate = { min: 5, max: 5 };
 
 // Audio configuration.
 //
@@ -50,8 +51,9 @@ config.enableNoAudioDetection = true;
 config.enableTalkWhileMuted = false;
 config.disableAP = false;
 
-if (!config.hasOwnProperty('audioQuality')) config.audioQuality = {};
-config.audioQuality.stereo = false;
+config.audioQuality = {
+    stereo: false
+};
 
 config.startAudioOnly = false;
 config.startAudioMuted = 10;
@@ -65,9 +67,11 @@ config.enableNoisyMicDetection = true;
 // Peer-to-Peer options.
 //
 
-if (!config.hasOwnProperty('p2p')) config.p2p = {};
-
-config.p2p.enabled = true;
+config.p2p = {
+    enabled: true,
+    codecPreferenceOrder: ["AV1", "VP9", "VP8", "H264"],
+    mobileCodecPreferenceOrder: ["VP8", "VP9", "H264", "AV1"]
+};
 
 
 // Breakout Rooms
@@ -83,21 +87,17 @@ config.hideAddRoomButton = false;
 //
 
 // Local recording configuration.
-if (!config.hasOwnProperty('localRecording')) config.localRecording = {};
-config.localRecording.disable = false;
-config.localRecording.notifyAllParticipants = false;
-config.localRecording.disableSelfRecording = false;
+config.localRecording = {
+    disable: false,
+    notifyAllParticipants: false,
+    disableSelfRecording: false
+};
 
 
 // Analytics.
 //
 
-if (!config.hasOwnProperty('analytics')) config.analytics = {};
-
-// Enables callstatsUsername to be reported as statsId and used
-// by callstats as repoted remote id.
-config.enableStatsID = false;
-
+config.analytics = {};
 
 // Dial in/out services.
 //
@@ -115,15 +115,18 @@ config.enableCalendarIntegration = false;
 //
 
 // Prejoin page.
-if (!config.hasOwnProperty('prejoinConfig')) config.prejoinConfig = {};
-config.prejoinConfig.enabled = true;
+config.prejoinConfig = {
+    enabled: true,
 
-// Hides the participant name editing field in the prejoin screen.
-config.prejoinConfig.hideDisplayName = false;
+    // Hides the participant name editing field in the prejoin screen.
+    hideDisplayName: false
+};
 
 // List of buttons to hide from the extra join options dropdown on prejoin screen.
 // Welcome page.
-config.enableWelcomePage = true;
+config.welcomePage = {
+    disabled: false
+};
 
 // Close page.
 config.enableClosePage = false;
@@ -141,47 +144,43 @@ config.roomPasswordNumberOfDigits = false;
 // Advanced.
 //
 
-// Lipsync hack in jicofo, may not be safe.
-config.enableLipSync = false;
-
-config.enableRemb = true;
-config.enableTcc = true;
-
-// Enable IPv6 support.
-config.useIPv6 = true;
-
 // Transcriptions (subtitles and buttons can be configured in interface_config)
-config.transcription = { enabled: false };
-config.transcription.translationLanguages = [];
-config.transcription.translationLanguagesHead = ['en'];
-config.transcription.useAppLanguage = true;
-config.transcription.preferredLanguage = 'en-US';
-config.transcription.disableStartForAll = false;
-config.transcription.autoCaptionOnRecord = false;
+config.transcription = {
+    enabled: false,
+    translationLanguages: [],
+    translationLanguagesHead: ['en'],
+    useAppLanguage: true,
+    preferredLanguage: 'en-US',
+    disableStartForAll: false,
+    autoCaptionOnRecord: false,
+};
 
+// Dynamic branding
 // Deployment information.
 //
 
-if (!config.hasOwnProperty('deploymentInfo')) config.deploymentInfo = {};
-
-// Testing
-//
-
-if (!config.hasOwnProperty('testing')) config.testing = {};
-if (!config.testing.hasOwnProperty('octo')) config.testing.octo = {};
-
-config.testing.capScreenshareBitrate = 1;
-config.testing.octo.probability = 0;
+config.deploymentInfo = {};
 
 // Deep Linking
 config.disableDeepLinking = false;
 
 // P2P preferred codec
-// Enable preferred video Codec
-if (!config.hasOwnProperty('videoQuality')) config.videoQuality = {};
-config.videoQuality.enforcePreferredCodec = false;
+// Video quality settings.
+//
 
-if (!config.videoQuality.hasOwnProperty('maxBitratesVideo')) config.videoQuality.maxBitratesVideo = null;
+config.videoQuality = {};
+config.videoQuality.codecPreferenceOrder = ["AV1", "VP9", "VP8", "H264"];
+config.videoQuality.mobileCodecPreferenceOrder = ["VP8", "VP9", "H264", "AV1"];
+config.videoQuality.enableAdaptiveMode = true;
+
+config.videoQuality.av1 = {};
+
+config.videoQuality.h264 = {};
+
+config.videoQuality.vp8 = {};
+
+config.videoQuality.vp9 = {};
+
 // Reactions
 config.disableReactions = false;
 
@@ -191,18 +190,27 @@ config.disablePolls = false;
 // Configure toolbar buttons
 // Hides the buttons at pre-join screen
 // Configure remote participant video menu
-if (!config.hasOwnProperty('remoteVideoMenu')) config.remoteVideoMenu = {};
-config.remoteVideoMenu.disabled = false;
-config.remoteVideoMenu.disableKick = false;
-config.remoteVideoMenu.disableGrantModerator = false;
-config.remoteVideoMenu.disablePrivateChat = false;
+config.remoteVideoMenu = {
+    disabled: false,
+    disableKick: false,
+    disableGrantModerator: false,
+    disablePrivateChat: false
+};
 
 // Configure e2eping
-if (!config.hasOwnProperty('e2eping')) config.e2eping = {};
-config.e2eping.enabled = false;
+config.e2eping = {
+    enabled: false
+};
+
 
 
 // Settings for the Excalidraw whiteboard integration.
-if (!config.hasOwnProperty('whiteboard')) config.whiteboard = {};
-config.whiteboard.enabled = false;
-config.whiteboard.collabServerBaseUrl = '';
+config.whiteboard = {
+    enabled: false,
+};
+
+// JaaS support: pre-configure image if JAAS_APP_ID was set.
+// Testing
+config.testing = {
+    enableCodecSelectionAPI: true
+};

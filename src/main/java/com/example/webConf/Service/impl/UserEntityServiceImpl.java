@@ -2,6 +2,7 @@ package com.example.webConf.Service.impl;
 
 import com.example.webConf.Dto.Registration.RegistrationDto;
 import com.example.webConf.Mappers.UserEntityMapper;
+import com.example.webConf.Model.Conference.Conference;
 import com.example.webConf.Model.User.UserEntity;
 import com.example.webConf.Repository.UserEntityRepository;
 import com.example.webConf.Service.UserEntityService;
@@ -9,13 +10,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.List;
 import java.util.Optional;
 
 @Service
 @Slf4j
-public class UserEntityServiceImpl implements UserEntityService{
-    private UserEntityRepository userEntityRepository;
-    private UserEntityMapper userEntityMapper;
+public class UserEntityServiceImpl implements UserEntityService {
+    private final UserEntityRepository userEntityRepository;
+    private final UserEntityMapper userEntityMapper;
 
     @Autowired
     public UserEntityServiceImpl(UserEntityRepository userEntityRepository,
@@ -34,11 +36,10 @@ public class UserEntityServiceImpl implements UserEntityService{
 
     @Override
     public UserEntity findByEmail(String email) {
-        if(email == null || email.isEmpty())
+        if (email == null || email.isEmpty())
             return null;
-        return  userEntityRepository.findByEmail(email);
+        return userEntityRepository.findByEmail(email);
     }
-
 
 
     @Override

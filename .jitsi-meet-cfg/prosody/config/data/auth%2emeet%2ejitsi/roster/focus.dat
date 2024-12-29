@@ -1,10 +1,10 @@
 return {
 	[false] = {
-		["pending"] = {};
 		["version"] = 2;
+		["pending"] = {};
 	};
 	["focus.meet.jitsi"] = {
-		["groups"] = {};
 		["subscription"] = "from";
+		["groups"] = {};
 	};
 };

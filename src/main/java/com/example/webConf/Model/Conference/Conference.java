@@ -8,6 +8,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -22,13 +23,20 @@ public class Conference {
     @Id
     private String id;
 
-    private Date conferenceDate;
+    private LocalDate conferenceDate;
 
     @ManyToMany(mappedBy = "conferences")
     private List<UserEntity> users = new ArrayList<>();
 
     @OneToMany(mappedBy = "conference", cascade = CascadeType.ALL)
     private List<ConferenceDevices> devices = new ArrayList<>();
+    @ManyToMany
+    @JoinTable(
+            name = "active_user_conference",
+            joinColumns = @JoinColumn(name = "conference_id"),
+            inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    private List<UserEntity> activeUsers = new ArrayList<>();
 
     @PrePersist // will be executed before store value to database
     public void generateIdKey(){

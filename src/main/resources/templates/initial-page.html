@@ -23,17 +23,57 @@
         You have successfully logout
     </div>
     <div class="container">
-        <div class="welcome-card text-center">
-            <h1 class="main-title">Welcome to the Conference Application</h1>
+        <div class="welcome-card">
+            <h1 class="main-title text-center">Welcome to the Conference Application</h1>
 
-            <div class="d-flex flex-column align-items-center gap-3">
-                <button sec:authorize="!isAuthenticated()" class="btn btn-primary btn-custom" data-bs-toggle="modal" data-bs-target="#loginModal">
+            <div th:if="${pastConferences != null and not #lists.isEmpty(pastConferences)}" class="split-content">
+                <!-- Left side - Buttons -->
+                <div class="d-flex flex-column align-items-center gap-3">
+                    <button sec:authorize="!isAuthenticated()" class="btn btn-primary btn-custom" data-bs-toggle="modal"
+                            data-bs-target="#loginModal">
+                        Sign In
+                    </button>
+
+                    <a sec:authorize="!isAuthenticated()" href="/register"
+                       class="btn btn-primary btn-custom">Register</a>
+
+                    <button class="btn btn-primary btn-custom"
+                            th:attr="onclick=${isAuthorized} ? 'window.location.href=\'/setDevices\'' : 'showConferenceForm()'">
+                        Start Conference
+                    </button>
+                </div>
+
+                <!-- Right side - Past Conferences -->
+                <div class="past-conferences">
+                    <h3 class="text-center mb-4">Past Conferences</h3>
+                    <div th:each="conference : ${pastConferences}" class="past-conference-item">
+                        <p class="conference-name" th:text="${conference.getConferenceDate()}">Conference Date</p>
+                        <p class="conference-name" th:text="${conference.getActiveUsers().size()}">Amount of users in
+                            Conference</p>
+                        <p class="alert alert-success" th:if="${activeConferences.contains(conference)}">You in this
+                            conference</p>
+                        <div th:if="${conference.getActiveUsers() == null or !conference.activeUsers.isEmpty()}">
+                            <a class="btn btn-primary"
+                               th:href="@{/conference(conferenceId=${conference.getId()}, userName='Nikita Orlov')}">
+                                Join
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Default centered layout when no conferences -->
+            <div th:if="${pastConferences == null or #lists.isEmpty(pastConferences)}"
+                 class="d-flex flex-column align-items-center gap-3">
+                <button sec:authorize="!isAuthenticated()" class="btn btn-primary btn-custom" data-bs-toggle="modal"
+                        data-bs-target="#loginModal">
                     Sign In
                 </button>
 
                 <a sec:authorize="!isAuthenticated()" href="/register" class="btn btn-primary btn-custom">Register</a>
 
-                <button class="btn btn-primary btn-custom" th:attr="onclick=${isAuthorized} ? 'window.location.href=\'/setDevices\'' : 'showConferenceForm()'">
+                <button class="btn btn-primary btn-custom"
+                        th:attr="onclick=${isAuthorized} ? 'window.location.href=\'/setDevices\'' : 'showConferenceForm()'">
                     Start Conference
                 </button>
             </div>
@@ -90,7 +130,7 @@
     // Initialize Bootstrap Modal
     let loginModal;
 
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Initialize the modal
         loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
 
@@ -116,7 +156,7 @@
         emailInput.value = localStorage.getItem('lastEmail');
     }
 
-    loginForm.addEventListener('submit', function() {
+    loginForm.addEventListener('submit', function () {
         // Save email before form submission
         localStorage.setItem('lastEmail', emailInput.value);
     });
