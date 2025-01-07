@@ -1,6 +1,6 @@
-package com.example.webConf.Model.Devices;
+package com.example.webConf.model.devices;
 
-import com.example.webConf.Model.Conference.Conference;
+import com.example.webConf.model.conference.Conference;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;

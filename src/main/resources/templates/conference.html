@@ -16,18 +16,41 @@
             color: white;
         }
 
-        #video-container {
-            display: grid;
+        .participant-name {
+            font-size: 18px;
+            font-weight: bold;
+            padding: 10px;
+            color: white;
+            background: #333;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .cameras-container {
+            display: flex;
             gap: 10px;
-            padding: 20px;
+            overflow-x: auto;
+            padding: 10px 0;
+        }
+
+        .participant-section {
+            background: #2a2a2a;
+            border-radius: 8px;
+            padding: 10px;
             width: 100%;
-            height: 100vh;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        }
+
+        #video-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            padding: 20px;
         }
 
         .video-wrapper {
             position: relative;
-            width: 100%;
+            width: 320px;
+            flex-shrink: 0;
             aspect-ratio: 16/9;
             background: #2a2a2a;
             border-radius: 8px;
@@ -44,7 +67,7 @@
             position: absolute;
             bottom: 10px;
             left: 10px;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0, 0, 0, 0.7);
             color: white;
             padding: 5px 10px;
             border-radius: 4px;
@@ -52,12 +75,46 @@
             z-index: 10;
         }
 
+        .participant-section[data-size="1"] {
+            width: calc(25% - 15px);
+        }
+
+        .participant-section[data-size="2"] {
+            width: calc(50% - 15px);
+        }
+
+        .participant-section[data-size="3"] {
+            width: calc(75% - 15px);
+        }
+
+        .participant-section[data-size="4"] {
+            width: calc(100% - 15px);
+        }
+
+        /* Grid layouts */
+        .cameras-container[data-layout="1"] {
+            grid-template-columns: 1fr;
+        }
+
+        .cameras-container[data-layout="2"] {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .cameras-container[data-layout="3"] {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .cameras-container[data-layout="4"] {
+            grid-template-columns: repeat(2, 1fr);
+            grid-template-rows: repeat(2, 1fr);
+        }
+
         .controls {
             position: fixed;
             bottom: 20px;
             left: 50%;
             transform: translateX(-50%);
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
             padding: 10px 20px;
             border-radius: 8px;
             display: flex;
@@ -80,7 +137,7 @@
         }
 
         .control-button:hover {
-            background: rgba(255,255,255,0.1);
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .control-button.active {
@@ -110,7 +167,7 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background: rgba(0,0,0,0.8);
+            background: rgba(0, 0, 0, 0.8);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -126,17 +183,102 @@
             animation: spin 1s linear infinite;
         }
 
+        .users-list-container {
+            background: #2a2a2a;
+            padding: 20px;
+            margin: 20px;
+            border-radius: 8px;
+        }
+
+        .users-list-title {
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+
+        .users-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .user-item {
+            background: #333;
+            padding: 8px 15px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .user-count {
+            background: #4CAF50;
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+        }
+
+        /* Стили для чекбокса */
+        .user-checkbox {
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .user-checkbox input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+
+        .participant-section.hidden {
+            display: none;
+        }
+
         @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        @media (max-width: 1200px) {
+            .participant-section[data-size="1"] {
+                width: calc(33.33% - 15px);
+            }
+
+            .participant-section[data-size="2"] {
+                width: calc(66.66% - 15px);
+            }
+
+            .participant-section[data-size="3"],
+            .participant-section[data-size="4"] {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .participant-section {
+                width: 100% !important;
+            }
         }
     </style>
-    <script src="http://localhost:8090/libs/lib-jitsi-meet.min.js"></script>
-    <script src="http://localhost:8090/external_api.js"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="http://localhost:8080/libs/lib-jitsi-meet.min.js"></script>
+
 </head>
 <body>
 <div id="loading" class="loading-overlay">
     <div class="loading-spinner"></div>
+</div>
+<div class="users-list-container">
+    <div class="users-list-title">Conference Members</div>
+    <div id="users-list" class="users-list"></div>
 </div>
 <div id="video-container"></div>
 <div class="controls">
@@ -163,7 +305,6 @@
     </button>
 </div>
 <div id="error-message"></div>
-
 <script th:inline="javascript">
     class VideoConference {
         constructor() {
@@ -176,10 +317,27 @@
                 video: []
             };
             this.remoteTracks = new Map();
-            this.isInitialized = false;
             this.deviceConfig = null;
             this.participants = new Map();
+            this.userCounts = new Map();
+            this.userVisibility = new Map();
+            this.updateUserCount = this.updateUserCount.bind(this);
+            this.userUpdateInterval = null;
+            this.processedParticipants = new Set();
         }
+
+        isUserAlreadyInConference(userName) {
+            const usersList = document.getElementById('users-list');
+            const existingUserElements = usersList.querySelectorAll('.user-item');
+            for (const element of existingUserElements) {
+                const checkbox = element.querySelector('input[type="checkbox"]');
+                if (checkbox && checkbox.getAttribute('data-username') === userName) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         async loadDeviceConfig() {
             try {
                 const response = await fetch(`/api/conference/devices?conferenceId=${this.conferenceId}&userName=${this.userName}`);
@@ -195,38 +353,85 @@
             }
         }
 
+        // For updating user Account count from backend
+        async updateUserCount(userName) {
+            try {
+                const response = await fetch(`/conference/updateUserJoinCount?userName=${encodeURIComponent(userName)}&conferenceId=${this.conferenceId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to update user count');
+                }
+                const count = await response.json();
+
+                // Update the count regardless of value
+                this.userCounts.set(userName, count);
+                this.updateUsersList();
+                return count;
+            } catch (error) {
+                console.error('Error updating user count:', error);
+                this.showError('Ошибка обновления количества пользователей');
+                return null;
+            }
+        }
+
         async init() {
             try {
                 document.getElementById('loading').style.display = 'flex';
 
-                // Загрузка конфигурации устройств перед инициализацией
                 await this.loadDeviceConfig();
 
-                // Initialize JitsiMeetJS
                 JitsiMeetJS.init({
                     disableAudioLevels: true,
-                    websocket: 'ws://localhost:8090/xmpp-websocket',
-                    bosh: 'http://localhost:8090/http-bind',
-                    enableWindowOnErrorHandler: true
+                    disableRtx: true,
+                    disableSuspendVideo: true,
+                    enableAnalyticsLogging: false,
+                    disableRtcStats: true,
+                    analytics: {
+                        disabled: true
+                    },
+                    rtcstats: {
+                        enabled: false
+                    }
                 });
-
-                JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
 
                 const options = {
                     hosts: {
                         domain: 'meet.jitsi',
-                        muc: 'muc.meet.jitsi'
+                        muc: 'muc.meet.jitsi',
+                        focus: 'focus.meet.jitsi'  // Changed from guest.meet.jitsi
                     },
-                    serviceUrl: 'http://localhost:8090/http-bind',
-                    websocket: 'ws://localhost:8090/xmpp-websocket',
-                    clientNode: 'http://jitsi.org/jitsimeet'
+                    serviceUrl: 'http://localhost:5280/http-bind',  // Updated BOSH URL
+                    bosh: '//localhost:5280/http-bind',
+                    websocket: 'ws://localhost:5280/xmpp-websocket',
+                    clientNode: 'http://jitsi.org/jitsimeet',
+                    enableWebsocket: true,
+                    openBridgeChannel: 'websocket',
+                    p2p: {
+                        enabled: true
+                    },
+                    disableAudioLevels: true,
+                    disableSimulcast: false,
+                    enableRemb: true,
+                    enableTcc: true,
+                    resolution: 720,
+                    constraints: {
+                        video: {
+                            height: {
+                                ideal: 720,
+                                max: 720,
+                                min: 180
+                            }
+                        }
+                    }
                 };
 
-                this.connection = new JitsiMeetJS.JitsiConnection(null, null, options);
+                console.log("SETOPTIONS")
 
+
+                this.connection = new JitsiMeetJS.JitsiConnection(null, null, options);
+                console.log("SETCONNECTION")
                 this.connection.addEventListener(
                     JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
-                    () => this.onConnectionSuccess()
+                    () => this.onConnectionSuccess(options)
                 );
                 this.connection.addEventListener(
                     JitsiMeetJS.events.connection.CONNECTION_FAILED,
@@ -240,27 +445,50 @@
                 await this.connection.connect();
                 await this.initializeDevices();
                 this.setupControlButtons();
+                this.startUserCountUpdates();
+                JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
+
+                this.connection.addEventListener(
+                    JitsiMeetJS.events.connection.CONNECTION_FAILED,
+                    (error) => {
+                        console.error('Detailed Connection Failed:', error);
+                        console.error('Error Details:', JSON.stringify(error, null, 2));
+                        this.showError(`Подробная ошибка подключения: ${JSON.stringify(error)}`);
+                    }
+                );
 
             } catch (error) {
                 console.error('Initialization error:', error);
                 this.showError(`Ошибка инициализации: ${error.message}`);
                 document.getElementById('loading').style.display = 'none';
             }
+            console.log("InitializedFinished")
         }
 
-        async onConnectionSuccess() {
+        startUserCountUpdates() {
+            // Clear any existing interval
+            if (this.userUpdateInterval) {
+                clearInterval(this.userUpdateInterval);
+            }
+
+            this.userUpdateInterval = setInterval(() => {
+                this.userCounts.forEach((_, userName) => {
+                    this.updateUserCount(userName).then(count => {
+                        if (count !== null) {
+                            this.userCounts.set(userName, count);
+                            this.updateUsersList();
+                        }
+                    });
+                });
+            }, 60000);
+        }
+
+        async onConnectionSuccess(options) {
             try {
-                console.log('Connection established successfully');
+                console.log('Connection established successfully=====================');
+                await this.updateUserCount();
+                this.room = this.connection.initJitsiConference(this.conferenceId, options);
 
-                const conferenceOptions = {
-                    openBridgeChannel: true,
-                    enableLipSync: false,
-                    p2p: {
-                        enabled: false
-                    }
-                };
-
-                this.room = this.connection.initJitsiConference(this.conferenceId, conferenceOptions);
 
                 // Обновленные обработчики событий
                 this.room.on(JitsiMeetJS.events.conference.TRACK_ADDED,
@@ -291,69 +519,87 @@
             }
         }
 
-        // Новый метод для обработки присоединения пользователя
-        onUserJoined(id, user) {
-            console.log('User joined:', id, user);
-            this.participants.set(id, {
-                id,
-                displayName: user.getDisplayName() || 'Участник',
-                tracks: new Map()
-            });
-        }
 
-        // Новый метод для обработки выхода пользователя
         onUserLeft(id) {
             console.log('User left:', id);
-            this.participants.delete(id);
+            const participant = this.participants.get(id);
 
-            // Удаляем все видео контейнеры пользователя
-            const containers = document.querySelectorAll(`[data-participant-id="${id}"]`);
-            containers.forEach(container => container.remove());
+            if (participant) {
+                const displayName = participant.displayName;
+                const currentCount = this.userCounts.get(displayName);
 
-            // Очищаем треки
+                // Update count but don't remove from lists
+                if (currentCount > 1) {
+                    this.userCounts.set(displayName, currentCount - 1);
+                }
+
+                this.updateUsersList();
+                this.participants.delete(id);
+
+                // Only remove the section if there are no other participants with the same name
+                const remainingParticipants = Array.from(this.participants.values())
+                    .filter(p => p.displayName === displayName);
+
+                if (remainingParticipants.length === 0) {
+                    const section = document.querySelector(`[data-participant-id="${id}"]`);
+                    if (section) {
+                        section.remove();
+                    }
+                }
+            }
+
             if (this.remoteTracks.has(id)) {
                 this.remoteTracks.get(id).forEach(track => track.dispose());
                 this.remoteTracks.delete(id);
             }
         }
 
-        onRemoteTrackAdded(track) {
-            if (track.isLocal()) {
-                return;
-            }
 
-            const participantId = track.getParticipantId();
-            const trackType = track.getType();
+        updateUsersList() {
+            const usersListElement = document.getElementById('users-list');
+            usersListElement.innerHTML = '';
 
-            // Инициализация структуры для треков участника
-            if (!this.remoteTracks.has(participantId)) {
-                this.remoteTracks.set(participantId, new Map());
-            }
+            this.userCounts.forEach((count, userName) => {
+                // Получаем текущее состояние видимости (по умолчанию true)
+                const isVisible = this.userVisibility.get(userName) !== false;
 
-            // Сохраняем трек
-            this.remoteTracks.get(participantId).set(track.getId(), track);
+                const userItem = document.createElement('div');
+                userItem.className = 'user-item';
+                userItem.innerHTML = `
+                    <label class="user-checkbox">
+                        <input type="checkbox"
+                               data-username="${userName}"
+                               ${isVisible ? 'checked' : ''}>
+                        <span>${userName}</span>
+                    </label>
+                    <span class="user-count">${count}</span>
+                `;
 
-            // Добавляем только видео треки в DOM
-            if (trackType === 'video') {
-                const wrapper = document.createElement('div');
-                wrapper.className = 'video-wrapper';
-                wrapper.setAttribute('data-participant-id', participantId);
-                wrapper.setAttribute('data-track-id', track.getId());
+                // Добавляем обработчик события для чекбокса
+                const checkbox = userItem.querySelector('input[type="checkbox"]');
+                checkbox.addEventListener('change', (e) => {
+                    this.toggleUserVisibility(userName, e.target.checked);
+                });
 
-                const video = document.createElement('video');
-                video.autoplay = true;
-                video.playsInline = true;
-                track.attach(video);
+                usersListElement.appendChild(userItem);
+            });
+        }
 
-                const label = document.createElement('div');
-                label.className = 'camera-label';
-                const participant = this.participants.get(participantId);
-                label.textContent = participant ? participant.displayName : 'Участник';
+        toggleUserVisibility(userName, isVisible) {
+            this.userVisibility.set(userName, isVisible);
 
-                wrapper.appendChild(video);
-                wrapper.appendChild(label);
-                document.getElementById('video-container').appendChild(wrapper);
-            }
+            // Находим все секции с данным userName
+            const sections = document.querySelectorAll('.participant-section');
+            sections.forEach(section => {
+                const sectionName = section.querySelector('.participant-name').textContent;
+                if (sectionName === userName) {
+                    if (isVisible) {
+                        section.classList.remove('hidden');
+                    } else {
+                        section.classList.add('hidden');
+                    }
+                }
+            });
         }
 
         onRemoteTrackRemoved(track) {
@@ -362,81 +608,58 @@
             }
 
             const participantId = track.getParticipantId();
-            const trackId = track.getId();
-
-            // Отсоединяем и удаляем трек
-            track.detach();
-
-            // Удаляем контейнер конкретного трека
-            const container = document.querySelector(`[data-participant-id="${participantId}"][data-track-id="${trackId}"]`);
-            if (container) {
-                container.remove();
+            const section = document.querySelector(`[data-participant-id="${participantId}"]`);
+            if (section) {
+                const wrapper = document.querySelector(`[data-track-id="${track.getId()}"]`);
+                if (wrapper) {
+                    wrapper.remove();
+                    this.updateSectionLayout(section);
+                }
             }
 
-            // Удаляем трек из хранилища
             if (this.remoteTracks.has(participantId)) {
                 this.remoteTracks.get(participantId).delete(trackId);
                 if (this.remoteTracks.get(participantId).size === 0) {
                     this.remoteTracks.delete(participantId);
+                    const section = document.querySelector(`[data-participant-id="${participantId}"]`);
+                    if (section) {
+                        section.remove();
+                    }
                 }
             }
         }
 
 
-        async initializeDevices() {
-            try {
-                if (!this.deviceConfig || !this.deviceConfig.cameras) {
-                    throw new Error('Device configuration not loaded');
-                }
-
-                // Инициализация камер из конфигурации
-                for (const camera of this.deviceConfig.cameras) {
-                    try {
-                        const tracks = await JitsiMeetJS.createLocalTracks({
-                            devices: ['video'],
-                            cameraDeviceId: camera.deviceId,
-                            constraints: {
-                                video: {
-                                    deviceId: camera.deviceId,
-                                    height: { ideal: 720 },
-                                    width: { ideal: 1280 }
-                                }
-                            }
-                        });
-
-                        this.localTracks.video.push(tracks[0]);
-                        this.createVideoPreview(tracks[0], camera.label);
-
-                        if (this.room) {
-                            await this.room.addTrack(tracks[0]);
-                        }
-                    } catch (e) {
-                        console.error(`Error accessing camera: ${camera.label}`, e);
-                        this.showError(`Ошибка доступа к камере: ${camera.label}`);
-                    }
-                }
-
-                // Создание аудио трека
-                try {
-                    const tracks = await JitsiMeetJS.createLocalTracks({
-                        devices: ['audio']
-                    });
-
-                    this.localTracks.audio = tracks[0];
-                    if (this.room) {
-                        await this.room.addTrack(tracks[0]);
-                    }
-                } catch (e) {
-                    console.error('Error accessing microphone:', e);
-                    this.showError('Ошибка доступа к микрофону');
-                }
-            } catch (error) {
-                console.error('Error initializing devices:', error);
-                this.showError('Ошибка инициализации устройств');
+        createParticipantSection(participantId, displayName) {
+            const section = document.createElement('div');
+            section.className = 'participant-section';
+            if (this.userVisibility.get(displayName.split(' (')[0]) === false) {
+                section.classList.add('hidden');
             }
+            section.setAttribute('data-participant-id', participantId);
+            section.setAttribute('data-size', '1');
+
+            const nameDiv = document.createElement('div');
+            nameDiv.className = 'participant-name';
+            nameDiv.textContent = displayName;
+
+            const camerasContainer = document.createElement('div');
+            camerasContainer.className = 'cameras-container';
+            camerasContainer.setAttribute('data-layout', '1');
+
+            section.appendChild(nameDiv);
+            section.appendChild(camerasContainer);
+            document.getElementById('video-container').appendChild(section);
+
+            return section;
         }
 
-        createVideoPreview(track, label) {
+
+        // Обновим инициализацию камер
+        createVideoPreview(track, label, index) {
+            const section = this.createParticipantSection('local', this.userName);
+            const camerasContainer = section.querySelector('.cameras-container');
+
             const wrapper = document.createElement('div');
             wrapper.className = 'video-wrapper';
 
@@ -446,13 +669,118 @@
             video.muted = true;
             track.attach(video);
 
-            const labelDiv = document.createElement('div');
-            labelDiv.className = 'camera-label';
-            labelDiv.textContent = label || 'Камера';
+            const cameraLabel = document.createElement('div');
+            cameraLabel.className = 'camera-label';
+            cameraLabel.textContent = `${label || 'Камера'} ${index + 1}`;
 
             wrapper.appendChild(video);
-            wrapper.appendChild(labelDiv);
-            document.getElementById('video-container').appendChild(wrapper);
+            wrapper.appendChild(cameraLabel);
+            camerasContainer.appendChild(wrapper);
+
+            this.updateSectionLayout(section);
+        }
+
+
+        onRemoteTrackAdded(track) {
+            if (track.isLocal()) {
+                return;
+            }
+
+            const participantId = track.getParticipantId();
+            if (track.getType() === 'video') {
+                const participant = this.participants.get(participantId);
+                const displayName = participant ? participant.displayName : 'Участник';
+                const section = this.createParticipantSection(participantId, displayName);
+                const camerasContainer = section.querySelector('.cameras-container');
+
+                const wrapper = document.createElement('div');
+                wrapper.className = 'video-wrapper';
+                wrapper.setAttribute('data-track-id', track.getId());
+
+                const video = document.createElement('video');
+                video.autoplay = true;
+                video.playsInline = true;
+
+                const label = document.createElement('div');
+                label.className = 'camera-label';
+                label.textContent = `Камера ${camerasContainer.children.length + 1}`;
+
+                track.attach(video);
+                wrapper.appendChild(video);
+                wrapper.appendChild(label);
+                camerasContainer.appendChild(wrapper);
+
+                // Обновляем размер секции и раскладку сетки
+                this.updateSectionLayout(section);
+
+                video.play().catch(error => {
+                    console.error('Ошибка воспроизведения видео:', error);
+                });
+            } else if (trackType === 'audio') {
+                const audio = document.createElement('audio');
+                track.attach(audio);
+                audio.play().catch(error => {
+                    console.error('Ошибка воспроизведения аудио:', error);
+                });
+            }
+        }
+
+        updateSectionLayout(section) {
+            const camerasContainer = section.querySelector('.cameras-container');
+            const cameraCount = camerasContainer.children.length;
+
+            // Устанавливаем размер секции
+            section.setAttribute('data-size', Math.min(Math.ceil(cameraCount / 2), 4));
+
+            // Устанавливаем раскладку сетки
+            camerasContainer.setAttribute('data-layout', cameraCount);
+        }
+
+        // Обновим инициализацию камер
+        async initializeDevices() {
+            try {
+                if (this.isUserAlreadyInConference(this.userName)) {
+                    console.log('User already in conference, skipping device initialization');
+                    document.getElementById('loading').style.display = 'none';
+                    return;
+                }
+
+                const deviceConfig = this.deviceConfig;
+                if (!deviceConfig || !deviceConfig.cameras) {
+                    throw new Error('Device configuration not loaded');
+                }
+
+                for (let index = 0; index < deviceConfig.cameras.length; index++) {
+                    const camera = deviceConfig.cameras[index];
+                    try {
+                        const tracks = await JitsiMeetJS.createLocalTracks({
+                            devices: ['video'],
+                            cameraDeviceId: camera.deviceId,
+                            constraints: {
+                                video: {
+                                    deviceId: camera.deviceId,
+                                    height: {ideal: 720},
+                                    width: {ideal: 1280}
+                                }
+                            }
+                        });
+
+                        this.localTracks.video.push(tracks[0]);
+                        this.createVideoPreview(tracks[0], camera.label, index);
+
+                        if (this.room) {
+                            await this.room.addTrack(tracks[0]);
+                        }
+                    } catch (e) {
+                        console.error(`Error accessing camera: ${camera.label}`, e);
+                        this.showError(`Ошибка доступа к камере: ${camera.label}`);
+                    }
+                }
+            } catch (error) {
+                console.error('Error initializing devices:', error);
+                this.showError('Ошибка инициализации устройств');
+            }
+            document.getElementById('loading').style.display = 'none';
         }
 
         setupControlButtons() {
@@ -489,8 +817,10 @@
                 button.classList.toggle('muted', !enabled);
             }
         }
+
         async leaveConference() {
-            // Очищаем все удаленные треки
+            console.log('Leave conference method is working ')
+            await this.updateUserCount(this.userName);
             this.remoteTracks.forEach((tracks, participantId) => {
                 tracks.forEach(track => track.detach());
                 const container = document.querySelector(`[data-participant-id="${participantId}"]`);
@@ -500,7 +830,6 @@
             });
             this.remoteTracks.clear();
 
-            // Отключение всех локальных треков
             Object.values(this.localTracks).flat().forEach(track => {
                 if (track) {
                     track.dispose();
@@ -517,8 +846,25 @@
                 this.connection.disconnect();
             }
 
-            // Перенаправление на домашнюю страницу
-            window.location.href = '/home';
+            /// Redirect to Post leave method
+            // Make POST request to the constructed URL
+            await fetch('/conference/leaveConference', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `conferenceId=${encodeURIComponent(this.conferenceId)}&userName=${encodeURIComponent(this.userName)}`
+            })
+                .then(response => {
+                    if (response.ok) {
+                        window.location.href = '/home';
+                    } else {
+                        console.error('Error leaving conference:', response.statusText);
+                    }
+                })
+                .catch(error => {
+                    console.error('Request failed', error);
+                });
         }
 
         onConnectionFailed() {
@@ -527,12 +873,70 @@
         }
 
         onDisconnected() {
+            if (this.userUpdateInterval) {
+                clearInterval(this.userUpdateInterval);
+            }
             console.log('Соединение разорвано');
         }
 
-        onConferenceJoined() {
+
+        async onConferenceJoined() {
             console.log('Конференция успешно подключена');
             this.isInitialized = true;
+
+            // Добавляем проверку на существование пользователя перед обновлением
+            if (!this.isUserAlreadyInConference(this.userName)) {
+                await this.updateUserCount(this.userName);
+                this.updateUsersList();
+            }
+
+            const participants = this.room.getParticipants();
+            participants.forEach(participant => {
+                this.onUserJoined(participant.getId(), participant);
+            });
+        }
+
+
+        onUserJoined(id, user) {
+            const displayName = user.getDisplayName() || 'Участник';
+
+            // Проверяем, был ли уже обработан этот participant ID
+            if (this.processedParticipants.has(id)) {
+                return;
+            }
+
+            // Проверяем, существует ли уже пользователь с таким именем
+            if (this.isUserAlreadyInConference(displayName)) {
+                console.log(`User ${displayName} already in conference, skipping`);
+                return;
+            }
+
+            this.processedParticipants.add(id);
+
+            // Обновляем счетчик пользователей с сервера
+            this.updateUserCount(displayName).then(count => {
+                this.participants.set(id, {
+                    id,
+                    displayName,
+                    tracks: new Map()
+                });
+
+                if (!this.userVisibility.has(displayName)) {
+                    this.userVisibility.set(displayName, true);
+                }
+
+                const existingSections = Array.from(document.querySelectorAll('.participant-section'))
+                    .filter(section => section.querySelector('.participant-name').textContent === displayName);
+
+                if (existingSections.length === 0) {
+                    const section = this.createParticipantSection(id, displayName);
+
+                    if (user.getTracks) {
+                        const existingTracks = user.getTracks();
+                        existingTracks.forEach(track => this.onRemoteTrackAdded(track));
+                    }
+                }
+            });
         }
 
         showError(message) {
@@ -549,16 +953,10 @@
             }
         }
     }
-    // Инициализация при загрузке страницы
+
     document.addEventListener('DOMContentLoaded', async () => {
         if (typeof JitsiMeetJS === 'undefined') {
             console.error('JitsiMeetJS not loaded');
-            const errorElement = document.getElementById('error-message');
-            if (errorElement) {
-                errorElement.textContent = 'Ошибка загрузки JitsiMeetJS';
-                errorElement.style.display = 'block';
-            }
-            document.getElementById('loading').style.display = 'none';
             return;
         }
 
@@ -568,7 +966,6 @@
         } catch (error) {
             console.error('Failed to initialize conference:', error);
             conference.showError('Ошибка инициализации конференции');
-            document.getElementById('loading').style.display = 'none';
         }
     });
 </script>

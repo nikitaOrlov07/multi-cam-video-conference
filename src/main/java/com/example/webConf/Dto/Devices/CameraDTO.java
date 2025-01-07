@@ -1,4 +1,4 @@
-package com.example.webConf.Dto.Devices;
+package com.example.webConf.dto.Devices;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

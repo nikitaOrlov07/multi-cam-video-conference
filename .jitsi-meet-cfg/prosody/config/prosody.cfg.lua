@@ -1,4 +1,7 @@
 
+
+
+
 -- Prosody Example Configuration File
 --
 -- Information on configuring Prosody can be found on our
@@ -21,8 +24,7 @@
 -- for the server. Note that you must create the accounts separately
 -- (see http://prosody.im/doc/creating_accounts for info)
 -- Example: admins = { "user1@example.com", "user2@example.net" }
-admins = { }
-
+admins = {  }
 -- Enable use of libevent for better performance under high load
 -- For more information see: http://prosody.im/doc/libevent
 --use_libevent = true;
@@ -36,30 +38,22 @@ modules_enabled = {
 		"roster"; -- Allow users to have a roster. Recommended ;)
 		"saslauth"; -- Authentication for clients and servers. Recommended if you want to log in.
 		"tls"; -- Add support for secure TLS on c2s/s2s connections
-		"dialback"; -- s2s dialback support
 		"disco"; -- Service discovery
-
 	-- Not essential, but recommended
 		"private"; -- Private XML storage (for room bookmarks, etc.)
-		"vcard"; -- Allow users to set vCards
 		"limits"; -- Enable bandwidth limiting for XMPP connections
 
 	-- These are commented by default as they have a performance impact
 		--"privacy"; -- Support privacy lists
 		--"compression"; -- Stream compression (Debian: requires lua-zlib module to work)
 
-	-- Nice to have
-		"version"; -- Replies to server version requests
-		"uptime"; -- Report how long server has been running
-		"time"; -- Let others know the time here on this server
-		"ping"; -- Replies to XMPP pings with pongs
-		"pep"; -- Enables users to publish their mood, activity, playing music and more
-		"register"; -- Allow users to register on this server using a client and change passwords
-
 	-- Admin interfaces
-		"admin_adhoc"; -- Allows administration via an XMPP client that supports ad-hoc commands
+		-- "admin_adhoc"; -- Allows administration via an XMPP client that supports ad-hoc commands
 		--"admin_telnet"; -- Opens telnet console interface on localhost port 5582
 
+	-- Nice to have
+		"version"; -- Replies to server version requests
+		"ping"; -- Replies to XMPP pings with pongs
 	-- HTTP modules
 		--"bosh"; -- Enable BOSH clients, aka "Jabber over HTTP"
 		--"http_files"; -- Serve static files from a directory over HTTP
@@ -72,40 +66,59 @@ modules_enabled = {
 		--"watchregistrations"; -- Alert admins of registrations
 		--"motd"; -- Send a message to users when they log in
 		--"legacyauth"; -- Legacy authentication. Only used by some old clients and bots.
-        
+		"http_health";
+		
+        "external_services";
+
+		
 };
 
 component_ports = { }
 https_ports = { }
 
+trusted_proxies = {
+
+  "127.0.0.1";
+
+  "::1";
+
+}
+
 -- These modules are auto-loaded, but should you want
 -- to disable them then uncomment them here:
 modules_disabled = {
-	-- "offline"; -- Store offline messages
+    "offline"; -- Store offline messages
+    "register";
 	-- "c2s"; -- Handle client connections
+
 	"s2s"; -- Handle server-to-server connections
-};
+	};
 
 -- Disable account creation by default, for security
 -- For more information see http://prosody.im/doc/creating_accounts
 allow_registration = false;
 
--- Enable rate limits for incoming client and server connections
+-- Enable rate limits for incoming connections
 limits = {
+
+-- Limit incoming client connections
   c2s = {
     rate = "10kb/s";
   };
+
+
+-- Limit incoming server connections
   s2sin = {
     rate = "30kb/s";
   };
-}
 
+}
 --Prosody garbage collector settings
 --For more information see https://prosody.im/doc/advanced_gc
 
 gc = {
 	mode = "incremental";
-	threshold = 150;
+	threshold = 400;
 	speed = 250;
 	step_size = 13;
 }
@@ -116,7 +129,7 @@ pidfile = "/config/data/prosody.pid";
 -- Force clients to use encrypted connections? This option will
 -- prevent clients from authenticating unless they are using encryption.
 
-c2s_require_encryption = false
+c2s_require_encryption = true;
 
 -- set c2s port
 c2s_ports = { 5222 } -- Listen on specific c2s port
@@ -173,7 +186,17 @@ authentication = "internal_hashed"
 --  Logs errors to syslog also
 log = {
 	{ levels = {min = "info"}, timestamps = "%Y-%m-%d %X", to = "console"};
+
 }
+
+
+
+external_service_secret = "jitsi:orlikorlikorlikorlikorlikorlik";
+
+external_services = {
+        { type = "turn", host = "coturn", port = 3478, transport = "udp", secret = true, ttl = 86400, algorithm = "turn" }
+};
+
 
 
 
@@ -193,10 +216,5 @@ http_interfaces = { "*", "::" }
 
 
 data_path = "/config/data"
-
-smacks_max_unacked_stanzas = 5;
-smacks_hibernation_time = 60;
-smacks_max_hibernated_sessions = 1;
-smacks_max_old_sessions = 1;
 
 Include "conf.d/*.cfg.lua"

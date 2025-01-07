@@ -370,7 +370,7 @@ function createNewConference() {
         cameras: selectedCameras,
         audio: audioDevice,
         gridSize: gridSize,
-        userName: userName  // Add userName to request body
+        userName: userName
     };
 
     sendDeviceData(requestBody);
@@ -461,7 +461,7 @@ function sendDeviceData(requestBody, identifier = null) {
                 return response.text().then(conferenceId => {
                     stopAllStreams();
                     // Include userName in redirect URL
-                    window.location.href = `/conference?conferenceId=${conferenceId}&userName=${userName}`;
+                    window.location.href = `/conference/join?conferenceId=${conferenceId}&userName=${userName}`;
                 });
             } else {
                 return response.text().then(text => {

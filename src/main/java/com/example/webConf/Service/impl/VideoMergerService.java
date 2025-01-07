@@ -1,18 +1,5 @@
-package com.example.webConf.Service.impl;
-import com.example.webConf.Dto.Devices.CameraDTO;
-import com.example.webConf.Dto.Devices.GridSizeDTO;
-import com.example.webConf.Model.Conference.Conference;
-import com.example.webConf.Model.Devices.ConferenceDevices;
-import com.example.webConf.Repository.ConferenceDeviceRepository;
-import com.example.webConf.Repository.ConferenceRepository;
-import org.opencv.core.*;
-import org.opencv.videoio.*;
-import org.opencv.imgproc.Imgproc;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.springframework.beans.factory.annotation.Autowired;
+package com.example.webConf.service.impl;
 import org.springframework.stereotype.Service;
-import java.util.*;
-import java.util.stream.Collectors;
 
 @Service
 public class VideoMergerService {

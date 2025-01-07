@@ -1,7 +1,7 @@
-package com.example.webConf.Mappers;
+package com.example.webConf.mappers;
 
-import com.example.webConf.Dto.Conference.ConferenceDto;
-import com.example.webConf.Model.Conference.Conference;
+import com.example.webConf.dto.Conference.ConferenceDto;
+import com.example.webConf.model.conference.Conference;
 
 public class ConferenceMapper {
     public static ConferenceDto getConferenceDtoFromConference(Conference conference)

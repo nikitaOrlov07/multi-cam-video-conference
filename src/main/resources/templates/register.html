@@ -6,16 +6,16 @@
       layout:decorate="~{layout}">
 <head>
     <meta charset="UTF-8">
-    <title>Registration</title>
-    <link href="src/main/resources/static/css/registrationPage.css" rel="stylesheet">
+    <title>Registration Page</title>
+    <link href="/css/registrationPage.css" rel="stylesheet">
 </head>
 <body layout:fragment="body">
 <div class="registration-wrapper">
     <div class="container">
         <div class="registration-form">
             <h2>Registration</h2>
-            <div id="existingEmail" th:if="${param.existingEmail}" class="alert alert-danger">
-                Email address already exists. Please try another one.
+            <div th:if="${errorMessage}" id="errorMessage" class="alert alert-danger">
+                <span th:text="${errorMessage}">Error</span>
             </div>
             <form th:action="@{/register/save}" th:method="post" th:object="${user}">
                 <!-- Surname field -->
@@ -67,7 +67,7 @@
 </div>
 <script src="/js/commonFunctions.js"></script>
 <script>
-    hideElementAfterDelay('existingEmail');
+    hideElementAfterDelay('errorMessage');
 </script>
 </body>
 </html>

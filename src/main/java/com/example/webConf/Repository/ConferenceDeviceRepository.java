@@ -1,8 +1,7 @@
-package com.example.webConf.Repository;
+package com.example.webConf.repository;
 
-import com.example.webConf.Dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.Model.Conference.Conference;
-import com.example.webConf.Model.Devices.ConferenceDevices;
+import com.example.webConf.model.conference.Conference;
+import com.example.webConf.model.devices.ConferenceDevices;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,4 +10,5 @@ public interface ConferenceDeviceRepository extends JpaRepository<ConferenceDevi
     ConferenceDevices findByConferenceId(String conferenceId);
     ConferenceDevices findFirstByUserNameAndConference(String userName, Conference conference);
     ConferenceDevices findByConference_IdAndUserName(String conferenceId, String userName);
+    void deleteAllByConference(Conference conference);
 }

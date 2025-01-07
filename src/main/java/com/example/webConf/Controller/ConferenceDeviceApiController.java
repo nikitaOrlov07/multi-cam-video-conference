@@ -1,23 +1,19 @@
-package com.example.webConf.Controller;
+package com.example.webConf.controller;
 
-import com.example.webConf.Dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.Dto.Devices.GridSizeDTO;
-import com.example.webConf.Model.Conference.Conference;
-import com.example.webConf.Model.Devices.ConferenceDevices;
-import com.example.webConf.Repository.ConferenceDeviceRepository;
-import com.example.webConf.Repository.ConferenceRepository;
-import com.example.webConf.Service.ConferenceDevicesService;
-import com.fasterxml.jackson.core.JsonProcessingException;
+import com.example.webConf.dto.Devices.DeviceSelectionDTO;
+import com.example.webConf.dto.Devices.GridSizeDTO;
+import com.example.webConf.model.conference.Conference;
+import com.example.webConf.model.devices.ConferenceDevices;
+import com.example.webConf.repository.ConferenceDeviceRepository;
+import com.example.webConf.repository.ConferenceRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.xeustechnologies.jcl.exception.ResourceNotFoundException;
-import com.example.webConf.Dto.Devices.CameraDTO;
+import com.example.webConf.dto.Devices.CameraDTO;
 
 import java.util.List;
 

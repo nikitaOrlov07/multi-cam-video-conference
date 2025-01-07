@@ -1,4 +1,4 @@
-package com.example.webConf.Dto.Registration;
+package com.example.webConf.dto.Registration;
 
 import jakarta.validation.constraints.NotEmpty;
 import lombok.AllArgsConstructor;

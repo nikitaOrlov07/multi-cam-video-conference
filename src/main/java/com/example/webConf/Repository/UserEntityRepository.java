@@ -1,15 +1,20 @@
-package com.example.webConf.Repository;
+package com.example.webConf.repository;
 
-import com.example.webConf.Model.User.UserEntity;
+import com.example.webConf.model.user.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+
 @Repository
-public interface UserEntityRepository extends JpaRepository<UserEntity,Long> {
+public interface UserEntityRepository extends JpaRepository<UserEntity, Long> {
 
     UserEntity findFirstByEmail(String email);
 
     UserEntity findByEmail(String email);
-    UserEntity findBySurname(String surname);
+
+    Optional<UserEntity> findUserEntityByAccountTypeAndNameAndSurname(UserEntity.AccountType accountType,String name, String surname);
+
+    Optional<UserEntity> findByNameAndSurname(String name, String surname);
+
 }

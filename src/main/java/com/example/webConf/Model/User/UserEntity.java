@@ -1,6 +1,7 @@
-package com.example.webConf.Model.User;
+package com.example.webConf.model.user;
 
-import com.example.webConf.Model.Conference.Conference;
+import com.example.webConf.model.conference.Conference;
+import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -39,6 +40,10 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "conference_id")
     )
     private List<Conference> conferences = new ArrayList<>();
+
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    private List<UserConferenceJoin> userJoins = new ArrayList<>();
 
     private String role = "USER";
 

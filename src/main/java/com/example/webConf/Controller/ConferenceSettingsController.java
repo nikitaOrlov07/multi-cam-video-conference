@@ -1,15 +1,15 @@
-package com.example.webConf.Controller;
+package com.example.webConf.controller;
 
-import com.example.webConf.Dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.Mappers.ConferenceMapper;
-import com.example.webConf.Model.Conference.Conference;
-import com.example.webConf.Model.User.UserEntity;
-import com.example.webConf.Security.SecurityUtil;
-import com.example.webConf.Service.ConferenceDevicesService;
-import com.example.webConf.Service.ConferenceService;
-import com.example.webConf.Service.UserEntityService;
+import com.example.webConf.config.exception.ConferenceException;
+import com.example.webConf.dto.Devices.DeviceSelectionDTO;
+import com.example.webConf.model.conference.Conference;
+import com.example.webConf.model.user.UserEntity;
+import com.example.webConf.security.SecurityUtil;
+import com.example.webConf.service.ConferenceDevicesService;
+import com.example.webConf.service.ConferenceService;
+import com.example.webConf.service.UserEntityService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.example.webConf.Model.Devices.ConferenceDevices;
+import com.example.webConf.model.devices.ConferenceDevices;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -17,6 +17,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Controller
 @Slf4j
@@ -29,46 +31,51 @@ public class ConferenceSettingsController {
     private final ConferenceDevicesService conferenceDevicesService;
 
     @GetMapping({"/", "/home"})
-    public String getHomePage(Model model)
-    {
+    public String getHomePage(Model model) {
         log.info("Home page is working");
         String currentUserEmail = (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) ? SecurityUtil.getSessionUserEmail() : "User is not authorized";
         log.info(currentUserEmail);
         UserEntity user;
-        if (!currentUserEmail.equals("User is not authorized"))
-        {
+        if (!currentUserEmail.equals("User is not authorized")) {
+            // User is authorized
             user = userService.findByEmail(currentUserEmail);
-            if(user != null) {
+            if (user != null) {
+                List<Conference> pastConferences = conferenceService.findConferencesByUser(user.getId());
+                List<Conference> activeConference = conferenceService.findUserActiveConferences(user.getId());
+                String userName = user.getName() + " " + user.getSurname();
+                log.info("Size of past conferences: {}", pastConferences.size());
+
+                model.addAttribute("pastConferences", pastConferences);
                 model.addAttribute("isAuthorized", true);
+                model.addAttribute("activeConferences", activeConference);
+
+                log.info("User name : {}", userName);
+                model.addAttribute("userName", userName);
             }
-        }
-        else
-        {
+        } else {
+            // User is not authorized
             model.addAttribute("isAuthorized", false);
         }
 
-        return  "initial-page";
+        return "initial-page";
     }
+
     @GetMapping("/setDevices")
     public String getAvailableCameras(@RequestParam(value = "userName", required = false) String userName,
-                                      Model model)
-    {
+                                      Model model) {
         log.info("Initial device setting page is working");
-        if(userName != null && !userName.isEmpty()) {
+        if (userName != null && !userName.isEmpty()) {
             model.addAttribute("userName", userName);
-        }
-        else if (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()){
+        } else if (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) {
             UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail());
-            String nameSurname = user.getName() +" "+ user.getSurname();
+            String nameSurname = user.getName() + " " + user.getSurname();
             model.addAttribute("userName", nameSurname);
-        }
-        else {
-            return "redirect:/home?error";
+        } else {
+            throw new ConferenceException("Error while setting devices");
         }
         return "device-setting";
     }
 
-    // Метод для приема POST-запроса с выбранными камерами
     @PostMapping("/connect-devices")
     @ResponseBody
     public ResponseEntity<String> connectDevices(@RequestBody DeviceSelectionDTO deviceSelection,

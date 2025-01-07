@@ -1,7 +1,7 @@
-package com.example.webConf.Mappers;
+package com.example.webConf.mappers;
 
-import com.example.webConf.Dto.Registration.RegistrationDto;
-import com.example.webConf.Model.User.UserEntity;
+import com.example.webConf.dto.Registration.RegistrationDto;
+import com.example.webConf.model.user.UserEntity;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

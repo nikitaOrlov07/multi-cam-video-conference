@@ -1,4 +1,4 @@
-package com.example.webConf.Config;
+package com.example.webConf.config;
 
 import com.fasterxml.jackson.core.StreamWriteConstraints;
 import com.fasterxml.jackson.databind.DeserializationFeature;

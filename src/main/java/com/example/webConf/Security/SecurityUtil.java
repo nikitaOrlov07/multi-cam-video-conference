@@ -1,4 +1,4 @@
-package com.example.webConf.Security;
+package com.example.webConf.security;
 
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;

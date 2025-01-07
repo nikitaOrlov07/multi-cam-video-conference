@@ -1,11 +1,11 @@
-package com.example.webConf.Service.impl;
+package com.example.webConf.service.impl;
 
-import com.example.webConf.Dto.Devices.CameraDTO;
-import com.example.webConf.Dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.Dto.Devices.GridSizeDTO;
-import com.example.webConf.Model.Devices.ConferenceDevices;
-import com.example.webConf.Repository.ConferenceDeviceRepository;
-import com.example.webConf.Service.ConferenceDevicesService;
+import com.example.webConf.dto.Devices.CameraDTO;
+import com.example.webConf.dto.Devices.DeviceSelectionDTO;
+import com.example.webConf.dto.Devices.GridSizeDTO;
+import com.example.webConf.model.devices.ConferenceDevices;
+import com.example.webConf.repository.ConferenceDeviceRepository;
+import com.example.webConf.service.ConferenceDevicesService;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;

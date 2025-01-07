@@ -1,7 +1,7 @@
-package com.example.webConf.Service;
+package com.example.webConf.service;
 
-import com.example.webConf.Dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.Model.Devices.ConferenceDevices;
+import com.example.webConf.dto.Devices.DeviceSelectionDTO;
+import com.example.webConf.model.devices.ConferenceDevices;
 
 public interface ConferenceDevicesService {
     void save(ConferenceDevices devices);

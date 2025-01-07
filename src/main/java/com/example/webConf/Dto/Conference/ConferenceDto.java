@@ -1,10 +1,10 @@
-package com.example.webConf.Dto.Conference;
+package com.example.webConf.dto.Conference;
 
-import com.example.webConf.Model.User.UserEntity;
+import com.example.webConf.model.user.UserEntity;
 import lombok.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @Data
@@ -13,7 +13,7 @@ import java.util.List;
 @Builder
 public class ConferenceDto {
     private String id;
-    private Date conferenceDate;
+    private LocalDate conferenceDate;
     private List<UserEntity> users = new ArrayList<>();
 
 }

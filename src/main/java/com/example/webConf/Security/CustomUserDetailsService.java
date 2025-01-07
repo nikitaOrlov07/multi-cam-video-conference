@@ -1,9 +1,9 @@
-package com.example.webConf.Security;
+package com.example.webConf.security;
 
 
 
-import com.example.webConf.Model.User.UserEntity;
-import com.example.webConf.Repository.UserEntityRepository;
+import com.example.webConf.model.user.UserEntity;
+import com.example.webConf.repository.UserEntityRepository;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;

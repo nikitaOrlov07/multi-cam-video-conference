@@ -1,4 +1,4 @@
-package com.example.webConf.Security.Filters;
+package com.example.webConf.security.Filters;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
