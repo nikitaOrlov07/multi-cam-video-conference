@@ -19,4 +19,7 @@ public class RegistrationDto {
     private String email;
     private String city;
     private String country;
+    private String address;
+    private String role;
 }
+

@@ -2,11 +2,13 @@ package com.example.webConf.service.impl;
 
 import com.example.webConf.dto.Conference.ConferenceDto;
 import com.example.webConf.mappers.ConferenceMapper;
+import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 import com.example.webConf.repository.ConferenceDeviceRepository;
 import com.example.webConf.repository.ConferenceRepository;
+import com.example.webConf.repository.RoleRepository;
 import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
@@ -15,9 +17,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import javax.management.relation.Role;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -28,6 +32,7 @@ public class ConferenceServiceImpl implements ConferenceService {
     private final UserEntityRepository userRepository;
     private final ConferenceDeviceRepository conferenceDeviceRepository;
     private final UserEntityService userEntityService;
+    private final RoleRepository roleRepository;
 
     @Override
     public ConferenceDto findConferenceById(String identifier) {
@@ -71,7 +76,7 @@ public class ConferenceServiceImpl implements ConferenceService {
                     .email(null)
                     .country(null)
                     .accountType(UserEntity.AccountType.TEMPORARY)
-                    .role(null)
+                    .roles(List.of(roleRepository.findByName("USER")))
                     .build();
 
             userService.save(temporaryUser);
@@ -137,5 +142,14 @@ public class ConferenceServiceImpl implements ConferenceService {
         return userService.findUserConferenceJoin(userEntity,null).stream().map(UserConferenceJoin :: getConference).toList();
     }
 
+    @Override
+    public List<Conference> findAllConferences(){
+        return conferenceRepository.findAll();
+    }
+
+    @Override
+    public Conference findConferenceByChat(Chat chat) {
+        return conferenceRepository.findProjectByChat(chat);
+    }
 
 }

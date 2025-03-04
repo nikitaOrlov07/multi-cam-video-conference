@@ -1,8 +1,10 @@
 package com.example.webConf.model.conference;
 
+import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -38,5 +40,10 @@ public class Conference {
     public void generateIdKey() {
         this.id = UUID.randomUUID().toString();
     }
+
+    @JsonIgnore
+    @OneToOne(fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    @JoinColumn(name = "chat_id", referencedColumnName = "id")
+    private Chat chat;
 
 }

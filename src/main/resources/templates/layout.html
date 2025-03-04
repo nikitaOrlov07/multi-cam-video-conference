@@ -46,6 +46,9 @@
         <li class="nav-item">
           <a class="nav-link active" aria-current="page" th:href="@{/home}">Home</a>
         </li>
+        <li class="nav-item" aria-current="page" sec:authorize="hasAuthority('ROLE_ADMIN')" >
+          <a class="nav-link active"  th:href="@{/control}">Control Page</a>
+        </li>
       </ul>
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
         <li class="nav-item" sec:authorize="isAuthenticated()">

@@ -5,16 +5,20 @@ import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 
+import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 public interface UserEntityService {
     Boolean createUser(RegistrationDto user);
 
-    UserEntity findByEmail(String email);
+    Optional<UserEntity> findByEmail(String email);
 
     void save(UserEntity userEntity);
 
     Optional<UserEntity> findUserByUsername(String userName);
+
+    Optional<UserEntity> findUserByNameAndSurname(String name, String surname);
 
     Integer countUserConferenceJoinByUserAndConference(UserEntity userEntity, Conference conference);
 
@@ -25,4 +29,10 @@ public interface UserEntityService {
     Optional<UserEntity> findById(Long id);
 
     void deleteUserConferenceJoin(UserConferenceJoin userConferenceJoin);
+
+    void deleteUnusedTemporaryAccounts();
+
+    List<UserEntity> findAllUsers();
+
+    void deleteUser(Long uuid);
 }

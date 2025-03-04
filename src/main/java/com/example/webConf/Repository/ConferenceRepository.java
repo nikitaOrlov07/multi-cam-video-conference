@@ -1,5 +1,6 @@
 package com.example.webConf.repository;
 
+import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -21,4 +22,6 @@ public interface ConferenceRepository extends JpaRepository<Conference, String> 
     @Query("SELECT COUNT(u) FROM UserEntity u JOIN u.conferences c " +
             "WHERE u.id = :userId AND c.id = :conferenceId")
     Integer findUserJoinCount(@Param("userId") Long userId, @Param("conferenceId") String conferenceId);
+
+    Conference findProjectByChat(Chat chat);
 }

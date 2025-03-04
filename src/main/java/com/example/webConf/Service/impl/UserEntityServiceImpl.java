@@ -5,16 +5,22 @@ import com.example.webConf.mappers.UserEntityMapper;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
+import com.example.webConf.repository.ConferenceRepository;
 import com.example.webConf.repository.UserConferenceJoinRepository;
 import com.example.webConf.repository.UserEntityRepository;
+import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 @Slf4j
@@ -22,13 +28,15 @@ public class UserEntityServiceImpl implements UserEntityService {
     private final UserEntityRepository userEntityRepository;
     private final UserEntityMapper userEntityMapper;
     private final UserConferenceJoinRepository userConderenceJoinRepository;
+    private final ConferenceRepository conferenceRepository;
 
     @Autowired
     public UserEntityServiceImpl(UserEntityRepository userEntityRepository,
-                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository) {
+                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository) {
         this.userEntityRepository = userEntityRepository;
         this.userEntityMapper = userEntityMapper;
         this.userConderenceJoinRepository = userConderenceJoinRepository;
+        this.conferenceRepository = conferenceRepository;
     }
 
     @Override
@@ -40,10 +48,10 @@ public class UserEntityServiceImpl implements UserEntityService {
     }
 
     @Override
-    public UserEntity findByEmail(String email) {
+    public Optional<UserEntity> findByEmail(String email) {
         if (email == null || email.isEmpty())
             return null;
-        return userEntityRepository.findByEmail(email);
+        return userEntityRepository.findFirstByEmail(email);
     }
 
 
@@ -59,9 +67,9 @@ public class UserEntityServiceImpl implements UserEntityService {
         String decodedUsername = URLDecoder.decode(userName, StandardCharsets.UTF_8);
         String[] parts = decodedUsername.split(" "); // parts[0] = name , parts[1] = username
         if (parts.length == 1) { // for temporary user
-            userEntityRepository.findByNameAndSurname(parts[0], null);
+            userEntity = userEntityRepository.findFirstByNameAndSurname(null, parts[0].toLowerCase());
         } else { // for permanent user
-            userEntity = userEntityRepository.findByNameAndSurname(parts[0], parts[1]);
+            userEntity = userEntityRepository.findFirstByNameAndSurname(parts[0].toLowerCase(), parts[1].toLowerCase());
         }
         return userEntity;
     }
@@ -90,6 +98,50 @@ public class UserEntityServiceImpl implements UserEntityService {
     @Override
     public void deleteUserConferenceJoin(UserConferenceJoin userConferenceJoin) {
         userConderenceJoinRepository.delete(userConferenceJoin);
+    }
+
+    @Override
+    @Transactional
+    public void deleteUnusedTemporaryAccounts() {
+        Set<UserEntity> temporaryUsers = userEntityRepository.findAllByAccountTypeAndCreatedAtOlderThan60Minutes(
+                UserEntity.AccountType.TEMPORARY.toString(), LocalDateTime.now());
+        if(!temporaryUsers.isEmpty()){
+            log.info("DELETE UNUSED TEMPORARY ACCOUNTS: {}" , temporaryUsers.size());
+        }
+        for (UserEntity temporaryUser : temporaryUsers) {
+            for (Conference conference : temporaryUser.getConferences()) {
+                if (findUserConferenceJoin(temporaryUser, conference).isPresent()) {
+                    removeUserConferenceJoin(temporaryUser, conference);
+                }
+                conference.getUsers().remove(temporaryUser);
+            }
+            userEntityRepository.delete(temporaryUser);
+        }
+    }
+
+    @Override
+    public List<UserEntity> findAllUsers() {
+        return userEntityRepository.findAll();
+    }
+
+    @Override
+    @Transactional
+    public void deleteUser(Long uuid) {
+        UserEntity userEntity = userEntityRepository.findById(uuid).get();
+        ///  Find user conferences
+        List<Conference> conferences = conferenceRepository.findAllByUsersContains(userEntity);
+        for(Conference conference : conferences){
+            if(findUserConferenceJoin(userEntity,conference).isPresent()){
+                removeUserConferenceJoin(userEntity,conference);
+            }
+            conference.getUsers().remove(userEntity);
+        }
+        userEntityRepository.delete(userEntity);
+    }
+
+    @Override
+    public Optional<UserEntity> findUserByNameAndSurname(String name, String surname) {
+        return userEntityRepository.findFirstByNameAndSurname(name, surname);
     }
 
 

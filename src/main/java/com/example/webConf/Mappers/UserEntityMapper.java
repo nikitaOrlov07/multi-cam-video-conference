@@ -16,8 +16,8 @@ public class UserEntityMapper {
     public  UserEntity  registrationDtoToUserEntity(RegistrationDto registrationDto)
     {
        UserEntity userEntity = UserEntity.builder()
-               .name(registrationDto.getName())
-               .surname(registrationDto.getSurname())
+               .name(registrationDto.getName().toLowerCase())
+               .surname(registrationDto.getSurname().toLowerCase())
                .password(passwordEncoder.encode(registrationDto.getPassword()))
                .email(registrationDto.getEmail())
                .city(registrationDto.getCity())

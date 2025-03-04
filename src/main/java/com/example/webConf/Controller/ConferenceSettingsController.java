@@ -38,12 +38,16 @@ public class ConferenceSettingsController {
         UserEntity user;
         if (!currentUserEmail.equals("User is not authorized")) {
             // User is authorized
-            user = userService.findByEmail(currentUserEmail);
+            user = userService.findByEmail(currentUserEmail).get();
             if (user != null) {
                 List<Conference> pastConferences = conferenceService.findConferencesByUser(user.getId());
                 List<Conference> activeConference = conferenceService.findUserActiveConferences(user.getId());
                 String userName = user.getName() + " " + user.getSurname();
                 log.info("Size of past conferences: {}", pastConferences.size());
+
+                user.getRoles().forEach(role -> {
+                    System.out.println(role.getName());
+                });
 
                 model.addAttribute("pastConferences", pastConferences);
                 model.addAttribute("isAuthorized", true);
@@ -67,7 +71,7 @@ public class ConferenceSettingsController {
         if (userName != null && !userName.isEmpty()) {
             model.addAttribute("userName", userName);
         } else if (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) {
-            UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail());
+            UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail()).get();
             String nameSurname = user.getName() + " " + user.getSurname();
             model.addAttribute("userName", nameSurname);
         } else {
@@ -103,7 +107,7 @@ public class ConferenceSettingsController {
         }
 
         try {
-            UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail());
+            UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).get();
             Conference conference;
             String conferenceId;
 
