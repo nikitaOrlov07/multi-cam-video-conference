@@ -405,7 +405,9 @@
                         <div class="dropdown">
                             <button class="dropdown-select">View Participants</button>
                             <div class="dropdown-menu">
-                                <div class="dropdown-item" th:each="user : ${conference.users}" th:text="${user.name + ' ' + user.surname}">John Doe</div>
+                                <div class="dropdown-item" th:each="user : ${conference.users}"
+                                     th:text="${user.name + ' ' + user.surname}">John Doe
+                                </div>
                             </div>
                         </div>
                     </td>
@@ -443,13 +445,21 @@
                     <td th:text="|${user.name ?: ''} ${user.surname ?: ''}|"></td>
                     <td th:text="${user.email ?: 'No specify'}"></td>
                     <td>
-                        <span class="badge" th:classappend="${user.accountType == user.accountType.PERMANENT ? 'badge-success' : 'badge-danger'}"
+                        <span class="badge"
+                              th:classappend="${user.accountType == user.accountType.PERMANENT ? 'badge-success' : 'badge-danger'}"
                               th:text="${user.accountType}">PERMANENT</span>
                     </td>
                     <td th:text="|${user.country ?: ''} ${user.city ?: ''} ${user.address ?: ''}|">New York, USA</td>
-                    <td><span th:each="role : ${user.roles}" th:text="${role.name} + ' '" /></td>
+                    <td><span th:each="role : ${user.roles}" th:text="${role.name} + ' '"/></td>
                     <td>
-                        <button class="btn btn-primary">Edit</button>
+                        <div class="d-flex gap-2">
+                            <button
+                                    th:data-id="${user.id}"
+                                    onclick="handleUserDeletion(this.getAttribute('data-id'))"
+                                    class="btn btn-danger">
+                                Delete
+                            </button>
+                        </div>
                     </td>
                 </tr>
                 </tbody>
@@ -484,7 +494,7 @@
                 <div class="form-row">
                     <div class="form-group modal-col">
                         <label for="email">Email <span class="required">*</span></label>
-                        <input type="email" id="email" name="email" class="form-control" required>
+                        <input type="email" id="email" name="email" class="form-control"  required>
                         <span class="error-message" id="emailError"></span>
                     </div>
                     <div class="form-group modal-col">
@@ -533,14 +543,13 @@
         </div>
     </div>
 </div>
-
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+    document.addEventListener('DOMContentLoaded', function () {
         // Toggle dropdown menus
         const dropdownSelects = document.querySelectorAll('.dropdown-select');
 
         dropdownSelects.forEach(select => {
-            select.addEventListener('click', function() {
+            select.addEventListener('click', function () {
                 const menu = this.nextElementSibling;
                 menu.classList.toggle('show');
 
@@ -554,7 +563,7 @@
         });
 
         // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
+        document.addEventListener('click', function (event) {
             if (!event.target.matches('.dropdown-select')) {
                 const dropdowns = document.querySelectorAll('.dropdown-menu');
                 dropdowns.forEach(dropdown => {
@@ -568,7 +577,7 @@
         // Select dropdown item
         const dropdownItems = document.querySelectorAll('.dropdown-item');
         dropdownItems.forEach(item => {
-            item.addEventListener('click', function() {
+            item.addEventListener('click', function () {
                 const select = this.parentElement.previousElementSibling;
                 select.textContent = this.textContent;
                 this.parentElement.classList.remove('show');
@@ -576,7 +585,7 @@
         });
 
         // Filter conferences
-        document.getElementById('filterConferencesBtn').addEventListener('click', function() {
+        document.getElementById('filterConferencesBtn').addEventListener('click', function () {
             const status = document.getElementById('conferenceStatus').value;
             const table = document.getElementById('conferencesTable');
             const rows = table.getElementsByTagName('tr');
@@ -604,7 +613,7 @@
         const addUserForm = document.getElementById('addUserForm');
 
         // Show modal
-        addUserBtn.addEventListener('click', function() {
+        addUserBtn.addEventListener('click', function () {
             addUserModal.style.display = 'flex';
         });
 
@@ -619,7 +628,7 @@
         cancelUserBtn.addEventListener('click', closeModal);
 
         // Close modal when clicking outside
-        addUserModal.addEventListener('click', function(event) {
+        addUserModal.addEventListener('click', function (event) {
             if (event.target === addUserModal) {
                 closeModal();
             }
@@ -634,21 +643,27 @@
         }
 
         // Form submission handling
-        addUserForm.addEventListener('submit', function(event) {
+        addUserForm.addEventListener('submit', function (event) {
             event.preventDefault();
             clearErrors();
 
             // Validate form
             let isValid = true;
 
-            // Required fields validation
-            const requiredFields = ['name', 'surname', 'email', 'password', 'role'];
-            requiredFields.forEach(field => {
+            const fieldMessages = {
+                'name': 'You need to provide your name',
+                'surname': 'You need to provide your surname',
+                'email': 'You need to provide your email address',
+                'password': 'You need to provide your password',
+                'role': 'This field is required'
+            };
+
+            Object.keys(fieldMessages).forEach(field => {
                 const input = document.getElementById(field);
                 const error = document.getElementById(field + 'Error');
 
                 if (!input.value.trim()) {
-                    error.textContent = 'This field is required';
+                    error.textContent = fieldMessages[field];
                     isValid = false;
                 }
             });
@@ -691,14 +706,16 @@
                                 console.log("Throw error")
                                 throw new Error(data.message || "Failed to register user");
                             });
+                        } else {
+                            window.location.href = '/control';
                         }
-                        return response;
                     })
                     .catch(error => {
                         showErrorModal(error.message);
                     });
             }
         });
+
         function showErrorModal(message) {
             const errorMessage = document.getElementById("errorMessage");
             errorMessage.textContent = message;

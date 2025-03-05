@@ -10,6 +10,89 @@
     <title>Welcome Page</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/initial-page.css" rel="stylesheet">
+    <style>
+        .account-details {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            border: 1px solid #0b5ed7;
+            padding: 1.5rem;
+            margin-top: 2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .account-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid #4a90e2;
+            padding-bottom: 1rem;
+        }
+
+        .account-header-icon {
+            font-size: 3rem;
+            margin-right: 1rem;
+            color: #4a90e2;
+        }
+
+        .account-info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+        }
+
+        .account-info-item {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .account-info-item label {
+            font-weight: 600;
+            color: #6c757d;
+            margin-bottom: 0.5rem;
+        }
+
+        .account-info-item .value {
+            font-size: 1.1rem;
+            color: #2c3e50;
+        }
+
+        .chats-section {
+            margin-top: 2rem;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            border: 1px solid #0b5ed7;
+            padding: 1.5rem;
+        }
+
+        .chat-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        .chat-item:last-child {
+            border-bottom: none;
+        }
+
+        .btn-chat {
+            transition: all 0.3s ease;
+        }
+
+        .btn-chat:hover {
+            transform: scale(1.05);
+        }
+
+        @media (max-width: 768px) {
+            .account-info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body layout:fragment="body">
 <div class="welcome-container">
@@ -25,6 +108,65 @@
     <div class="container">
         <div class="welcome-card">
             <h1 class="main-title text-center">Welcome to the Conference Application</h1>
+
+            <div th:if="${user}" class="account-details">
+                <div class="account-header">
+                    <div class="account-header-icon">👤</div>
+                    <h3 class="mb-0">Account Information</h3>
+                </div>
+
+                <div class="account-info-grid">
+                    <div class="account-info-item">
+                        <label>First Name</label>
+                        <div class="value" th:text="${user.name} ?: 'no specify'">John</div>
+                    </div>
+                    <div class="account-info-item">
+                        <label>Last Name</label>
+                        <div class="value" th:text="${user.surname} ?: 'no specify'">Doe</div>
+                    </div>
+                    <div class="account-info-item">
+                        <label>Email</label>
+                        <div class="value" th:text="${user.email} ?: 'no specify'">john.doe@example.com</div>
+                    </div>
+                    <div class="account-info-item">
+                        <label>City</label>
+                        <div class="value" th:text="${user.city} ?: 'no specify'">New York</div>
+                    </div>
+                    <div class="account-info-item">
+                        <label>Country</label>
+                        <div class="value" th:text="${user.country} ?: 'no specify'">United States</div>
+                    </div>
+                    <div class="account-info-item">
+                        <label>Address</label>
+                        <div class="value" th:text="${user.address} ?: 'no specify'">123 Main St</div>
+                    </div>
+                    <button
+                            th:data-id="${user.id}"
+                            onclick="handleUserDeletion(this.getAttribute('data-id'))"
+                            class="btn btn-danger">
+                        Delete
+                    </button>
+<!--                    <button-->
+<!--                            th:data-id="${user.id}"-->
+<!--                            onclick="handleUserInformationEdit(this.getAttribute('data-id'))"-->
+<!--                            class="btn btn-danger">-->
+<!--                        Delete-->
+<!--                    </button>-->
+                </div>
+            </div>
+
+            <div th:if="${chats != null and not #lists.isEmpty(chats)}" class="chats-section">
+                <h3 class="text-center mb-4">Your Chats</h3>
+                <div th:each="chat : ${chats}" class="chat-item">
+                    <div class="chat-details">
+                        <strong th:text="${chat.name}">Chat Name</strong>
+                        <p th:text="${chat.lastMessage}">Last message preview...</p>
+                    </div>
+                    <a th:href="@{/chat/open(chatId=${chat.id})}" class="btn btn-primary btn-chat">
+                        Open Chat
+                    </a>
+                </div>
+            </div>
 
             <div th:if="${pastConferences != null and not #lists.isEmpty(pastConferences)}" class="split-content">
                 <!-- Left side - Buttons -->
@@ -44,6 +186,10 @@
                 </div>
 
                 <!-- Right side - Past Conferences -->
+                <div class="account" th:if="${user}">
+                    <h3 class="text-center mb-4">Account information</h3>
+                    <p class="conference-name" th:text="">Name</p>
+                </div>
                 <div class="past-conferences">
                     <h3 class="text-center mb-4">Past Conferences</h3>
                     <div th:each="conference : ${pastConferences}" class="past-conference-item">
@@ -121,7 +267,6 @@
         </div>
     </div>
 </div>
-<script src="/js/commonFunctions.js"></script>
 <script>
     function showConferenceForm() {
         document.getElementById('conferenceForm').style.display = 'block';

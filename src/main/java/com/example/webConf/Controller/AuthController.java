@@ -79,7 +79,7 @@ public class AuthController {
 
     @GetMapping("/isAccountExisting/{userName}")
     public boolean checkAccountExistence(@PathVariable String userName) {
-        return userService.findUserByUsername(userName).isPresent();
+        return userService.findUserByUsername(userName).isPresent(); // need to implementt this in java script logic
     }
 
     @Scheduled(fixedRate = 60 * 60 * 1000) // every hour
@@ -108,8 +108,7 @@ public class AuthController {
     }
 
     @PostMapping("/control/saveUser")
-    public ResponseEntity<?> controlPageSaveUser(@Valid @RequestBody RegistrationDto registrationDto,
-                                                 BindingResult result) {
+    public ResponseEntity<?> controlPageSaveUser(@RequestBody RegistrationDto registrationDto) {
         log.info("Register user from \"Admin Control Page\" {}", registrationDto);
 
         /// Check existed by name and Surname
@@ -118,19 +117,19 @@ public class AuthController {
                 registrationDto.getSurname().toLowerCase()
         ).isPresent()) {
             log.warn("User with this name:{} and surname:{} already exists", registrationDto.getName().toLowerCase(), registrationDto.getSurname().toLowerCase());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("User with this name and surname already exists");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    Map.of("message", "User with this name and surname already exists")
+            );
         }
 
         /// Check existed by email
         if (userService.findByEmail(registrationDto.getEmail()).isPresent()) {
             log.warn("User with this email: {} already exists", registrationDto.getEmail());
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("User with this email already exists");
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(
+                    Map.of("message", "User with this email already exists")
+            );
         }
-
-        if (result.hasErrors()) {
-            log.warn("Validation Error");
-            return ResponseEntity.status(HttpStatus.CONFLICT).body("Validation Error");
-        }
+        System.out.println("Валидация прошла");
 
         if (userService.createUser(registrationDto)) {
             return ResponseEntity.ok(null);
@@ -139,27 +138,61 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/control/deleteUser/{uuid}")
-    public ResponseEntity<?> deleteUser(@PathVariable Long uuid) {
-        RoleEntity adminRole = roleRepository.findByName("ADMIN");
-        RoleEntity creatorRole = roleRepository.findByName("CREATOR");
+    /// Delete user
+    @PostMapping("/control/deleteUser/{id}")
+    public ResponseEntity<?> deleteUser(@PathVariable Long id) {
         try {
-            UserEntity user = userService.findById(uuid).orElseThrow(() -> new AuthException("User not found"));
+            UserEntity user = userService.findById(id).orElseThrow(() -> new AuthException("User not found"));
             UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElse(null);
+
+            RoleEntity adminRole = roleRepository.findByName("ADMIN");
+            RoleEntity creatorRole = roleRepository.findByName("CREATOR");
+
             if (Objects.equals(user, currentUser)) {
-                log.info("User with id: {} and roles: {} delete himself  at {}", user.getId(),user.getRoles(), LocalDateTime.now());
-                userService.deleteUser(uuid);
-                return ResponseEntity.ok("User delete himself");
-            } else if (currentUser != null && user.getRoles().contains(adminRole) || user.getRoles().contains(creatorRole)) {
-                 log.info("Admin with id: {} delete user {} with roles {} at {}", currentUser.getId() , uuid , user.getRoles() , LocalDateTime.now());
-                 userService.deleteUser(uuid);
-                 return ResponseEntity.ok("Admin delete user");
+                log.info("User with id: {} and roles: {} DELETE himself  at {}", user.getId(), user.getRoles(), LocalDateTime.now());
+                userService.deleteUser(id);
+                return ResponseEntity.ok(Map.of("status", "SELF_DELETE"));
+            } else if (currentUser != null && (currentUser.getRoles().contains(adminRole) || currentUser.getRoles().contains(creatorRole))) {
+                log.info("Admin with id: {} DELETE user {} with roles {} at {}", currentUser.getId(), id, user.getRoles(), LocalDateTime.now());
+                userService.deleteUser(id);
+                return ResponseEntity.ok(Map.of("status", "ADMIN_DELETE_USER"));
             } else {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+                log.error("Illegal access while deleting user");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized deletion"));
             }
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
+            log.error("Error during user deletion", e);
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", e.getMessage()));
         }
     }
+
+    /// Edit user information
+    @PostMapping("/control/editUser/{id}")
+    public ResponseEntity<?> editUser(@PathVariable Long id, @Valid @RequestBody RegistrationDto registrationDto) {
+        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElseThrow(() -> new AuthException("Illegal access"));
+        UserEntity user = userService.findById(id).orElseThrow(() -> new AuthException("User not found"));
+
+        RoleEntity adminRole = roleRepository.findByName("ADMIN");
+        RoleEntity creatorRole = roleRepository.findByName("CREATOR");
+
+        try {
+            if (Objects.equals(user, currentUser)) {
+                log.info("User with id: {} and roles: {} EDIT himself  at {}", user.getId(), user.getRoles(), LocalDateTime.now());
+                userService.editUser(registrationDto);
+            } else if (currentUser != null && (currentUser.getRoles().contains(adminRole) || currentUser.getRoles().contains(creatorRole))) {
+
+            } else {
+
+            }
+        } catch (RuntimeException e) {
+            log.error("Error during user deletion", e);
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("error", e.getMessage()));
+        }
+        return null;
+    }
+
 }
 

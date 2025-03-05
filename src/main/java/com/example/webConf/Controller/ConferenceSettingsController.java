@@ -2,6 +2,7 @@ package com.example.webConf.controller;
 
 import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.dto.Devices.DeviceSelectionDTO;
+import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.security.SecurityUtil;
@@ -18,6 +19,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Controller
@@ -54,7 +56,10 @@ public class ConferenceSettingsController {
                 model.addAttribute("activeConferences", activeConference);
 
                 log.info("User name : {}", userName);
+
                 model.addAttribute("userName", userName);
+                model.addAttribute("user", user); // for account information
+                model.addAttribute("chats" , new ArrayList<Chat>());
             }
         } else {
             // User is not authorized

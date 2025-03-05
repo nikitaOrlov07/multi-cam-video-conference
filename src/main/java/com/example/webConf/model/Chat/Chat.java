@@ -42,13 +42,7 @@ public class Chat {
             user.getChats().remove(this);
         }
     }
-    public boolean projectChat(Chat chat)
-    {
-        if(chat.getProject() != null)
-            return  true;
-
-        return false;
-    }
+  
     @JsonIgnore
     @ToString.Exclude
     @OneToMany(mappedBy = "chat",fetch = FetchType.EAGER , cascade = CascadeType.ALL, orphanRemoval = true) // orphanRemoval child entities should be automatically deleted if they are no longer associated with the parent entity.

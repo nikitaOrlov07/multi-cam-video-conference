@@ -48,8 +48,6 @@ public class UserEntity {
             inverseJoinColumns = @JoinColumn(name = "conference_id")
     )
     private List<Conference> conferences = new ArrayList<>();
-    @ManyToMany(mappedBy = "activeUsers")
-    private List<Conference> activeConferences = new ArrayList<>();
 
 
     @CreatedDate
