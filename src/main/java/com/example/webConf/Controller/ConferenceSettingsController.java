@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 @Controller
 @Slf4j
@@ -36,7 +37,6 @@ public class ConferenceSettingsController {
     public String getHomePage(Model model) {
         log.info("Home page is working");
         String currentUserEmail = (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) ? SecurityUtil.getSessionUserEmail() : "User is not authorized";
-        log.info(currentUserEmail);
         UserEntity user;
         if (!currentUserEmail.equals("User is not authorized")) {
             // User is authorized
@@ -59,7 +59,9 @@ public class ConferenceSettingsController {
 
                 model.addAttribute("userName", userName);
                 model.addAttribute("user", user); // for account information
-                model.addAttribute("chats" , new ArrayList<Chat>());
+                // for chats
+                model.addAttribute("chats", new ArrayList<Chat>());
+                model.addAttribute("users", userService.findAllUsers());
             }
         } else {
             // User is not authorized
@@ -67,6 +69,18 @@ public class ConferenceSettingsController {
         }
 
         return "initial-page";
+    }
+
+    /// Searching users by search string
+    @GetMapping({"/findUsers", "/home/findUsers"})
+    public String searchUsers(@RequestParam(required = true) String search,
+                              Model model) {
+        if (search == null || search.isEmpty()) {
+            model.addAttribute("users", userService.findAllUsers());
+        } else {
+            model.addAttribute("users", userService.findUsersByUsername(search));
+        }
+        return "initial-page::users";
     }
 
     @GetMapping("/setDevices")
