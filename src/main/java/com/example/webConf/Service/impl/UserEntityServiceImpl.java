@@ -12,15 +12,14 @@ import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @Slf4j
@@ -50,7 +49,7 @@ public class UserEntityServiceImpl implements UserEntityService {
     @Override
     public Optional<UserEntity> findByEmail(String email) {
         if (email == null || email.isEmpty())
-            return null;
+            return Optional.empty();
         return userEntityRepository.findFirstByEmail(email);
     }
 
@@ -64,12 +63,12 @@ public class UserEntityServiceImpl implements UserEntityService {
     @Override
     public Optional<UserEntity> findUserByUsername(String userName) {
         Optional<UserEntity> userEntity = Optional.empty();
-        String decodedUsername = URLDecoder.decode(userName, StandardCharsets.UTF_8);
+        String decodedUsername = URLDecoder.decode(userName, StandardCharsets.UTF_8).toLowerCase();
         String[] parts = decodedUsername.split(" "); // parts[0] = name , parts[1] = username
         if (parts.length == 1) { // for temporary user
             userEntity = userEntityRepository.findFirstByNameAndSurname(null, parts[0].toLowerCase());
         } else { // for permanent user
-            userEntity = userEntityRepository.findFirstByNameAndSurname(parts[0].toLowerCase(), parts[1].toLowerCase());
+            userEntity = userEntityRepository.findFirstByNameAndSurname(parts[0], parts[1]);
         }
         return userEntity;
     }
@@ -137,6 +136,25 @@ public class UserEntityServiceImpl implements UserEntityService {
             conference.getUsers().remove(userEntity);
         }
         userEntityRepository.delete(userEntity);
+    }
+
+    @Override
+    public void editUser(RegistrationDto registrationDto) {
+
+    }
+
+    @Override
+    public List<UserEntity> findUsersByUsername(String search) {
+        List<UserEntity> users = new ArrayList<>();
+        String decodedUsername = URLDecoder.decode(search, StandardCharsets.UTF_8).toLowerCase();
+        log.info("Searching users by search: {}",decodedUsername);
+        String[] words = decodedUsername.split("\\s+");
+        for (String word : words) {
+            users.addAll(userEntityRepository.searchByNameOrSurname(word));
+        }
+        users = users.stream().distinct().toList();
+        log.info("Found {} users" , users.size());
+        return users;
     }
 
     @Override

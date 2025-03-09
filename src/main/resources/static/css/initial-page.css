@@ -108,23 +108,204 @@
     align-items: start;
 }
 
-/* Responsive design */
-@media (min-width: 768px) {
-    .split-content {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .past-conferences {
-        margin-top: 0;
-    }
+.welcome-container {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    padding: 2rem;
 }
 
-@media (max-width: 767px) {
-    .split-content {
+.welcome-card {
+    background: rgba(255, 255, 255, 0.9);
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+}
+
+.btn-custom {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    margin: 0.5rem;
+    width: 100%;
+    max-width: 400px;
+    transition: transform 0.2s;
+}
+
+.btn-custom:hover {
+    transform: translateY(-3px);
+}
+
+.main-title {
+    color: #2c3e50;
+    font-size: 3rem;
+    margin-bottom: 2rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+#conferenceForm {
+    max-width: 400px;
+    margin: 0 auto;
+    display: none;
+}
+
+.modal-content {
+    border-radius: 15px;
+}
+
+.modal-header {
+    background-color: #4a90e2;
+    color: white;
+    border-radius: 15px 15px 0 0;
+}
+
+.form-control:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+}
+
+.alert {
+    margin-bottom: 1rem;
+}
+
+.account-details {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    border: 1px solid #0b5ed7;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.account-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #4a90e2;
+    padding-bottom: 1rem;
+}
+
+.account-header-icon {
+    font-size: 3rem;
+    margin-right: 1rem;
+    color: #4a90e2;
+}
+
+.account-info-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+}
+
+.account-info-item {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.account-info-item label {
+    font-weight: 600;
+    color: #6c757d;
+    margin-bottom: 0.5rem;
+}
+
+.account-info-item .value {
+    font-size: 1.1rem;
+    color: #2c3e50;
+}
+
+.action-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 300px;
+}
+
+.chats-section,
+.users-section,
+.past-conferences {
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 15px;
+    border: 1px solid #0b5ed7;
+    padding: 1.5rem;
+    margin-top: 2rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.chat-item,
+.user-item,
+.past-conference-item {
+    flex-wrap: wrap;
+    word-break: break-word;
+}
+
+.chat-item:last-child,
+.user-item:last-child,
+.past-conference-item:last-child {
+    border-bottom: none;
+}
+
+.btn-chat {
+    transition: all 0.3s ease;
+}
+
+.btn-chat:hover {
+    transform: scale(1.05);
+}
+
+.split-layout {
+    display: grid;
+    grid-template-columns: 60% 40%;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+.search-form {
+    margin-bottom: 1rem;
+}
+
+@media (max-width: 992px) {
+    .split-layout {
         grid-template-columns: 1fr;
+    }
+
+    .account-info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 768px) {
+    .split-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .account-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .btn-custom {
+        width: 100%;
+        max-width: none;
+    }
+
+    .welcome-card {
+        padding: 1rem;
     }
 
     .main-title {
         font-size: 2rem;
     }
 }
+@media (max-width: 576px) {
+    .search-form .input-group {
+        flex-direction: column;
+    }
+
+    .search-form .btn {
+        margin-top: 0.5rem;
+    }
+
+    input, button {
+        font-size: 1rem;
+    }
+}
+

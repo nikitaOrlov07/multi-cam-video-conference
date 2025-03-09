@@ -7,6 +7,7 @@ import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 
 public interface UserEntityService {
@@ -35,4 +36,8 @@ public interface UserEntityService {
     List<UserEntity> findAllUsers();
 
     void deleteUser(Long uuid);
+
+    void editUser(RegistrationDto registrationDto);
+
+    List<UserEntity> findUsersByUsername(String search);
 }

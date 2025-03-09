@@ -10,89 +10,7 @@
     <title>Welcome Page</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.2/css/bootstrap.min.css" rel="stylesheet">
     <link href="/css/initial-page.css" rel="stylesheet">
-    <style>
-        .account-details {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            border: 1px solid #0b5ed7;
-            padding: 1.5rem;
-            margin-top: 2rem;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .account-header {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid #4a90e2;
-            padding-bottom: 1rem;
-        }
-
-        .account-header-icon {
-            font-size: 3rem;
-            margin-right: 1rem;
-            color: #4a90e2;
-        }
-
-        .account-info-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 1rem;
-        }
-
-        .account-info-item {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 1rem;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .account-info-item label {
-            font-weight: 600;
-            color: #6c757d;
-            margin-bottom: 0.5rem;
-        }
-
-        .account-info-item .value {
-            font-size: 1.1rem;
-            color: #2c3e50;
-        }
-
-        .chats-section {
-            margin-top: 2rem;
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 15px;
-            border: 1px solid #0b5ed7;
-            padding: 1.5rem;
-        }
-
-        .chat-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 1rem;
-            border-bottom: 1px solid #dee2e6;
-        }
-
-        .chat-item:last-child {
-            border-bottom: none;
-        }
-
-        .btn-chat {
-            transition: all 0.3s ease;
-        }
-
-        .btn-chat:hover {
-            transform: scale(1.05);
-        }
-
-        @media (max-width: 768px) {
-            .account-info-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-    </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body layout:fragment="body">
 <div class="welcome-container">
@@ -105,125 +23,145 @@
     <div th:if="${param.successLogout}" id="successLogout" class="alert alert-success">
         You have successfully logout
     </div>
+
     <div class="container">
         <div class="welcome-card">
             <h1 class="main-title text-center">Welcome to the Conference Application</h1>
 
-            <div th:if="${user}" class="account-details">
-                <div class="account-header">
-                    <div class="account-header-icon">👤</div>
-                    <h3 class="mb-0">Account Information</h3>
-                </div>
-
-                <div class="account-info-grid">
-                    <div class="account-info-item">
-                        <label>First Name</label>
-                        <div class="value" th:text="${user.name} ?: 'no specify'">John</div>
-                    </div>
-                    <div class="account-info-item">
-                        <label>Last Name</label>
-                        <div class="value" th:text="${user.surname} ?: 'no specify'">Doe</div>
-                    </div>
-                    <div class="account-info-item">
-                        <label>Email</label>
-                        <div class="value" th:text="${user.email} ?: 'no specify'">john.doe@example.com</div>
-                    </div>
-                    <div class="account-info-item">
-                        <label>City</label>
-                        <div class="value" th:text="${user.city} ?: 'no specify'">New York</div>
-                    </div>
-                    <div class="account-info-item">
-                        <label>Country</label>
-                        <div class="value" th:text="${user.country} ?: 'no specify'">United States</div>
-                    </div>
-                    <div class="account-info-item">
-                        <label>Address</label>
-                        <div class="value" th:text="${user.address} ?: 'no specify'">123 Main St</div>
-                    </div>
-                    <button
-                            th:data-id="${user.id}"
-                            onclick="handleUserDeletion(this.getAttribute('data-id'))"
-                            class="btn btn-danger">
-                        Delete
-                    </button>
-<!--                    <button-->
-<!--                            th:data-id="${user.id}"-->
-<!--                            onclick="handleUserInformationEdit(this.getAttribute('data-id'))"-->
-<!--                            class="btn btn-danger">-->
-<!--                        Delete-->
-<!--                    </button>-->
-                </div>
-            </div>
-
-            <div th:if="${chats != null and not #lists.isEmpty(chats)}" class="chats-section">
-                <h3 class="text-center mb-4">Your Chats</h3>
-                <div th:each="chat : ${chats}" class="chat-item">
-                    <div class="chat-details">
-                        <strong th:text="${chat.name}">Chat Name</strong>
-                        <p th:text="${chat.lastMessage}">Last message preview...</p>
-                    </div>
-                    <a th:href="@{/chat/open(chatId=${chat.id})}" class="btn btn-primary btn-chat">
-                        Open Chat
-                    </a>
-                </div>
-            </div>
-
-            <div th:if="${pastConferences != null and not #lists.isEmpty(pastConferences)}" class="split-content">
-                <!-- Left side - Buttons -->
-                <div class="d-flex flex-column align-items-center gap-3">
-                    <button sec:authorize="!isAuthenticated()" class="btn btn-primary btn-custom" data-bs-toggle="modal"
-                            data-bs-target="#loginModal">
-                        Sign In
-                    </button>
-
-                    <a sec:authorize="!isAuthenticated()" href="/register"
-                       class="btn btn-primary btn-custom">Register</a>
-
-                    <button class="btn btn-primary btn-custom"
-                            th:attr="onclick=${isAuthorized} ? 'window.location.href=\'/setDevices\'' : 'showConferenceForm()'">
-                        Start Conference
-                    </button>
-                </div>
-
-                <!-- Right side - Past Conferences -->
-                <div class="account" th:if="${user}">
-                    <h3 class="text-center mb-4">Account information</h3>
-                    <p class="conference-name" th:text="">Name</p>
-                </div>
-                <div class="past-conferences">
-                    <h3 class="text-center mb-4">Past Conferences</h3>
-                    <div th:each="conference : ${pastConferences}" class="past-conference-item">
-                        <p class="conference-name" th:text="${conference.getConferenceDate()}">Conference Date</p>
-                        <p class="conference-name" th:text="${conference.userJoins.size()}">Amount of users in
-                            Conference</p>
-                        <p class="alert alert-success" th:if="${activeConferences.contains(conference)}">You in this
-                            conference</p>
-                        <div th:if="${conference.userJoins == null or !conference.userJoins.isEmpty()}">
-                            <a class="btn btn-primary"
-                               th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName})}">
-                                Join
-                            </a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Default centered layout when no conferences -->
-            <div th:if="${pastConferences == null or #lists.isEmpty(pastConferences)}"
-                 class="d-flex flex-column align-items-center gap-3">
-                <button sec:authorize="!isAuthenticated()" class="btn btn-primary btn-custom" data-bs-toggle="modal"
-                        data-bs-target="#loginModal">
+            <!-- Non-authenticated user content -->
+            <div sec:authorize="!isAuthenticated()" class="d-flex flex-column align-items-center gap-3">
+                <button class="btn btn-primary btn-custom" data-bs-toggle="modal" data-bs-target="#loginModal">
                     Sign In
                 </button>
-
-                <a sec:authorize="!isAuthenticated()" href="/register" class="btn btn-primary btn-custom">Register</a>
-
-                <button class="btn btn-primary btn-custom"
-                        th:attr="onclick=${isAuthorized} ? 'window.location.href=\'/setDevices\'' : 'showConferenceForm()'">
+                <a href="/register" class="btn btn-primary btn-custom">Register</a>
+                <button class="btn btn-primary btn-custom" onclick="showConferenceForm()">
                     Start Conference
                 </button>
             </div>
 
+            <!-- Authenticated user content -->
+            <div sec:authorize="isAuthenticated()" th:if="${user}">
+                <!-- Split layout for authenticated users -->
+                <div class="split-layout">
+                    <!-- Left side - Start Conference button -->
+                    <div class="action-button">
+                        <button class="btn btn-primary btn-lg btn-custom"
+                                onclick="window.location.href='/setDevices'">
+                            Start Conference
+                        </button>
+                    </div>
+
+                    <!-- Right side - Account Information -->
+                    <div class="account-details">
+                        <div class="account-header">
+                            <div class="account-header-icon">👤</div>
+                            <h3 class="mb-0">Account Information</h3>
+                        </div>
+
+                        <div class="account-info-grid">
+                            <div class="account-info-item">
+                                <label>First Name</label>
+                                <div class="value" th:text="${user.name} ?: 'no specify'">John</div>
+                            </div>
+                            <div class="account-info-item">
+                                <label>Last Name</label>
+                                <div class="value" th:text="${user.surname} ?: 'no specify'">Doe</div>
+                            </div>
+                            <div class="account-info-item">
+                                <label>Email</label>
+                                <div class="value" th:text="${user.email} ?: 'no specify'">john.doe@example.com</div>
+                            </div>
+                            <div class="account-info-item">
+                                <label>City</label>
+                                <div class="value" th:text="${user.city} ?: 'no specify'">New York</div>
+                            </div>
+                            <div class="account-info-item">
+                                <label>Country</label>
+                                <div class="value" th:text="${user.country} ?: 'no specify'">United States</div>
+                            </div>
+                            <div class="account-info-item">
+                                <label>Address</label>
+                                <div class="value" th:text="${user.address} ?: 'no specify'">123 Main St</div>
+                            </div>
+                            <button
+                                    th:data-id="${user.id}"
+                                    onclick="handleUserDeletion(this.getAttribute('data-id'))"
+                                    class="btn btn-danger">
+                                Delete Account
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chats Section -->
+                <div th:if="${chats != null}" class="chats-section">
+                    <h3 class="text-center mb-4">Your Chats</h3>
+                    <div th:if="${not #lists.isEmpty(chats)}">
+                        <div th:each="chat : ${chats}" class="chat-item">
+                            <div class="chat-details">
+                                <strong th:text="${chat.name}">Chat Name</strong>
+                                <p th:text="${chat.lastMessage}">Last message preview...</p>
+                            </div>
+                            <a th:href="@{/chat/open(chatId=${chat.id})}" class="btn btn-primary btn-chat">
+                                Open Chat
+                            </a>
+                        </div>
+                    </div>
+                    <div th:if="${#lists.isEmpty(chats)}" class="text-center">
+                        <p>You don't have any active chats yet.</p>
+                    </div>
+                </div>
+
+                <!-- Users Section with Search -->
+                <div th:if="${users != null}" id="usersContainer" class="users-section" th:fragment="users">
+                    <h3 class="text-center mb-4">Users</h3>
+
+                    <!-- Search Form -->
+                    <form id="searchForm" class="search-form">
+                        <div class="input-group mb-3">
+                            <input type="text" style="width: 80%;" class="form-control" placeholder="Search users..." id="searchQuery" name="search">
+                            <button class="btn btn-outline-primary" type="submit">Search</button>
+                        </div>
+                    </form>
+
+                    <div th:if="${not #lists.isEmpty(users)}">
+                        <div th:each="otherUser : ${users}" class="user-item">
+                            <div class="user-details">
+                                <strong th:text="${otherUser.name + ' ' + otherUser.surname}">User Name</strong>
+                                <small th:text="${otherUser.email}">user@example.com</small>
+                            </div>
+                            <a th:href="@{/chat/start(userId=${otherUser.id})}" class="btn btn-primary btn-chat">
+                                Chat
+                            </a>
+                        </div>
+                    </div>
+                    <div th:if="${#lists.isEmpty(users)}" class="text-center">
+                        <p>No users found.</p>
+                    </div>
+                </div>
+                <!-- Past Conferences Section -->
+                <div th:if="${pastConferences != null}" class="past-conferences">
+                    <h3 class="text-center mb-4">Past Conferences</h3>
+                    <div th:if="${not #lists.isEmpty(pastConferences)}">
+                        <div th:each="conference : ${pastConferences}" class="past-conference-item">
+                            <p class="conference-name" th:text="${conference.getConferenceDate()}">Conference Date</p>
+                            <p class="conference-name" th:text="${conference.userJoins.size()} + ' participants'">Amount of users</p>
+                            <div class="d-flex align-items-center">
+                                <p class="alert alert-success mb-0 me-2" th:if="${activeConferences.contains(conference)}">Active</p>
+                                <a class="btn btn-primary"
+                                   th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName})}">
+                                    Join
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    <div th:if="${#lists.isEmpty(pastConferences)}" class="text-center">
+                        <p>You haven't participated in any conferences yet.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Conference Form for non-authenticated users -->
             <form id="conferenceForm" action="/setDevices" method="GET" class="mt-4" style="display: none;">
                 <div class="form-group">
                     <label for="userName" class="form-label">Enter your name:</label>
@@ -268,8 +206,66 @@
     </div>
 </div>
 <script>
+    if (typeof jQuery !== 'undefined') {
+        $(document).ready(function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchParam = urlParams.get('search');
+            if (searchParam) {
+                $("#searchQuery").val(searchParam);
+            }
+
+            function loadUsers(query) {
+                $.ajax({
+                    url: "/findUsers",
+                    data: { search: query || "" },
+                    success: function(fragment) {
+                        $("#usersContainer").replaceWith(fragment);
+
+                        $("#searchQuery").val(query);
+
+                        $("#searchForm").on("submit", handleFormSubmit);
+                    },
+                    error: function(xhr, status, error) {
+                        console.error("Error loading users:", error);
+                    }
+                });
+            }
+
+            function handleFormSubmit(e) {
+                e.preventDefault();
+                loadUsers($("#searchQuery").val());
+                return false;
+            }
+
+            $("#searchForm").on("submit", handleFormSubmit);
+
+            $("#searchQuery").on("keypress", function(e) {
+                if (e.which === 13) { // for enter
+                    e.preventDefault();
+                    loadUsers($(this).val());
+                    return false;
+                }
+            });
+
+            $("#searchQuery").on("input", function() {
+                if ($(this).val() === "") {
+                    loadUsers("");
+                }
+            });
+        });
+    } else {
+        console.error("jQuery is not loaded!");
+    }
+</script>
+<script>
     function showConferenceForm() {
         document.getElementById('conferenceForm').style.display = 'block';
+    }
+
+    function handleUserDeletion(userId) {
+        if (confirm('Are you sure you want to delete your account? This action cannot be undone.')) {
+            window.location.href = '/user/delete?id=' + userId;
+        }
     }
 
     // Initialize Bootstrap Modal
@@ -310,9 +306,17 @@
     document.getElementById('loginModal').addEventListener('hidden.bs.modal', function () {
         document.getElementById('loginError').style.display = 'none';
     });
-</script>
 
-<script>
+    // Hide alert messages after delay
+    function hideElementAfterDelay(elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            setTimeout(function() {
+                element.style.display = 'none';
+            }, 5000);
+        }
+    }
+
     hideElementAfterDelay("errorMessage");
     hideElementAfterDelay("successLogin");
     hideElementAfterDelay("successLogout");
