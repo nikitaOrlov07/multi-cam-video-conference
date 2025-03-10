@@ -1,5 +1,6 @@
 package com.example.webConf.service.impl;
 
+import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.dto.Conference.ConferenceDto;
 import com.example.webConf.mappers.ConferenceMapper;
 import com.example.webConf.model.Chat.Chat;
@@ -76,7 +77,7 @@ public class ConferenceServiceImpl implements ConferenceService {
                     .email(null)
                     .country(null)
                     .accountType(UserEntity.AccountType.TEMPORARY)
-                    .roles(List.of(roleRepository.findByName("USER")))
+                    .roles(List.of(roleRepository.findByName("USER").orElseThrow(() -> new AuthException("User Role Not Found"))))
                     .build();
 
             userService.save(temporaryUser);
