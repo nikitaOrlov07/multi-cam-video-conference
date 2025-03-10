@@ -145,8 +145,8 @@ public class AuthController {
             UserEntity user = userService.findById(id).orElseThrow(() -> new AuthException("User not found"));
             UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElse(null);
 
-            RoleEntity adminRole = roleRepository.findByName("ADMIN");
-            RoleEntity creatorRole = roleRepository.findByName("CREATOR");
+            RoleEntity adminRole = roleRepository.findByName("ADMIN").orElseThrow(() -> new AuthException("ADMIN Role Not Found"));;
+            RoleEntity creatorRole = roleRepository.findByName("CREATOR").orElseThrow(() -> new AuthException("CREATOR Role Not Found"));;
 
             if (Objects.equals(user, currentUser)) {
                 log.info("User with id: {} and roles: {} DELETE himself  at {}", user.getId(), user.getRoles(), LocalDateTime.now());
@@ -174,26 +174,28 @@ public class AuthController {
         UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElseThrow(() -> new AuthException("Illegal access"));
         UserEntity user = userService.findById(id).orElseThrow(() -> new AuthException("User not found"));
 
-        RoleEntity adminRole = roleRepository.findByName("ADMIN");
-        RoleEntity creatorRole = roleRepository.findByName("CREATOR");
+        RoleEntity adminRole = roleRepository.findByName("ADMIN").orElseThrow(() -> new AuthException("ADMIN Role Not Found"));;
+        RoleEntity creatorRole = roleRepository.findByName("CREATOR").orElseThrow(() -> new AuthException("CREATOR Role Not Found"));;
 
         try {
             if (Objects.equals(user, currentUser)) {
                 log.info("User with id: {} and roles: {} EDIT himself  at {}", user.getId(), user.getRoles(), LocalDateTime.now());
-                userService.editUser(registrationDto);
+                userService.editUser(user.getId(),registrationDto);
+                return ResponseEntity.ok(Map.of("status", "SELF_EDIT"));
             } else if (currentUser != null && (currentUser.getRoles().contains(adminRole) || currentUser.getRoles().contains(creatorRole))) {
-                log.info("User with id: {} and roles: {} EDIT himself  at {}", user.getId(), user.getRoles(), LocalDateTime.now());
-
+                log.info("ADMIN with id: {} and roles: {} EDIT user with id: {}  at {}", currentUser.getId(), currentUser.getRoles(), user.getId() ,LocalDateTime.now());
+                userService.editUser(user.getId(),registrationDto);
+                return ResponseEntity.ok(Map.of("status", "ADMIN_EDIT"));
             } else {
-
+                log.error("Illegal access while deleting user");
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Unauthorized deletion"));
             }
         } catch (RuntimeException e) {
             log.error("Error during user deletion", e);
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body(Map.of("error", e.getMessage()));
         }
-        return null;
     }
-
 }
 

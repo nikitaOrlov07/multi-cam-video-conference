@@ -31,3 +31,6 @@ build/
 
 ### VS Code ###
 .vscode/
+
+#Jitsi generating files
+.jitsi-meet-cfg

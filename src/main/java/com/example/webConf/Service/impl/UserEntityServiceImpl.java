@@ -11,6 +11,7 @@ import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
@@ -139,8 +140,10 @@ public class UserEntityServiceImpl implements UserEntityService {
     }
 
     @Override
-    public void editUser(RegistrationDto registrationDto) {
-
+    @Transactional
+    public void editUser(Long uuid,RegistrationDto registrationDto) {
+        UserEntity user = userEntityRepository.findById(uuid).get();
+        BeanUtils.copyProperties(registrationDto, user);
     }
 
     @Override

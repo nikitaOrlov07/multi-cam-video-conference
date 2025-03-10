@@ -58,7 +58,7 @@
                             <h3 class="mb-0">Account Information</h3>
                         </div>
 
-                        <div class="account-info-grid">
+                        <div class="account-info-grid" id="view-mode">
                             <div class="account-info-item">
                                 <label>First Name</label>
                                 <div class="value" th:text="${user.name} ?: 'no specify'">John</div>
@@ -83,12 +83,59 @@
                                 <label>Address</label>
                                 <div class="value" th:text="${user.address} ?: 'no specify'">123 Main St</div>
                             </div>
-                            <button
-                                    th:data-id="${user.id}"
-                                    onclick="handleUserDeletion(this.getAttribute('data-id'))"
-                                    class="btn btn-danger">
-                                Delete Account
-                            </button>
+                            <div class="account-actions">
+                                <button
+                                        onclick="toggleEditMode()"
+                                        class="btn btn-primary">
+                                    Edit Account
+                                </button>
+                                <button
+                                        th:data-id="${user.id}"
+                                        onclick="handleUserDeletion(this.getAttribute('data-id'))"
+                                        class="btn btn-danger">
+                                    Delete Account
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="account-info-grid" id="edit-mode" style="display: none;">
+                            <div class="account-info-item">
+                                <label for="edit-name">First Name</label>
+                                <input type="text" id="edit-name" class="form-control" th:value="${user.name}">
+                            </div>
+                            <div class="account-info-item">
+                                <label for="edit-surname">Last Name</label>
+                                <input type="text" id="edit-surname" class="form-control" th:value="${user.surname}">
+                            </div>
+                            <div class="account-info-item">
+                                <label for="edit-email">Email</label>
+                                <input type="email" id="edit-email" class="form-control" th:value="${user.email}">
+                            </div>
+                            <div class="account-info-item">
+                                <label for="edit-city">City</label>
+                                <input type="text" id="edit-city" class="form-control" th:value="${user.city}">
+                            </div>
+                            <div class="account-info-item">
+                                <label for="edit-country">Country</label>
+                                <input type="text" id="edit-country" class="form-control" th:value="${user.country}">
+                            </div>
+                            <div class="account-info-item">
+                                <label for="edit-address">Address</label>
+                                <input type="text" id="edit-address" class="form-control" th:value="${user.address}">
+                            </div>
+                            <div class="account-actions">
+                                <button
+                                        th:data-id="${user.id}"
+                                        onclick="handleUserEditing(this.getAttribute('data-id'))"
+                                        class="btn btn-success">
+                                    Save Changes
+                                </button>
+                                <button
+                                        onclick="toggleEditMode()"
+                                        class="btn btn-secondary">
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -176,6 +223,20 @@
     </div>
 </div>
 
+<script>
+    function toggleEditMode() {
+        const viewMode = document.getElementById('view-mode');
+        const editMode = document.getElementById('edit-mode');
+
+        if (viewMode.style.display !== 'none') {
+            viewMode.style.display = 'none';
+            editMode.style.display = 'grid';
+        } else {
+            viewMode.style.display = 'grid';
+            editMode.style.display = 'none';
+        }
+    }
+</script>
 <!-- Login Modal -->
 <div class="modal fade" id="loginModal" tabindex="-1" aria-labelledby="loginModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">

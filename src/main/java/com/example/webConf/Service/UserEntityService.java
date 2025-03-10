@@ -37,7 +37,7 @@ public interface UserEntityService {
 
     void deleteUser(Long uuid);
 
-    void editUser(RegistrationDto registrationDto);
+    void editUser(Long uuid,RegistrationDto registrationDto);
 
     List<UserEntity> findUsersByUsername(String search);
 }
