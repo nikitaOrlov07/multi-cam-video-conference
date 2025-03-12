@@ -40,6 +40,7 @@ public class ConferenceController {
     private final UserConferenceJoinRepository userConferenceJoinRepository;
     private final UserEntityService userService;
 
+
     @GetMapping("/join")
     public String joinConference(@RequestParam(value = "userName", required = false) String userName,
                                  @RequestParam(value = "conferenceId") String conferenceId,
@@ -187,11 +188,5 @@ public class ConferenceController {
         Integer count = userService.countUserConferenceJoinByUserAndConference(userEntity.get(), conference);
         log.info("User has join count: {}", count);
         return count;
-    }
-
-    ///  Method will be executed every 72 hours to clean up unused conferences and free resources
-    @Scheduled(fixedRate = 72 * 60 * 60 * 1000)
-    public void executeEvery48Hours() {
-        conferenceService.deleteUnusedConferences();
     }
 }

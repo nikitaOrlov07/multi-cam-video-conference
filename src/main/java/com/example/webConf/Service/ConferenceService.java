@@ -3,9 +3,11 @@ package com.example.webConf.service;
 import com.example.webConf.dto.Conference.ConferenceDto;
 import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.conference.Conference;
+import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 
 public interface ConferenceService {
@@ -24,4 +26,6 @@ public interface ConferenceService {
     List<Conference> findAllConferences();
 
     Conference findConferenceByChat(Chat chat);
+
+    Optional<SettingsEntity> findByType(String type);
 }

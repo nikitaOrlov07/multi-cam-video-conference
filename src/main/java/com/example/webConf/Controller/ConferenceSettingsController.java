@@ -56,7 +56,6 @@ public class ConferenceSettingsController {
                 model.addAttribute("activeConferences", activeConference);
 
                 log.info("User name : {}", userName);
-
                 model.addAttribute("userName", userName);
                 model.addAttribute("user", user); // for account information
                 // for chats

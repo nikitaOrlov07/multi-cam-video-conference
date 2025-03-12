@@ -354,6 +354,7 @@
             }
         }
     </style>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body layout:fragment="body">
 <div class="container">
@@ -455,12 +456,6 @@
                         <div class="d-flex gap-2">
                             <button
                                     th:data-id="${user.id}"
-                                    onclick="handleUserEditing(this.getAttribute('data-id'))"
-                                    class="btn btn-warning">
-                                Edit
-                            </button>
-                            <button
-                                    th:data-id="${user.id}"
                                     onclick="handleUserDeletion(this.getAttribute('data-id'))"
                                     class="btn btn-danger">
                                 Delete
@@ -472,86 +467,678 @@
             </table>
         </div>
     </div>
+    <!-- Settings Section - добавить перед закрывающим тегом div.container -->
+    <div class="card">
+        <div class="card-header">
+            <span>System Settings</span>
+            <div>
+                <button class="btn btn-success" id="addSettingsBtn" title="Add New Setting">+</button>
+                <button class="btn btn-primary" id="refreshSettingsBtn">Refresh Settings</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="settingsLoader" style="text-align: center; padding: 20px; display: none;">
+                <p>Loading settings...</p>
+            </div>
+            <div id="settingsError" class="error-message" style="text-align: center; padding: 10px; display: none;"></div>
+            <div id="settingsContainer">
+                <table id="settingsTable">
+                    <thead>
+                    <tr>
+                        <th>Setting Name</th>
+                        <th>Value</th>
+                        <th>Created By</th>
+                        <th>Created At</th>
+                        <th>Actions</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <!-- Settings will be loaded here dynamically -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
 
-    <!-- Edit User Modal -->
-    <div id="editUserModal" class="modal-backdrop">
+    <!-- Settings Edit Modal -->
+    <div id="editSettingModal" class="modal-backdrop">
         <div class="modal-container">
             <div class="modal-header">
-                <h2>Edit User</h2>
-                <button class="modal-close-btn" id="closeEditUserModalBtn">&times;</button>
+                <h2>Edit Setting</h2>
+                <button class="modal-close-btn" id="closeSettingModalBtn">&times;</button>
             </div>
             <div class="modal-body">
-                <div id="errorEditMessage" class="error-message global-error"></div>
-                <form id="editUserForm">
-                    <div class="form-row">
-                        <div class="form-group modal-col">
-                            <label for="edit-name">Name <span class="required">*</span></label>
-                            <input type="text" id="edit-name" name="name" class="form-control" required>
-                            <span class="error-message" id="nameEditError"></span>
-                        </div>
-                        <div class="form-group modal-col">
-                            <label for="edit-surname">Surname <span class="required">*</span></label>
-                            <input type="text" id="edit-surname" name="surname" class="form-control" required>
-                            <span class="error-message" id="surnameEditError"></span>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group modal-col">
-                            <label for="edit-email">Email <span class="required">*</span></label>
-                            <input type="email" id="edit-email" name="email" class="form-control" required>
-                            <span class="error-message" id="emailEditError"></span>
-                        </div>
-                        <div class="form-group modal-col">
-                            <label for="edit-password">Password <span class="required">*</span></label>
-                            <input type="password" id="edit-password" name="password" class="form-control" required>
-                            <span class="error-message" id="passwordEditError"></span>
-                        </div>
-                    </div>
-
-                    <div class="form-row">
-                        <div class="form-group modal-col">
-                            <label for="edit-country">Country</label>
-                            <input type="text" id="edit-country" name="country" class="form-control">
-                        </div>
-                        <div class="form-group modal-col">
-                            <label for="edit-city">City</label>
-                            <input type="text" id="edit-city" name="city" class="form-control">
-                        </div>
-                    </div>
+                <div id="settingEditErrorMessage" class="error-message global-error"></div>
+                <form id="editSettingForm">
+                    <input type="hidden" id="setting-id">
 
                     <div class="form-row">
                         <div class="form-group full-width">
-                            <label for="edit-address">Address</label>
-                            <input type="text" id="edit-address" name="address" class="form-control">
+                            <label for="setting-name">Setting Name</label>
+                            <input type="text" id="setting-name" class="form-control" disabled>
                         </div>
                     </div>
 
                     <div class="form-row">
-                        <div class="form-group full-width">
-                            <label for="edit-role">Role <span class="required">*</span></label>
-                            <select id="edit-role" name="role" class="form-control" required>
-                                <option value="">Select a role</option>
-                                <option value="USER">USER</option>
-                                <option value="ADMIN">ADMIN</option>
-                                <option value="CREATOR">CREATOR</option>
-                            </select>
-                            <span class="error-message" id="roleEditError"></span>
+                        <div id="setting-value-container" class="form-group full-width">
+                            <!-- This will be dynamically populated based on setting type -->
                         </div>
                     </div>
 
                     <div class="form-actions">
-                        <button type="button" class="btn btn-secondary" id="cancelEditUserBtn">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save User</button>
+                        <button type="button" class="btn btn-secondary" id="cancelSettingBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
                     </div>
                 </form>
             </div>
         </div>
     </div>
 
+    <!-- Add Settings Modal -->
+    <div id="addSettingModal" class="modal-backdrop">
+        <div class="modal-container">
+            <div class="modal-header">
+                <h2>Add Setting</h2>
+                <button class="modal-close-btn" id="closeAddSettingModalBtn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="addSettingErrorMessage" class="error-message global-error"></div>
+                <form id="addSettingForm">
+                    <div class="form-row">
+                        <div class="form-group full-width">
+                            <label for="add-setting-name">Setting Name <span class="required">*</span></label>
+                            <select id="add-setting-name" name="add-setting-name" class="form-control" required>
+                                <option value="">-- Select a setting --</option>
+                                <option value="conferenceInterval">conferenceInterval</option>
+                                <option value="temporaryUserInterval">temporaryUserInterval</option>
+                                <option value="userInterval">userInterval</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div id="add-setting-value-container" class="form-group full-width">
+                            <!-- This will be dynamically populated based on setting type -->
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="button" class="btn btn-secondary" id="cancelAddSettingBtn">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Setting</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // References to settings elements
+            const settingsTable = document.getElementById('settingsTable');
+            const settingsLoader = document.getElementById('settingsLoader');
+            const settingsError = document.getElementById('settingsError');
+            const refreshSettingsBtn = document.getElementById('refreshSettingsBtn');
+
+            // Settings modal elements
+            const editSettingModal = document.getElementById('editSettingModal');
+            const closeSettingModalBtn = document.getElementById('closeSettingModalBtn');
+            const cancelSettingBtn = document.getElementById('cancelSettingBtn');
+            const editSettingForm = document.getElementById('editSettingForm');
+            const settingEditErrorMessage = document.getElementById('settingEditErrorMessage');
+
+            // New add setting modal elements
+            const addSettingsBtn = document.getElementById('addSettingsBtn');
+            const addSettingModal = document.getElementById('addSettingModal');
+            const closeAddSettingModalBtn = document.getElementById('closeAddSettingModalBtn');
+            const cancelAddSettingBtn = document.getElementById('cancelAddSettingBtn');
+            const addSettingForm = document.getElementById('addSettingForm');
+            const addSettingErrorMessage = document.getElementById('addSettingErrorMessage');
+
+            // Settings collection to store current settings
+            let currentSettings = [];
+
+            // Time settings that require special handling
+            const timeSettings = ['conferenceInterval', 'temporaryUserInterval', 'userInterval'];
+
+            // Initial load of settings
+            loadSettings();
+
+            // Refresh button click event
+            refreshSettingsBtn.addEventListener('click', loadSettings);
+
+            // Add setting button click event
+            addSettingsBtn.addEventListener('click', openAddSettingModal);
+
+            // Function to load settings from the backend
+            function loadSettings() {
+                settingsLoader.style.display = 'block';
+                settingsError.style.display = 'none';
+
+                fetch('/control/getSettings')
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Failed to load settings');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        currentSettings = data;
+                        displaySettings(data);
+                        settingsLoader.style.display = 'none';
+                    })
+                    .catch(error => {
+                        settingsError.textContent = error.message;
+                        settingsError.style.display = 'block';
+                        settingsLoader.style.display = 'none';
+                    });
+            }
+
+            function formatDate(dateString) {
+                if (!dateString) return 'N/A';
+
+                const date = new Date(dateString);
+                if (isNaN(date.getTime())) return 'Invalid date';
+
+                return date.toLocaleString();
+            }
+
+            // Function to display settings in the table
+            function displaySettings(settings) {
+                const tbody = settingsTable.querySelector('tbody');
+                tbody.innerHTML = '';
+
+                if (settings.length === 0) {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `<td colspan="5" style="text-align: center;">No settings found.</td>`;
+                    tbody.appendChild(row);
+                    return;
+                }
+
+                settings.forEach(setting => {
+                    let displayValue = setting.value;
+
+                    // Format time values for display if they're milliseconds
+                    if (timeSettings.includes(setting.type || setting.name)) {
+                        try {
+                            const ms = parseInt(setting.value);
+                            if (!isNaN(ms)) {
+                                const timeObj = millisecondsToTimeObject(ms);
+                                displayValue = `${timeObj.days} days, ${timeObj.hours} hours, ${timeObj.minutes} minutes`;
+                            }
+                        } catch (e) {
+                            // If parsing fails, use the original value
+                            console.error("Error parsing time value:", e);
+                        }
+                    }
+
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                <td>${setting.type || setting.name}</td>
+                <td>${displayValue}</td>
+                <td>${setting.email || 'System'}</td>
+                <td>${formatDate(setting.createdAt)}</td>
+                <td>
+                    <button class="btn btn-primary edit-setting-btn" data-id="${setting.id || setting.type}">Edit</button>
+                </td>
+            `;
+                    tbody.appendChild(row);
+                });
+
+                // Add event listeners to edit buttons
+                const editButtons = document.querySelectorAll('.edit-setting-btn');
+                editButtons.forEach(button => {
+                    button.addEventListener('click', function() {
+                        const settingId = this.getAttribute('data-id');
+                        openEditSettingModal(settingId);
+                    });
+                });
+            }
+
+            // Function to convert milliseconds to days, hours, minutes
+            function millisecondsToTimeObject(ms) {
+                const totalMinutes = Math.floor(ms / (1000 * 60));
+                const days = Math.floor(totalMinutes / (60 * 24));
+                const hours = Math.floor((totalMinutes % (60 * 24)) / 60);
+                const minutes = totalMinutes % 60;
+
+                return { days, hours, minutes };
+            }
+
+            // Function to convert days, hours, minutes to milliseconds
+            function timeToMilliseconds(days, hours, minutes) {
+                return ((days * 24 * 60) + (hours * 60) + parseInt(minutes)) * 60 * 1000;
+            }
+
+            // Function to open the setting edit modal
+            function openEditSettingModal(settingId) {
+                const setting = currentSettings.find(s =>
+                    (s.id && s.id == settingId) || (s.type && s.type == settingId)
+                );
+                if (!setting) return;
+
+                document.getElementById('setting-id').value = setting.id || setting.type;
+                document.getElementById('setting-name').value = setting.type || setting.name;
+
+                // Update form structure based on setting type
+                const valueContainer = document.getElementById('setting-value-container');
+
+                if (timeSettings.includes(setting.type || setting.name)) {
+                    // Show time fields for time-based settings
+                    valueContainer.innerHTML = createTimeFieldsHTML('setting');
+
+                    // Parse the milliseconds value into days, hours, minutes
+                    try {
+                        const ms = parseInt(setting.value);
+                        if (!isNaN(ms)) {
+                            const timeObj = millisecondsToTimeObject(ms);
+                            document.getElementById('setting-days').value = timeObj.days;
+                            document.getElementById('setting-hours').value = timeObj.hours;
+                            document.getElementById('setting-minutes').value = timeObj.minutes;
+                        }
+                    } catch (e) {
+                        console.error("Error parsing time value:", e);
+                        // Set default values if parsing fails
+                        document.getElementById('setting-days').value = 0;
+                        document.getElementById('setting-hours').value = 1;
+                        document.getElementById('setting-minutes').value = 0;
+                    }
+                } else {
+                    // Show regular text input for other settings
+                    valueContainer.innerHTML = `
+                <label for="setting-value">Value <span class="required">*</span></label>
+                <input type="text" id="setting-value" name="setting-value" class="form-control" required value="${setting.value}">
+            `;
+                }
+
+                editSettingModal.style.display = 'flex';
+            }
+
+            // Function to open the add setting modal
+            function openAddSettingModal() {
+                addSettingModal.style.display = 'flex';
+
+                // Filter out settings that already exist to avoid duplicates
+                const existingSettingNames = currentSettings.map(s => s.type || s.name);
+                const settingNameSelect = document.getElementById('add-setting-name');
+
+                // Reset the form
+                addSettingForm.reset();
+                addSettingErrorMessage.textContent = '';
+                addSettingErrorMessage.style.display = 'none';
+
+                // Enable/disable options based on existing settings
+                Array.from(settingNameSelect.options).forEach(option => {
+                    if (option.value && existingSettingNames.includes(option.value)) {
+                        option.disabled = true;
+                    } else {
+                        option.disabled = false;
+                    }
+                });
+
+                // Update value fields based on selected setting type
+                updateAddSettingValueFields();
+
+                // Add event listener to the select to update fields when selection changes
+                settingNameSelect.addEventListener('change', updateAddSettingValueFields);
+            }
+
+            // Function to update add setting value fields based on setting type
+            function updateAddSettingValueFields() {
+                const settingName = document.getElementById('add-setting-name').value;
+                const valueContainer = document.getElementById('add-setting-value-container');
+
+                if (timeSettings.includes(settingName)) {
+                    // Show time fields for time-based settings
+                    valueContainer.innerHTML = createTimeFieldsHTML('add-setting');
+                    // Set default values
+                    document.getElementById('add-setting-days').value = 0;
+                    document.getElementById('add-setting-hours').value = 1;
+                    document.getElementById('add-setting-minutes').value = 0;
+                } else {
+                    // Show regular text input for other settings
+                    valueContainer.innerHTML = `
+                <label for="add-setting-value">Value <span class="required">*</span></label>
+                <input type="text" id="add-setting-value" name="add-setting-value" class="form-control" required>
+            `;
+                }
+            }
+
+            // Function to create HTML for time input fields
+            function createTimeFieldsHTML(prefix) {
+                return `
+            <input type="hidden" id="${prefix}-value" name="${prefix}-value">
+            <label>Time Interval <span class="required">*</span></label>
+            <div class="time-inputs" style="display: flex; gap: 10px;">
+                <div style="flex: 1;">
+                    <label for="${prefix}-days">Days</label>
+                    <input type="number" id="${prefix}-days" name="${prefix}-days" class="form-control" min="0" value="0" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="${prefix}-hours">Hours</label>
+                    <input type="number" id="${prefix}-hours" name="${prefix}-hours" class="form-control" min="0" max="23" value="0" required>
+                </div>
+                <div style="flex: 1;">
+                    <label for="${prefix}-minutes">Minutes</label>
+                    <input type="number" id="${prefix}-minutes" name="${prefix}-minutes" class="form-control" min="0" max="59" value="0" required>
+                </div>
+            </div>
+        `;
+            }
+
+            // Close setting modal functions
+            function closeSettingModal() {
+                editSettingModal.style.display = 'none';
+                editSettingForm.reset();
+                settingEditErrorMessage.textContent = '';
+                settingEditErrorMessage.style.display = 'none';
+            }
+
+            // Function to close the add setting modal
+            function closeAddSettingModal() {
+                addSettingModal.style.display = 'none';
+                addSettingForm.reset();
+                addSettingErrorMessage.textContent = '';
+                addSettingErrorMessage.style.display = 'none';
+            }
+
+            closeSettingModalBtn.addEventListener('click', closeSettingModal);
+            cancelSettingBtn.addEventListener('click', closeSettingModal);
+
+            // Close add modal buttons
+            closeAddSettingModalBtn.addEventListener('click', closeAddSettingModal);
+            cancelAddSettingBtn.addEventListener('click', closeAddSettingModal);
+
+            // Close modal when clicking outside
+            editSettingModal.addEventListener('click', function(event) {
+                if (event.target === editSettingModal) {
+                    closeSettingModal();
+                }
+            });
+
+            // Close add modal when clicking outside
+            addSettingModal.addEventListener('click', function(event) {
+                if (event.target === addSettingModal) {
+                    closeAddSettingModal();
+                }
+            });
+
+            // Setting form submission
+            editSettingForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const settingId = document.getElementById('setting-id').value;
+                const settingName = document.getElementById('setting-name').value;
+                let settingValue;
+
+                // Handle time-based settings
+                if (timeSettings.includes(settingName)) {
+                    const days = parseInt(document.getElementById('setting-days').value) || 0;
+                    const hours = parseInt(document.getElementById('setting-hours').value) || 0;
+                    const minutes = parseInt(document.getElementById('setting-minutes').value) || 0;
+
+                    // Convert to milliseconds
+                    settingValue = timeToMilliseconds(days, hours, minutes).toString();
+                } else {
+                    settingValue = document.getElementById('setting-value').value;
+                }
+
+                // Create settings map to send to backend
+                const settings = {};
+                settings[settingName] = settingValue;
+
+                // Send to backend
+                fetch('/control/setSettings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Failed to update setting');
+                            });
+                        }
+                        closeSettingModal();
+                        loadSettings(); // Reload settings after update
+                    })
+                    .catch(error => {
+                        settingEditErrorMessage.textContent = error.message;
+                        settingEditErrorMessage.style.display = 'block';
+                    });
+            });
+
+            // Add setting form submission
+            addSettingForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+
+                const settingName = document.getElementById('add-setting-name').value;
+                let settingValue;
+
+                // Handle time-based settings
+                if (timeSettings.includes(settingName)) {
+                    const days = parseInt(document.getElementById('add-setting-days').value) || 0;
+                    const hours = parseInt(document.getElementById('add-setting-hours').value) || 0;
+                    const minutes = parseInt(document.getElementById('add-setting-minutes').value) || 0;
+
+                    // Convert to milliseconds
+                    settingValue = timeToMilliseconds(days, hours, minutes).toString();
+                } else {
+                    settingValue = document.getElementById('add-setting-value').value;
+                }
+
+                if (!settingName) {
+                    addSettingErrorMessage.textContent = 'Please select a setting name';
+                    addSettingErrorMessage.style.display = 'block';
+                    return;
+                }
+
+                // Create settings map to send to backend
+                const settings = {};
+                settings[settingName] = settingValue;
+
+                // Send to backend - using the same endpoint as edit
+                fetch('/control/setSettings', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(settings)
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Failed to add setting');
+                            });
+                        }
+                        closeAddSettingModal();
+                        loadSettings(); // Reload settings after update
+                    })
+                    .catch(error => {
+                        addSettingErrorMessage.textContent = error.message;
+                        addSettingErrorMessage.style.display = 'block';
+                    });
+            });
+        });
+    </script>
 </div>
+<!-- Edit User Modal -->
+<div id="editUserModal" class="modal-backdrop">
+    <div class="modal-container">
+        <div class="modal-header">
+            <h2>Edit User</h2>
+            <button class="modal-close-btn" id="closeEditModalBtn">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="editErrorMessage" class="error-message global-error"></div>
+            <form id="editUserForm">
+                <input type="hidden" id="edit-user-id">
+                <div class="form-row">
+                    <div class="form-group modal-col">
+                        <label for="edit-name">Name <span class="required">*</span></label>
+                        <input type="text" id="edit-name" name="name" class="form-control" required>
+                    </div>
+                    <div class="form-group modal-col">
+                        <label for="edit-surname">Surname <span class="required">*</span></label>
+                        <input type="text" id="edit-surname" name="surname" class="form-control" required>
+                    </div>
+                </div>
 
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="edit-email">Email <span class="required">*</span></label>
+                        <input type="email" id="edit-email" name="email" class="form-control" required>
+                    </div>
+                </div>
 
+                <div class="form-row">
+                    <div class="form-group modal-col">
+                        <label for="edit-country">Country</label>
+                        <input type="text" id="edit-country" name="country" class="form-control">
+                    </div>
+                    <div class="form-group modal-col">
+                        <label for="edit-city">City</label>
+                        <input type="text" id="edit-city" name="city" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group full-width">
+                        <label for="edit-address">Address</label>
+                        <input type="text" id="edit-address" name="address" class="form-control">
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancelEditBtn">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Add this after your existing DOMContentLoaded script
+
+        // Get edit modal elements
+        const editUserModal = document.getElementById('editUserModal');
+        const closeEditModalBtn = document.getElementById('closeEditModalBtn');
+        const cancelEditBtn = document.getElementById('cancelEditBtn');
+        const editUserForm = document.getElementById('editUserForm');
+
+        // Add edit buttons to user rows
+        const userRows = document.querySelectorAll('#usersTable tbody tr');
+        userRows.forEach(row => {
+            const userId = row.querySelector('td:first-child').textContent;
+            const actionCell = row.querySelector('td:last-child');
+            const actionDiv = actionCell.querySelector('.d-flex') || document.createElement('div');
+            actionDiv.className = 'd-flex gap-2';
+
+            // Create Edit button
+            const editButton = document.createElement('button');
+            editButton.className = 'btn btn-primary';
+            editButton.textContent = 'Edit';
+            editButton.setAttribute('data-id', userId);
+            editButton.addEventListener('click', function() {
+                openEditModal(this.getAttribute('data-id'));
+            });
+
+            // Add edit button before delete button if it exists
+            if (actionDiv.querySelector('.btn-danger')) {
+                actionDiv.insertBefore(editButton, actionDiv.querySelector('.btn-danger'));
+            } else {
+                actionDiv.appendChild(editButton);
+                actionCell.appendChild(actionDiv);
+            }
+        });
+
+        // Function to open edit modal and populate with user data
+        function openEditModal(userId) {
+            // Находим строку с пользователем через чистый JavaScript
+            const userRows = document.querySelectorAll('#usersTable tbody tr');
+            let userRow = null;
+
+            for (let row of userRows) {
+                const idCell = row.cells[0];
+                if (idCell && idCell.textContent.trim() === userId) {
+                    userRow = row;
+                    break;
+                }
+            }
+
+            if (!userRow) return;
+
+            // Получаем данные пользователя из строки
+            const userName = userRow.cells[1].textContent.trim().split(' ')[0] || '';
+            const userSurname = userRow.cells[1].textContent.trim().split(' ')[1] || '';
+            const userEmail = userRow.cells[2].textContent;
+
+            // Получаем информацию о местоположении
+            const locationInfo = userRow.cells[4].textContent.trim().split(' ');
+            let userCountry = '', userCity = '', userAddress = '';
+
+            if (locationInfo.length > 0) {
+                userCountry = locationInfo[0] || '';
+                if (locationInfo.length > 1) {
+                    userCity = locationInfo[1] || '';
+                    if (locationInfo.length > 2) {
+                        userAddress = locationInfo.slice(2).join(' ') || '';
+                    }
+                }
+            }
+
+            // Заполняем форму значениями
+            document.getElementById('edit-user-id').value = userId;
+            document.getElementById('edit-name').value = userName;
+            document.getElementById('edit-surname').value = userSurname;
+            document.getElementById('edit-email').value = userEmail;
+            document.getElementById('edit-country').value = userCountry;
+            document.getElementById('edit-city').value = userCity;
+            document.getElementById('edit-address').value = userAddress;
+
+            // Показываем модальное окно
+            document.getElementById('editUserModal').style.display = 'flex';
+        }
+
+        // Fix for :contains selector which doesn't exist in standard DOM
+        jQuery.expr[':'].contains = function(a, i, m) {
+            return jQuery(a).text().toUpperCase()
+                .indexOf(m[3].toUpperCase()) >= 0;
+        };
+
+        // Close edit modal functions
+        function closeEditModal() {
+            editUserModal.style.display = 'none';
+            editUserForm.reset();
+            // Clear any error messages
+            const errorElements = document.querySelectorAll('.validation-error');
+            errorElements.forEach(element => {
+                element.remove();
+            });
+        }
+
+        closeEditModalBtn.addEventListener('click', closeEditModal);
+        cancelEditBtn.addEventListener('click', closeEditModal);
+
+        // Close modal when clicking outside
+        editUserModal.addEventListener('click', function(event) {
+            if (event.target === editUserModal) {
+                closeEditModal();
+            }
+        });
+
+        // Form submission handling
+        editUserForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            const userId = document.getElementById('edit-user-id').value;
+            handleUserEditing(userId);
+        });
+    });
+</script>
 
 <!-- Add User Modal -->
 <div id="addUserModal" class="modal-backdrop">

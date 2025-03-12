@@ -24,6 +24,6 @@ public class GlobalExceptionHandler {
     public String handleAuthException(AuthException ex, RedirectAttributes redirectAttributes) {
         redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
         log.error(ex.getMessage());
-        return "redirect:/register?error";
+        return "redirect:/home?error";
     }
 }

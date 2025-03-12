@@ -3,17 +3,18 @@ package com.example.webConf.service.impl;
 import com.example.webConf.dto.Registration.RegistrationDto;
 import com.example.webConf.mappers.UserEntityMapper;
 import com.example.webConf.model.conference.Conference;
+import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 import com.example.webConf.repository.ConferenceRepository;
+import com.example.webConf.repository.SettingsEntityRepository;
 import com.example.webConf.repository.UserConferenceJoinRepository;
 import com.example.webConf.repository.UserEntityRepository;
-import com.example.webConf.service.ConferenceService;
+import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.UserEntityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,14 +30,16 @@ public class UserEntityServiceImpl implements UserEntityService {
     private final UserEntityMapper userEntityMapper;
     private final UserConferenceJoinRepository userConderenceJoinRepository;
     private final ConferenceRepository conferenceRepository;
+    private final SettingsEntityRepository settingsEntityRepository;
 
     @Autowired
     public UserEntityServiceImpl(UserEntityRepository userEntityRepository,
-                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository) {
+                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository, SettingsEntityRepository settingsEntityRepository) {
         this.userEntityRepository = userEntityRepository;
         this.userEntityMapper = userEntityMapper;
         this.userConderenceJoinRepository = userConderenceJoinRepository;
         this.conferenceRepository = conferenceRepository;
+        this.settingsEntityRepository = settingsEntityRepository;
     }
 
     @Override
@@ -158,6 +161,48 @@ public class UserEntityServiceImpl implements UserEntityService {
         users = users.stream().distinct().toList();
         log.info("Found {} users" , users.size());
         return users;
+    }
+
+    @Override
+    public void editSettings(Map<String, String> settings) {
+        UserEntity user = findByEmail(SecurityUtil.getSessionUserEmail()).get();
+        for (Map.Entry<String, String> entry : settings.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            Optional<SettingsEntity> settingsEntity = settingsEntityRepository.findById(key);
+            if(settingsEntity.isPresent()){
+                log.info("Changing existing settings: {} -> {}", key, value);
+                settingsEntity.get().setUserId(user.getId());
+                if(user.getEmail() == null){
+                    settingsEntity.get().setEmail(user.getName() + " " + user.getSurname());
+                }else{
+                    settingsEntity.get().setEmail(user.getEmail());
+                }
+                settingsEntity.get().setValue(value);
+                settingsEntityRepository.save(settingsEntity.get());
+            }else{
+                log.info("Creating new settings: {} -> {}", key, value);
+                SettingsEntity newSettingsEntity = new SettingsEntity();
+                newSettingsEntity.setUserId(user.getId());
+                if(user.getEmail() == null){
+                    newSettingsEntity.setEmail(user.getName() + " " + user.getSurname());
+                }else{
+                    newSettingsEntity.setEmail(user.getEmail());
+                }
+                newSettingsEntity.setCreatedAt(LocalDateTime.now());
+                newSettingsEntity.setType(key);
+                newSettingsEntity.setValue(value);
+                settingsEntityRepository.save(newSettingsEntity);
+            }
+        }
+    }
+
+    @Override
+    public List<SettingsEntity> getSettings() {
+        log.info("Finding settings");
+        List<SettingsEntity> settings = settingsEntityRepository.findAll();
+        log.info("Found settings size is {}", settings.size());
+        return settings;
     }
 
     @Override
