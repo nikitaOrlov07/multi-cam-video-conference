@@ -14,6 +14,8 @@ import com.example.webConf.service.MessageService;
 import com.example.webConf.service.UserEntityService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,20 +39,20 @@ import java.util.Optional;
 
 @Controller
 public class ChatController {
-    private ConferenceService conferenceService;
-    private UserEntityService userService;
-    private MessageService messageService;
-    private ChatService chatService;
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+    private final ConferenceService conferenceService;
+    private final UserEntityService userService;
+    private final MessageService messageService;
+    private final ChatService chatService;
+    private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
 
     @Autowired
-    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService) {
+    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService , ObjectMapper objectMapper) {
         this.conferenceService = conferenceService;
         this.userService = userService;
         this.messageService = messageService;
         this.chatService = chatService;
+        this.objectMapper = objectMapper;
     }
 
     // find existing chat or create new beetween two people for "home-page"
@@ -92,7 +94,7 @@ public class ChatController {
         }
 
         model.addAttribute("messages", messages);
-        model.addAttribute("messagesJson", new ObjectMapper().writeValueAsString(messages));
+        model.addAttribute("messagesJson", objectMapper.writeValueAsString(messages));
         model.addAttribute("user", currentUser);
         model.addAttribute("participants", chat.getParticipants().remove(currentUser));
         model.addAttribute("chat",chat);
@@ -108,7 +110,7 @@ public class ChatController {
             throw new IllegalStateException("User not authenticated");
         }
 
-          logger.info("Sending message" + headerAccessor.getUser());
+        logger.info("Sending message" + headerAccessor.getUser());
         UserEntity user = userService.findByEmail(email).orElseThrow(() -> new AuthException("User not found"));
 
         message.setUser(user);

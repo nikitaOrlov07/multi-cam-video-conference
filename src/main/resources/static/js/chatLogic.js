@@ -2,6 +2,8 @@ let stompClient = null;
 let chatId, username, participants, messageId;
 let isFirstJoin = true;
 
+
+
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM fully loaded");
     const chatContainer = document.getElementById('chat-page');
@@ -83,6 +85,7 @@ function handleChatCleared() {
 function connect() {
     console.log("Connecting to WebSocket...");
     const socket = new SockJS('/ws');
+    console.log('socke' , socket)
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
         console.log('Connected: ' + frame);
@@ -258,6 +261,7 @@ function sendMessage() {
             type: 'CHAT',
         };
         stompClient.send("/app/chat/" + chatId + "/sendMessage", {}, JSON.stringify(message));
+        console.log('Json message' , JSON.stringify(message))
         messageInput.value = '';
     }
     updateCharCount();

@@ -1,6 +1,7 @@
 package com.example.webConf.model.role;
 
 import com.example.webConf.model.user.UserEntity;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.*;
 

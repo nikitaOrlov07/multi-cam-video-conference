@@ -177,7 +177,7 @@
                                 <strong th:text="${otherUser.name + ' ' + otherUser.surname}">User Name</strong>
                                 <small th:text="${otherUser.email}">user@example.com</small>
                             </div>
-                            <a th:href="@{/chat/start(userId=${otherUser.id})}" class="btn btn-primary btn-chat">
+                            <a th:href="@{/chat/findOrCreate/{userId}(userId=${otherUser.id})}" class="btn btn-primary btn-chat">
                                 Chat
                             </a>
                         </div>

@@ -6,6 +6,7 @@ import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.role.RoleEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedBy;
@@ -42,6 +43,7 @@ public class UserEntity {
     private AccountType accountType;
 
     @ManyToMany
+    @JsonIgnore
     @JoinTable(
             name = "user_conference",
             joinColumns = @JoinColumn(name = "user_id"),
@@ -55,6 +57,7 @@ public class UserEntity {
     private LocalDateTime createdAt;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+    @JsonIgnore
     private List<UserConferenceJoin> userJoins = new ArrayList<>();
 
 
@@ -63,6 +66,7 @@ public class UserEntity {
     }
     @ToString.Exclude
     @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JsonIgnore
     @JoinTable(
             name = "users_role",joinColumns = {@JoinColumn(name ="user_id",referencedColumnName ="id")},
             inverseJoinColumns ={@JoinColumn(name = "role_id", referencedColumnName = "id")}
