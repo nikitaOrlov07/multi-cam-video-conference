@@ -1,6 +1,8 @@
 package com.example.webConf.controller;
 
 import com.example.webConf.config.exception.AuthException;
+import com.example.webConf.config.exception.ChatException;
+import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.config.message.DeleteMessageRequest;
 import com.example.webConf.config.message.MessageType;
 import com.example.webConf.model.Chat.Chat;
@@ -70,7 +72,7 @@ public class ChatController {
                           Model model,
                           @PathVariable("conferenceId") String conferenceId) throws JsonProcessingException {
         UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).get();
-        Conference conference = conferenceService.findById(conferenceId);
+        Conference conference = conferenceService.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
         List<Message> messages = conference.getChat().getMessages();
 
         if (SecurityUtil.getSessionUserEmail() == null || SecurityUtil.getSessionUserEmail().isEmpty() || (!conference.getUsers().contains(currentUser))) {
@@ -123,13 +125,10 @@ public class ChatController {
 
     @MessageMapping("/chat/{chatId}/addUser")
     @SendTo("/topic/chat/{chatId}")
-    public Message addUser(@DestinationVariable Long chatId, @Payload Message message,
+    public Message addUser(@DestinationVariable Long chatId, @Payload Message message ,
                            SimpMessageHeaderAccessor headerAccessor) {
         String email = message.getAuthor(); // * message.getAuthor will contain email of author
-
-        headerAccessor.getSessionAttributes().put("username", email);
-
-        UserEntity currentUser = userService.findByEmail(email).orElseThrow(() -> new AuthException("User not found"));
+        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail(headerAccessor.getUser())).orElseThrow(() -> new AuthException("User not found"));
         Chat chat = chatService.findById(chatId).orElseThrow();
 
         Conference project = conferenceService.findConferenceByChat(chat);
@@ -159,7 +158,7 @@ public class ChatController {
     }
 
     @MessageMapping("/chat/{chatId}/delete")
-    @SendTo("/topic/chat/{chatId}")
+    @SendTo("/topic/chat/{chatId}") // TODO -> fix
     public Message deleteChat(@DestinationVariable Long chatId, Principal principal) {
         String email = SecurityUtil.getSessionUserEmail(principal);
         UserEntity user = userService.findByEmail(email).orElseThrow(() -> new AuthException("User not found"));
@@ -189,22 +188,30 @@ public class ChatController {
     @MessageMapping("/chat/{chatId}/deleteMessage")
     @SendTo("/topic/chat/{chatId}")
     @Transactional
-    public Message deleteMessage(@DestinationVariable Long chatId, @Payload DeleteMessageRequest request,
-                                 SimpMessageHeaderAccessor headerAccessor) {
-        String email = (String) headerAccessor.getSessionAttributes().get("email");
-        UserEntity user = userService.findByEmail(email).get();
-        Message message = messageService.findById(request.getMessageId()).orElseThrow();
-        Chat chat = chatService.findById(chatId).orElseThrow();
-        logger.info("Delete message controller in working");
+    public Message deleteMessage(@DestinationVariable Long chatId, @Payload DeleteMessageRequest request,SimpMessageHeaderAccessor headerAccessor) {
+        UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail(headerAccessor.getUser())).orElseThrow(() -> new AuthException("User not found"));
+        Message message = messageService.findById(request.getMessageId()).orElseThrow(() -> new ChatException("Message not found"));
+        Chat chat = chatService.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
         if (message != null && chat != null && message.getUser().equals(user)) {
             messageService.deleteMessage(message, user, chat);
             logger.info("Message deleted successfully");
-            return Message.builder()
-                    .type(MessageType.DELETE)
-                    .author(user.getName() + ' ' + user.getSurname())
-                    .id(request.getMessageId())
-                    .text(request.getMessageId().toString())
-                    .build();
+            if(user.getEmail() != null && !user.getEmail().isEmpty()){
+                return Message.builder() // for permanent users
+                        .type(MessageType.DELETE)
+                        .author(user.getEmail())
+                        .id(request.getMessageId())
+                        .text(request.getMessageId().toString())
+                        .build();
+            }
+            else {
+                return Message.builder() // for temporary users
+                        .type(MessageType.DELETE)
+                        .author(user.getSurname())
+                        .id(request.getMessageId())
+                        .text(request.getMessageId().toString())
+                        .build();
+            }
+
         } else {
             logger.warn("Could not delete message. User mismatch or message/chat not found.");
             return null;

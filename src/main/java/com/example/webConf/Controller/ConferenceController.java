@@ -1,6 +1,9 @@
 package com.example.webConf.controller;
 
+import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.ConferenceException;
+import com.example.webConf.dto.Conference.ConferenceDto;
+import com.example.webConf.mappers.ConferenceMapper;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.model.user.UserEntity;
@@ -9,11 +12,13 @@ import com.example.webConf.repository.ConferenceDeviceRepository;
 import com.example.webConf.repository.ConferenceRepository;
 import com.example.webConf.repository.UserConferenceJoinRepository;
 import com.example.webConf.repository.UserEntityRepository;
+import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,6 +31,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 
 @Controller
@@ -47,7 +53,7 @@ public class ConferenceController {
                                  RedirectAttributes redirectAttributes) {
         log.info("Join conference controller method called for user [{}] and conference", userName);
         /// Find the conference
-        Conference conference = conferenceService.findById(conferenceId);
+        Conference conference = conferenceService.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
         if (conference == null) {
             log.error("Conference not found with id: {}", conferenceId);
             throw new ConferenceException("Conference not found");
@@ -85,28 +91,20 @@ public class ConferenceController {
             log.error("Missing required parameters - conferenceId: {}, userName: {}", conferenceId, userName);
             throw new ConferenceException("Missing required parameters");
         }
-        /// ERRROR
-        Optional<UserEntity> user = userService.findUserByUsername(userName);
-        if (user.isEmpty()) {
-            throw new ConferenceException("User not found");
-        }
+        UserEntity user = userService.findUserByUsername(userName).orElseThrow(() -> new AuthException("User not found"));
         /// Find conference
-        Conference conference = conferenceRepository.findById(conferenceId)
-                .orElseGet(() -> {
-                    log.error("Conference not found with id: {}", conferenceId);
-                    return null;
-                });
-        if (conference == null) {
-            throw new ConferenceException("Conference not found");
-        }
-        Optional<UserConferenceJoin> conferenceJoin = userService.findUserConferenceJoin(user.get(), conference);
+        Conference conference = conferenceRepository.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
+        Optional<UserConferenceJoin> conferenceJoin = userService.findUserConferenceJoin(user, conference);
 
         if (conferenceJoin.isEmpty()) {
             throw new ConferenceException("You are not a member of a conference");
         }
 
         model.addAttribute("userName", userName);
-        model.addAttribute("conferenceId", conference);
+        model.addAttribute("conferenceId", conference.getId());
+        if(conference.getPassword() != null){
+            model.addAttribute("password" , conference.getPassword());
+        }
 
         /// Find user's devices
         ConferenceDevices devices = devicesRepository.findFirstByUserNameAndConference(userName, conference);
@@ -163,7 +161,6 @@ public class ConferenceController {
             userEntityRepository.delete(optionalUser.get()); // delete temporary account
         }
 
-        log.info("Redurecting to home page");
         return "redirect:/home";
     }
 
@@ -178,7 +175,7 @@ public class ConferenceController {
             return null;
         }
         /// Find conference
-        Conference conference = conferenceService.findById(conferenceId);
+        Conference conference = conferenceService.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
         ///  Find user by username
         Optional<UserEntity> userEntity = userService.findUserByUsername(userName);
         if (userEntity.isEmpty() || conference == null) {
@@ -188,5 +185,16 @@ public class ConferenceController {
         Integer count = userService.countUserConferenceJoinByUserAndConference(userEntity.get(), conference);
         log.info("User has join count: {}", count);
         return count;
+    }
+    /// Get conferences by id
+    @GetMapping("/searchConferences")
+    @ResponseBody
+    public List<ConferenceDto> getConferencesById(@RequestParam(name = "query") String conferenceId) {
+        return conferenceService.searchConferencesById(conferenceId).stream().map(ConferenceMapper::getConferenceDtoFromConference).toList();
+    }
+    /// Dynamically change conference password
+    @GetMapping("/changePassword/{conferenceId}")
+    public ResponseEntity<Void> changePassword(@PathVariable String conferenceId , @RequestParam String password ,@RequestParam String userName){
+        return conferenceService.changePassword(conferenceId,password,userName);
     }
 }

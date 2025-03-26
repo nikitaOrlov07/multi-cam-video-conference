@@ -166,7 +166,8 @@
                     <!-- Search Form -->
                     <form id="searchForm" class="search-form">
                         <div class="input-group mb-3">
-                            <input type="text" style="width: 80%;" class="form-control" placeholder="Search users..." id="searchQuery" name="search">
+                            <input type="text" style="width: 80%;" class="form-control" placeholder="Search users..."
+                                   id="searchQuery" name="search">
                             <button class="btn btn-outline-primary" type="submit">Search</button>
                         </div>
                     </form>
@@ -177,7 +178,8 @@
                                 <strong th:text="${otherUser.name + ' ' + otherUser.surname}">User Name</strong>
                                 <small th:text="${otherUser.email}">user@example.com</small>
                             </div>
-                            <a th:href="@{/chat/findOrCreate/{userId}(userId=${otherUser.id})}" class="btn btn-primary btn-chat">
+                            <a th:href="@{/chat/findOrCreate/{userId}(userId=${otherUser.id})}"
+                               class="btn btn-primary btn-chat">
                                 Chat
                             </a>
                         </div>
@@ -188,17 +190,32 @@
                 </div>
                 <!-- Past Conferences Section -->
                 <div th:if="${pastConferences != null}" class="past-conferences">
-                    <h3 class="text-center mb-4">Past Conferences</h3>
-                    <div th:if="${not #lists.isEmpty(pastConferences)}">
-                        <div th:each="conference : ${pastConferences}" class="past-conference-item">
-                            <p class="conference-name" th:text="${conference.getConferenceDate()}">Conference Date</p>
-                            <p class="conference-name" th:text="${conference.userJoins.size()} + ' participants'">Amount of users</p>
-                            <div class="d-flex align-items-center">
-                                <p class="alert alert-success mb-0 me-2" th:if="${activeConferences.contains(conference)}">Active</p>
-                                <a class="btn btn-primary"
-                                   th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName})}">
-                                    Join
-                                </a>
+                    <h3 class="text-center mb-4">Your Conferences</h3>
+                    <!-- Search Form for Conferences -->
+                    <form id="pastConferencesSearchForm" class="search-form mb-3">
+                        <div class="input-group">
+                            <input type="text" class="form-control"
+                                   placeholder="Search conferences by ID"
+                                   id="pastConferencesSearchQuery">
+                            <button class="btn btn-outline-primary" type="submit">Search</button>
+                        </div>
+                    </form>
+                    <div id="pastConferencesContainer">
+                        <div th:if="${not #lists.isEmpty(pastConferences)}">
+                            <div th:each="conference : ${pastConferences}" class="past-conference-item">
+                                <p class="conference-name" th:text="${conference.getConferenceDate()}">Conference
+                                    Date</p>
+                                <p class="conference-name" th:text="${conference.userJoins.size()} + ' participants'">
+                                    Amount
+                                    of users</p>
+                                <div class="d-flex align-items-center">
+                                    <p class="alert alert-success mb-0 me-2"
+                                       th:if="${activeConferences.contains(conference)}">Active</p>
+                                    <a class="btn btn-primary"
+                                       th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName})}">
+                                        Join
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -207,7 +224,87 @@
                     </div>
                 </div>
             </div>
+            <script th:inline="javascript">
+                $(document).ready(function () {
+                    const pastConferences = /*[[${pastConferences}]]*/ [];
 
+                    $("#pastConferencesSearchForm").on("submit", function (e) {
+                        e.preventDefault();
+                        const searchQuery = $("#pastConferencesSearchQuery").val().toLowerCase().trim();
+
+                        if (!searchQuery) {
+                            renderPastConferences(pastConferences);
+                            return false;
+                        }
+
+                        $.ajax({
+                            url: "/conference/searchConferences",
+                            method: 'GET',
+                            data: {query: searchQuery},
+                            success: function (filteredConferences) {
+                                renderPastConferences(filteredConferences);
+                            },
+                            error: function () {
+                                $("#pastConferencesContainer").html(
+                                    '<p class="text-center text-danger">Error searching conferences. Please try again.</p>'
+                                );
+                            }
+                        });
+
+                        return false;
+                    });
+                    /// Function to convert array conferenceDate that comes from backend to normal view)
+                    function formatConferenceDate(dateArray) {
+                        if (Array.isArray(dateArray) && dateArray.length === 3) {
+                            // Ensure month and day are two digits
+                            const year = dateArray[0];
+                            const month = String(dateArray[1]).padStart(2, '0');
+                            const day = String(dateArray[2]).padStart(2, '0');
+                            return `${year}-${month}-${day}`;
+                        }
+                        return dateArray.toString();
+                    }
+
+                    // Render conferences function
+                    function renderPastConferences(conferences) {
+                        const container = $("#pastConferencesContainer");
+                        container.empty();
+
+                        if (conferences.length === 0) {
+                            container.html('<div class="text-center"><p>No conferences found.</p></div>');
+                            return;
+                        }
+
+                        conferences.forEach(conference => {
+                            const formattedDate = formatConferenceDate(conference.conferenceDate);
+
+                            const conferenceItem = $(`
+                    <div class="past-conference-item">
+                        <p class="conference-name">${conference.id}</p>
+                        <p class="conference-name">${formattedDate}</p>
+                        <div class="d-flex align-items-center">
+                            ${conference.active ?
+                                '<p class="alert alert-success mb-0 me-2">Active</p>' :
+                                ''
+                            }
+                            <a href="/conference/join?conferenceId=${conference.id}" class="btn btn-primary">
+                                Join
+                            </a>
+                        </div>
+                    </div>
+                `);
+                            container.append(conferenceItem);
+                        });
+                    }
+
+                    // Reset to all conferences when search is cleared
+                    $("#pastConferencesSearchQuery").on('input', function () {
+                        if ($(this).val() === '') {
+                            renderPastConferences(pastConferences);
+                        }
+                    });
+                });
+            </script>
             <!-- Conference Form for non-authenticated users -->
             <form id="conferenceForm" action="/setDevices" method="GET" class="mt-4" style="display: none;">
                 <div class="form-group">
@@ -268,7 +365,7 @@
 </div>
 <script>
     if (typeof jQuery !== 'undefined') {
-        $(document).ready(function() {
+        $(document).ready(function () {
             const urlParams = new URLSearchParams(window.location.search);
             const searchParam = urlParams.get('search');
             if (searchParam) {
@@ -278,15 +375,15 @@
             function loadUsers(query) {
                 $.ajax({
                     url: "/findUsers",
-                    data: { search: query || "" },
-                    success: function(fragment) {
+                    data: {search: query || ""},
+                    success: function (fragment) {
                         $("#usersContainer").replaceWith(fragment);
 
                         $("#searchQuery").val(query);
 
                         $("#searchForm").on("submit", handleFormSubmit);
                     },
-                    error: function(xhr, status, error) {
+                    error: function (xhr, status, error) {
                         console.error("Error loading users:", error);
                     }
                 });
@@ -300,7 +397,7 @@
 
             $("#searchForm").on("submit", handleFormSubmit);
 
-            $("#searchQuery").on("keypress", function(e) {
+            $("#searchQuery").on("keypress", function (e) {
                 if (e.which === 13) { // for enter
                     e.preventDefault();
                     loadUsers($(this).val());
@@ -308,7 +405,7 @@
                 }
             });
 
-            $("#searchQuery").on("input", function() {
+            $("#searchQuery").on("input", function () {
                 if ($(this).val() === "") {
                     loadUsers("");
                 }
@@ -372,7 +469,7 @@
     function hideElementAfterDelay(elementId) {
         const element = document.getElementById(elementId);
         if (element) {
-            setTimeout(function() {
+            setTimeout(function () {
                 element.style.display = 'none';
             }, 5000);
         }

@@ -5,17 +5,17 @@ import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;
+import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.Set;
 
 public interface ConferenceService {
     ConferenceDto findConferenceById(String identifier);
 
-    Conference findById(String identifier);
+    Optional<Conference> findById(String identifier);
 
-    String createConference(UserEntity userEntity, String userName) throws Exception;
+    String createConference(UserEntity userEntity, String userName, String password) throws Exception;
 
     List<Conference> findConferencesByUser(Long id);
 
@@ -28,4 +28,8 @@ public interface ConferenceService {
     Conference findConferenceByChat(Chat chat);
 
     Optional<SettingsEntity> findByType(String type);
+
+    List<Conference> searchConferencesById(String id);
+
+    ResponseEntity<Void> changePassword(String conferenceId, String password , String userName);
 }

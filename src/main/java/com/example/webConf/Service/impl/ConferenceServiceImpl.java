@@ -1,6 +1,7 @@
 package com.example.webConf.service.impl;
 
 import com.example.webConf.config.exception.AuthException;
+import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.dto.Conference.ConferenceDto;
 import com.example.webConf.mappers.ConferenceMapper;
 import com.example.webConf.model.Chat.Chat;
@@ -9,14 +10,18 @@ import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 import com.example.webConf.repository.*;
+import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,22 +44,20 @@ public class ConferenceServiceImpl implements ConferenceService {
     }
 
     @Override
-    public Conference findById(String identifier) {
-        Optional<Conference> conference = conferenceRepository.findById(identifier);
-        if (conference.isEmpty()) {
-            log.error("Could not find conference");
-            return null;
-        }
-        return conference.get();
+    public Optional<Conference> findById(String identifier) {
+       return conferenceRepository.findById(identifier);
     }
 
+
+
     @Override
-    public String createConference(UserEntity userEntity, String userName) throws Exception {
+    public String createConference(UserEntity userEntity, String userName,String password) throws Exception {
         Conference conference = new Conference();
 
         /// Initial save conference into database
         Conference savedConference = conferenceRepository.save(conference);
         savedConference.setConferenceDate(LocalDate.now());
+        savedConference.setPassword(password);
 
         if (userEntity != null && (userName != null || !userName.isEmpty())) {
             /// If user is registered
@@ -154,6 +157,45 @@ public class ConferenceServiceImpl implements ConferenceService {
     @Override
     public Optional<SettingsEntity> findByType(String type){
         return settingsEntityRepository.findFirstByType(type);
+    }
+
+    @Override
+    public List<Conference> searchConferencesById(String id) {
+        String email = SecurityUtil.getSessionUserEmail();
+        if(email == null || email.isEmpty()){
+            log.error("Unauthorized user trying to find conference by id: {}", id);
+            throw new AuthException("Invalid access");
+        }
+        UserEntity currentUser = userService.findByEmail(email).orElseThrow(() -> new AuthException("Invalid Access"));
+        List<Conference> conferences = new ArrayList<>();
+        if(currentUser.getRoles().contains(roleRepository.findByName("ADMIN").orElseThrow(() -> new AuthException("ADMIN Role Not Found"))) || currentUser.getRoles().contains(roleRepository.findByName("CREATOR").orElseThrow(() -> new AuthException("CREATOR Role Not Found"))) ) {
+            conferences = conferenceRepository.searchConferenceById(id);
+            log.info("Found {} conferences by ADMIN:  {}", conferences.size() , currentUser.getEmail());
+        }
+        else {
+            conferences = conferenceRepository.searchUserConferences(id,currentUser.getId());
+            log.info("Found {} conferences by USER:  {}", conferences.size() , currentUser.getEmail());
+        }
+
+        return conferences;
+    }
+
+    @Override
+    public ResponseEntity<Void> changePassword(String conferenceId, String password , String userName) {
+        UserEntity currentUser = userService.findUserByUsername(userName).get();
+        Conference conference = findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));;
+        if(currentUser == null){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
+        if (conference.getUserJoins().get(0).getId().equals(userEntityService.findUserConferenceJoin(currentUser,conference).orElseThrow(() -> new AuthException("Conference join for user" + currentUser.getId() +"  and conference "+conference.getId())).getId()+"  not found" )) { // change password only can first active user
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        log.info("Changing password for  conference: {} to {} by {}", conferenceId , password  , userName);
+
+        conference.setPassword(password);
+        conferenceRepository.save(conference);
+
+        return ResponseEntity.ok().build();
     }
 
 }

@@ -6,10 +6,7 @@ import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -28,12 +25,15 @@ public class Conference {
     private LocalDate conferenceDate;
 
     @OneToMany(mappedBy = "conference", cascade = CascadeType.ALL)
+    @ToString.Exclude
     private List<UserConferenceJoin> userJoins = new ArrayList<>(); // to track how many user accounts are currently in the conference
 
     @ManyToMany(mappedBy = "conferences")
+    @ToString.Exclude
     private List<UserEntity> users = new ArrayList<>();
 
     @OneToMany(mappedBy = "conference", cascade = CascadeType.ALL)
+    @ToString.Exclude
     private List<ConferenceDevices> devices = new ArrayList<>();
 
     @PrePersist // will be executed before store value to database
@@ -46,4 +46,5 @@ public class Conference {
     @JoinColumn(name = "chat_id", referencedColumnName = "id")
     private Chat chat;
 
+    private String password; // TODO -> apply logic with password
 }

@@ -47,10 +47,6 @@ public class ConferenceSettingsController {
                 String userName = user.getName() + " " + user.getSurname();
                 log.info("Size of past conferences: {}", pastConferences.size());
 
-                user.getRoles().forEach(role -> {
-                    System.out.println(role.getName());
-                });
-
                 model.addAttribute("pastConferences", pastConferences);
                 model.addAttribute("isAuthorized", true);
                 model.addAttribute("activeConferences", activeConference);
@@ -102,7 +98,8 @@ public class ConferenceSettingsController {
     @ResponseBody
     public ResponseEntity<String> connectDevices(@RequestBody DeviceSelectionDTO deviceSelection,
                                                  @RequestParam(value = "identifier", required = false) String identifier,
-                                                 @RequestParam(value = "userName", required = false) String userName) {
+                                                 @RequestParam(value = "userName", required = false) String userName,
+                                                 @RequestParam(value = "password",required = false) String password) {
         log.info("\"connectDevices\" controller method is working");
 
         // Validate device selection
@@ -117,7 +114,7 @@ public class ConferenceSettingsController {
 
         // Validate conference identifier if provided
         if (identifier != null && !identifier.isEmpty()) {
-            Conference existingConference = conferenceService.findById(identifier);
+            Conference existingConference = conferenceService.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
             if (existingConference == null) {
                 log.error("No conference found with identifier: {}", identifier);
                 return ResponseEntity.badRequest().body("No conference with identifier");
@@ -131,11 +128,11 @@ public class ConferenceSettingsController {
 
             // Handle existing or new conference
             if (identifier != null && !identifier.isEmpty()) {
-                conference = conferenceService.findById(identifier);
+                conference = conferenceService.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
                 conferenceId = identifier;
             } else {
-                conferenceId = conferenceService.createConference(currentUser, userName);
-                conference = conferenceService.findById(conferenceId);
+                conferenceId = conferenceService.createConference(currentUser, userName , password);
+                conference = conferenceService.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
             }
 
             // Create and save conference devices

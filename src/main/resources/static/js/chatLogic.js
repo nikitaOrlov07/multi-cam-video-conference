@@ -1,18 +1,18 @@
 let stompClient = null;
-let chatId, username, participants, messageId;
+let chatId, username, participants, userEmail;
 let isFirstJoin = true;
 
 
-
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     console.log("DOM fully loaded");
     const chatContainer = document.getElementById('chat-page');
     if (chatContainer) {
         console.log("Chat container found:", chatContainer);
         chatId = chatContainer.dataset.chatId;
         username = chatContainer.dataset.username;
+        userEmail = chatContainer.dataset.useremail;
         participants = chatContainer.dataset.participants;
-        console.log("Chat info:", { chatId, username, participants });
+        console.log("Chat info:", {chatId, username, userEmail, participants});
 
         // Check if user have already logged in to this chat room for the first time (i store variable into localStorage, because every time the page refreshes, it'll be gone. )
         isFirstJoin = !localStorage.getItem(`hasJoined_${chatId}`);
@@ -20,14 +20,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         connect();
 
-        document.getElementById('messageForm').addEventListener('submit', function(e) {
+        document.getElementById('messageForm').addEventListener('submit', function (e) {
             e.preventDefault();
             sendMessage();
         });
 
         const deleteChatForm = document.getElementById('deleteChatForm');
         if (deleteChatForm) {
-            deleteChatForm.addEventListener('submit', function(e) {
+            deleteChatForm.addEventListener('submit', function (e) {
                 e.preventDefault();
                 if (confirmDelete()) {
                     deleteChat();
@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        document.getElementById('clearChatForm').addEventListener('submit', function(e) {
+        document.getElementById('clearChatForm').addEventListener('submit', function (e) {
             e.preventDefault();
             if (confirmDelete()) {
                 clearChat();
@@ -85,7 +85,6 @@ function handleChatCleared() {
 function connect() {
     console.log("Connecting to WebSocket...");
     const socket = new SockJS('/ws');
-    console.log('socke' , socket)
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
         console.log('Connected: ' + frame);
@@ -99,7 +98,7 @@ function connect() {
         }
 
         JSON.parse(initialMessages).forEach(showMessage); // display saved messages from database
-    }, function(error) {
+    }, function (error) {
         console.error('STOMP error:', error);
     });
 }
@@ -148,6 +147,7 @@ function sendJoinMessage() {
         console.error("Cannot send join message: stompClient is not connected");
     }
 }
+
 function showMessage(message) {
     if (!message.text || message.text.trim() === '') {
         console.log('Received empty message:', message);
@@ -155,7 +155,7 @@ function showMessage(message) {
     }
 
     const chatContainer = document.querySelector('.projects-list');
-    const currentUsername = document.getElementById('chat-page').dataset.username;
+
 
     const messageDiv = document.createElement('div');
     messageDiv.dataset.messageId = message.id;
@@ -180,7 +180,7 @@ function showMessage(message) {
         textParagraph.className = 'message-text';
         dateParagraph.className = 'message-text';
 
-        if (message.author === currentUsername) {
+        if (message.author === username || message.author === userEmail) {
             messageDiv.className = 'message message-right';
             authorParagraph.textContent = 'You:';
 
@@ -193,7 +193,7 @@ function showMessage(message) {
             deleteButton.style.right = '20px';
             deleteButton.style.top = '3px';
             deleteButton.type = 'button';
-            deleteButton.onclick = function(event) {
+            deleteButton.onclick = function (event) {
                 event.preventDefault();
                 event.stopPropagation();
                 console.log("Delete button clicked for message:", message.id);
@@ -227,7 +227,7 @@ function addUser() {
     stompClient.send("/app/chat/" + chatId + "/addUser",
         {},
         JSON.stringify({author: username, type: 'JOIN', chat: {id: chatId}}),
-        function(response) {
+        function (response) {
             console.log("Server response to addUser:", response);
             if (response.body) {
                 let message = JSON.parse(response.body);
@@ -255,13 +255,23 @@ function sendMessage() {
     const messageContent = messageInput.value.trim();
     console.log("Sent message: " + messageContent);
     if (messageContent && stompClient) {
-        const message = {
-            author: username,
-            text: messageContent,
-            type: 'CHAT',
-        };
+        let message
+        if (userEmail && userEmail.trim() !== '') // userEmail -> check if not null and not undefined
+        {
+            message = {
+                author: userEmail,
+                text: messageContent,
+                type: 'CHAT'
+            }
+        } else {
+            message = {
+                author: username,
+                text: messageContent,
+                type: 'CHAT'
+            }
+        }
         stompClient.send("/app/chat/" + chatId + "/sendMessage", {}, JSON.stringify(message));
-        console.log('Json message' , JSON.stringify(message))
+        console.log('Json message', JSON.stringify(message))
         messageInput.value = '';
     }
     updateCharCount();
@@ -280,6 +290,7 @@ function deleteMessage(messageId) {
         console.log("chatId:", chatId);
     }
 }
+
 function deleteChat() {
     if (stompClient && stompClient.connected) {
         stompClient.send("/app/chat/" + chatId + "/delete", {}, JSON.stringify({chatId: chatId}));
@@ -287,6 +298,7 @@ function deleteChat() {
         console.error("Cannot delete chat: stompClient is not connected");
     }
 }
+
 function clearChat() {
     if (stompClient && stompClient.connected) {
         stompClient.send("/app/chat/" + chatId + "/clear", {}, JSON.stringify({chatId: chatId}));
@@ -294,6 +306,7 @@ function clearChat() {
         console.error("Cannot clear chat: stompClient is not connected");
     }
 }
+
 function updateCharCount() {
     const textarea = document.getElementById('commentText');
     const charCount = textarea.value.length;

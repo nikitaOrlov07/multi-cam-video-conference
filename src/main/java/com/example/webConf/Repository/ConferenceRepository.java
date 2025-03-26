@@ -24,4 +24,11 @@ public interface ConferenceRepository extends JpaRepository<Conference, String> 
     Integer findUserJoinCount(@Param("userId") Long userId, @Param("conferenceId") String conferenceId);
 
     Conference findProjectByChat(Chat chat);
+
+    ///  Search conferences
+    @Query("SELECT c FROM Conference c WHERE c.id LIKE CONCAT('%',:id,'%')")
+    List<Conference> searchConferenceById(@Param("id") String id);
+
+    @Query("SELECT c FROM Conference c JOIN c.users u WHERE c.id LIKE CONCAT('%', :conferenceId, '%') AND u.id = :userId")
+    List<Conference> searchUserConferences(@Param("conferenceId") String conferenceId, @Param("userId") Long userId);
 }

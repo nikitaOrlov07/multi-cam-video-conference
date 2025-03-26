@@ -11,7 +11,8 @@
   <link rel="stylesheet" th:href="@{/css/chatStyles.css}" />
 </head>
 <body layout:fragment="body" id="chat">
-<div class="container" id="chat-page" th:data-username="${user.email}" th:data-chat-id="${chatId}" th:data-participants="${participants}">
+<div class="container" id="chat-page" th:data-useremail="${user.email}" th:data-username="${(user.name != null and not #strings.isEmpty(user.name)) ? user.name + ' ' + user.surname : user.surname}"
+     th:data-chat-id="${chatId}" th:data-participants="${participants}">
   <div class="projects-container">
     <div class="projects-list">
       <!-- messages from js file -->

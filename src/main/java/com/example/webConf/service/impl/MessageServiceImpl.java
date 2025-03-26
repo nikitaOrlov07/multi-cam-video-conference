@@ -8,6 +8,7 @@ import com.example.webConf.service.ChatService;
 import com.example.webConf.service.MessageService;
 import com.example.webConf.service.UserEntityService;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class MessageServiceImpl implements MessageService {
 
     @Autowired
@@ -23,10 +25,12 @@ public class MessageServiceImpl implements MessageService {
     private UserEntityService userService;
     @Autowired
     private ChatService chatService;
+
     @Override
     public List<Message> findAllChatMessage(Long chaId) {
         return messageRepository.findAllByChatId(chaId);
     }
+
     @Override
     public Message saveMessage(Message message, Long chatId, UserEntity user) {
 
@@ -34,21 +38,28 @@ public class MessageServiceImpl implements MessageService {
 
         message.setChat(chat);
 
-        message.setAuthor(user.getName() + user.getSurname());
+        if (user.getEmail() != null && !user.getEmail().isEmpty()) {
+            message.setAuthor(user.getEmail());  // for permanent accounts
+        } else {
+            message.setAuthor(user.getSurname()); // for temporary accounts
+        }
+
         chatService.updateChat(chat);
-        return  messageRepository.save(message);
+        return messageRepository.save(message);
     }
+
     @Override
     public Optional<Message> findById(Long message) {
         return messageRepository.findById(message);
     }
+
     @Transactional
     @Override
     public void deleteMessage(Message message, UserEntity user, Chat chat) {
+        log.info("Deleting message with id {} , user {} , chat {}", message.getId(), user.getId(), chat.getId());
         user.getMessages().remove(message);
         chat.getMessages().remove(message);
         messageRepository.delete(message);
-        System.out.println("Deleted message: " + message.getId());
     }
 
 }
