@@ -405,13 +405,25 @@
             border-radius: 4px;
             color: #4CAF50;
         }
+        .edit-password-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .password-input {
+            display: none;
+        }
+        .password-input.active {
+            display: inline-block;
+        }
     </style>
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script src="http://localhost:8080/libs/lib-jitsi-meet.min.js"></script>
 
 
     <script th:src="@{/js/videoConferenceLogic.js}"></script>
-
+<!--    <link href="/css/initial.css" rel="stylesheet">-->
+<!--    <script th:src="@{/js/conferenceChatLogic.js}"></script>-->
 </head>
 <body>
 <div id="loading" class="loading-overlay">
@@ -423,9 +435,13 @@
             <span class="detail-label">Conference ID:</span>
             <span class="detail-value" th:text="${conferenceId}"></span>
         </div>
-        <div class="conference-password">
+        <div class="conference-password edit-password-container">
             <span class="detail-label">Password:</span>
-            <span class="detail-value" th:text="${password != null ? password : 'disabled'}"></span>
+            <span class="detail-value" id="passwordDisplay" th:text="${password != null ? password : 'disabled'}"></span>
+            <button id="editPasswordBtn" class="edit-btn">Edit</button>
+            <input type="text" id="passwordInput" class="password-input" placeholder="Enter new password">
+            <button id="savePasswordBtn" class="save-btn" style="display:none;">Save</button>
+            <button id="cancelPasswordBtn" class="cancel-btn" style="display:none;">Cancel</button>
         </div>
     </div>
 </div>
@@ -511,6 +527,49 @@
         } catch (error) {
             console.error('Initialization error:', error);
             conference.showError('Ошибка инициализации');
+        }
+
+        $('#editPasswordBtn').click(function() {
+            $('#passwordDisplay').hide();
+            $('#editPasswordBtn').hide();
+
+            $('#passwordInput')
+                .val($('#passwordDisplay').text() === 'disabled' ? '' : $('#passwordDisplay').text())
+                .addClass('active');
+
+            $('#savePasswordBtn, #cancelPasswordBtn').show();
+        });
+
+        $('#cancelPasswordBtn').click(function() {
+            resetPasswordView();
+        });
+
+        $('#savePasswordBtn').click(function() {
+            const newPassword = $('#passwordInput').val();
+
+            $.ajax({
+                url: `/conference/changePassword/${conferenceId}`,
+                type: 'GET',
+                data: {
+                    password: newPassword,
+                    userName: userName
+                },
+                success: function(response) {
+                    // Update display with new password or 'disabled'
+                    $('#passwordDisplay').text(newPassword || 'disabled');
+                    resetPasswordView();
+                },
+                error: function(xhr) {
+                    alert('Failed to update password. Please try again.');
+                }
+            });
+        });
+
+        function resetPasswordView() {
+            $('#passwordDisplay').show();
+            $('#editPasswordBtn').show();
+            $('#passwordInput').removeClass('active');
+            $('#savePasswordBtn, #cancelPasswordBtn').hide();
         }
     });
 </script>
