@@ -12,7 +12,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -51,6 +55,36 @@ public class ConferenceDevicesServiceImpl implements ConferenceDevicesService {
                 .conferenceId(conferenceId)
                 .userName(userName)
                 .build();
+    }
+
+    @Override
+    public List<ConferenceDevices> findUserDevices(String userName) {
+        List<ConferenceDevices> devices = conferenceDeviceRepository.findAllByUserName(userName);
+
+        return devices.stream()
+                .collect(Collectors.toMap(
+                        device -> String.format("%s_%s_%d_%d",
+                                device.getMicrophoneDeviceId(),
+                                device.getMicrophoneLabel(),
+                                device.getGridRows(),
+                                device.getGridCols()),
+                        Function.identity(),
+                        (existing, replacement) -> {
+                            List<ConferenceDevices.Camera> existingCameras = existing.getCameras();
+                            List<ConferenceDevices.Camera> replacementCameras = replacement.getCameras();
+
+                            return replacementCameras.size() > existingCameras.size() ?
+                                    replacement : existing;
+                        }
+                ))
+                .values()
+                .stream()
+                .toList();
+    }
+
+    @Override
+    public Optional<ConferenceDevices> findById(Long id) {
+        return conferenceDeviceRepository.findById(id);
     }
 
     private List<CameraDTO> parseCameraConfiguration(String cameraConfigJson) {

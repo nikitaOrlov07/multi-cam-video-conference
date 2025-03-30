@@ -426,6 +426,37 @@
 <!--    <script th:src="@{/js/conferenceChatLogic.js}"></script>-->
 </head>
 <body>
+<div id="passwordModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Enter Conference Password</h2>
+        </div>
+        <div class="modal-body">
+            <input type="password" id="conferencePassword" placeholder="Enter password" />
+            <button id="submitPassword">Submit</button>
+            <p id="passwordError" style="color: red; display: none;">Incorrect password, try again.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        const conferencePassword = "[[${password}]]"; // Получаем пароль с сервера
+        if (conferencePassword && conferencePassword !== 'null') {
+            document.getElementById('passwordModal').style.display = 'block';
+        }
+
+        document.getElementById('submitPassword').addEventListener('click', () => {
+            const inputPassword = document.getElementById('conferencePassword').value;
+            if (inputPassword === conferencePassword) {
+                document.getElementById('passwordModal').style.display = 'none';
+            } else {
+                document.getElementById('passwordError').style.display = 'block';
+            }
+        });
+    });
+</script>
+
 <div id="loading" class="loading-overlay">
     <div class="loading-spinner"></div>
 </div>

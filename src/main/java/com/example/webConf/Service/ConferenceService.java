@@ -15,7 +15,7 @@ public interface ConferenceService {
 
     Optional<Conference> findById(String identifier);
 
-    String createConference(UserEntity userEntity, String userName, String password) throws Exception;
+    String createConference(UserEntity userEntity, String userName) throws Exception;
 
     List<Conference> findConferencesByUser(Long id);
 

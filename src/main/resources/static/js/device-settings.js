@@ -130,6 +130,16 @@ async function getDevices() {
             audioList.appendChild(li);
         });
 
+        // Add event listeners for previous configuration selection
+        document.querySelectorAll('.previous-config-radio').forEach(radio => {
+            radio.addEventListener('change', function() {
+                // Uncheck all other previous configuration radios
+                document.querySelectorAll('.previous-config-radio').forEach(r => {
+                    if (r !== this) r.checked = false;
+                });
+            });
+        });
+
     } catch (error) {
         console.error('Error fetching device list:', error);
         document.getElementById('errorAlert').textContent =
@@ -233,9 +243,153 @@ function playRecording(deviceId) {
     const audio = new Audio(audioUrl);
     audio.play();
 }
+function displayPreviousConfiguration(config) {
+    const previewGrid = document.getElementById('previewGrid');
+    const selectedAudioLabel = document.getElementById('selectedAudioLabel');
+
+    // Clear previous previews and streams
+    previewGrid.innerHTML = '';
+    stopAllStreams();
+
+    // Set grid layout
+    previewGrid.style.display = 'grid';
+    previewGrid.style.gridTemplateColumns = `repeat(${config.gridCols}, 1fr)`;
+    previewGrid.style.gridTemplateRows = `repeat(${config.gridRows}, 1fr)`;
+
+    // Create preview for each camera in config
+    const sortedCameras = [...config.cameras].sort((a, b) => a.order - b.order);
+
+    for (let i = 0; i < sortedCameras.length; i++) {
+        const camera = sortedCameras[i];
+        const previewItem = document.createElement('div');
+        previewItem.className = 'preview-item';
+
+        const video = document.createElement('video');
+        video.className = 'preview-video';
+        video.autoplay = true;
+        video.playsInline = true;
+        video.muted = true;
+
+        const label = document.createElement('div');
+        label.className = 'camera-label';
+        label.textContent = `${camera.label} (${i + 1})`;
+
+        previewItem.appendChild(video);
+        previewItem.appendChild(label);
+        previewGrid.appendChild(previewItem);
+
+        // Try to get video stream if the device is still available
+        tryGetVideoStream(camera.deviceId, video);
+    }
+
+    // Update selected audio device
+    if (config.microphone && config.microphoneLabel) {
+        selectedAudioLabel.textContent = config.microphoneLabel;
+    } else {
+        selectedAudioLabel.textContent = 'No audio device selected';
+    }
+}
+
+// Helper function to try getting video stream
+async function tryGetVideoStream(deviceId, videoElement) {
+    try {
+        const stream = await navigator.mediaDevices.getUserMedia({
+            video: { deviceId: deviceId },
+            audio: false
+        });
+        videoElement.srcObject = stream;
+        activeStreams.push(stream);
+    } catch (error) {
+        console.error('Error accessing camera:', error);
+        const label = videoElement.nextElementSibling;
+        if (label) {
+            label.textContent += ' (Device not available)';
+        }
+    }
+}
 
 async function openPreviewModal() {
     console.log("open Preview model");
+
+    // Check if previous configuration is selected
+    const selectedConfig = document.querySelector('input[name="previousConfiguration"]:checked');
+
+    if (selectedConfig) {
+        try {
+            // Fetch the configuration details
+            const response = await fetch(`/api/conference/devices/${selectedConfig.value}`);
+            if (!response.ok) {
+                throw new Error('Failed to fetch configuration details');
+            }
+
+            const config = await response.json();
+            const previewGrid = document.getElementById('previewGrid');
+            const selectedAudioLabel = document.getElementById('selectedAudioLabel');
+
+            // Clear previous previews and streams
+            previewGrid.innerHTML = '';
+            stopAllStreams();
+
+            // Set grid layout
+            previewGrid.style.display = 'grid';
+            previewGrid.style.gridTemplateColumns = `repeat(${config.gridCols}, 1fr)`;
+            previewGrid.style.gridTemplateRows = `repeat(${config.gridRows}, 1fr)`;
+
+            // Sort cameras by order
+            const sortedCameras = [...config.cameras].sort((a, b) => a.order - b.order);
+
+            // Create preview for each camera
+            for (let i = 0; i < sortedCameras.length; i++) {
+                const camera = sortedCameras[i];
+                const previewItem = document.createElement('div');
+                previewItem.className = 'preview-item';
+
+                const video = document.createElement('video');
+                video.className = 'preview-video';
+                video.autoplay = true;
+                video.playsInline = true;
+                video.muted = true;
+
+                const label = document.createElement('div');
+                label.className = 'camera-label';
+                label.textContent = `${camera.label} (${i + 1})`;
+
+                previewItem.appendChild(video);
+                previewItem.appendChild(label);
+                previewGrid.appendChild(previewItem);
+
+                // Get video stream
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        video: { deviceId: camera.deviceId },
+                        audio: false
+                    });
+                    video.srcObject = stream;
+                    activeStreams.push(stream);
+                } catch (error) {
+                    console.error('Error accessing camera:', error);
+                    label.textContent = `${camera.label} (${i + 1}) - Device unavailable`;
+                }
+            }
+
+
+            // Update selected audio device
+            selectedAudioLabel.textContent = config.audio && config.audio.length > 0
+                ? config.audio[0].label
+                : 'No audio device selected';
+
+            // Show modal
+            previewModal.show();
+
+        } catch (error) {
+            console.error('Error setting up preview for previous configuration:', error);
+            alert('Failed to load previous configuration. Please try again or select new devices.');
+        }
+
+        return;
+    }
+
+    // If no previous configuration is selected, proceed with normal flow
     const rows = parseInt(document.getElementById('gridRows').value);
     const cols = parseInt(document.getElementById('gridCols').value);
     const requiredCameras = rows * cols;
@@ -247,7 +401,7 @@ async function openPreviewModal() {
         return;
     }
 
-    // Проверка на наличие выбранного микрофона
+    // Check for selected microphone
     const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
     if (!selectedAudio) {
         alert('Please select at least one microphone');
@@ -344,36 +498,54 @@ function stopAllStreams() {
 }
 
 function createNewConference() {
-    const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'))
-        .map(checkbox => ({
-            deviceId: checkbox.value,
-            label: checkbox.dataset.label,
-            order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
-        }))
-        .sort((a, b) => a.order - b.order);
+    // Check if previous configuration is selected
+    const selectedConfig = document.querySelector('input[name="previousConfiguration"]:checked');
 
-    const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
-    const audioDevice = selectedAudio ? [{
-        deviceId: selectedAudio.value,
-        label: selectedAudio.dataset.label
-    }] : [];
+    if (selectedConfig) {
+        // If a previous configuration is selected, use its ID
+        const configurationId = selectedConfig.value;
+        const userName = document.getElementById('userNameInput').value;
 
-    const gridSize = {
-        rows: parseInt(document.getElementById('gridRows').value),
-        cols: parseInt(document.getElementById('gridCols').value)
-    };
+        // Create minimal request body with just the username
+        const requestBody = {
+            userName: userName
+        };
 
-    // Get userName from hidden input
-    const userName = document.getElementById('userNameInput').value;
+        // Send the request with the configurationId parameter
+        sendDeviceData(requestBody, null, configurationId);
+    } else {
+        // Original code for when no previous configuration is selected
+        const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'))
+            .map(checkbox => ({
+                deviceId: checkbox.value,
+                label: checkbox.dataset.label,
+                order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
+            }))
+            .sort((a, b) => a.order - b.order);
 
-    const requestBody = {
-        cameras: selectedCameras,
-        audio: audioDevice,
-        gridSize: gridSize,
-        userName: userName
-    };
+        const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
+        const audioDevice = selectedAudio ? [{
+            deviceId: selectedAudio.value,
+            label: selectedAudio.dataset.label
+        }] : [];
 
-    sendDeviceData(requestBody);
+        const gridSize = {
+            rows: parseInt(document.getElementById('gridRows').value),
+            cols: parseInt(document.getElementById('gridCols').value)
+        };
+
+        // Get userName from hidden input
+        const userName = document.getElementById('userNameInput').value;
+
+        const requestBody = {
+            cameras: selectedCameras,
+            audio: audioDevice,
+            gridSize: gridSize,
+            userName: userName
+        };
+
+        sendDeviceData(requestBody);
+    }
 }
 
 function openJoinModal() {
@@ -411,43 +583,70 @@ function joinConference() {
         return;
     }
 
-    const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'))
-        .map(checkbox => ({
-            deviceId: checkbox.value,
-            label: checkbox.dataset.label,
-            order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
-        }))
-        .sort((a, b) => a.order - b.order);
+    // Check if previous configuration is selected
+    const selectedConfig = document.querySelector('input[name="previousConfiguration"]:checked');
 
-    const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
-    const audioDevice = selectedAudio ? [{
-        deviceId: selectedAudio.value,
-        label: selectedAudio.dataset.label
-    }] : [];
+    if (selectedConfig) {
+        // If a previous configuration is selected, use its ID
+        const configurationId = selectedConfig.value;
+        const userName = document.getElementById('userNameInput').value;
 
-    const gridSize = {
-        rows: parseInt(document.getElementById('gridRows').value),
-        cols: parseInt(document.getElementById('gridCols').value)
-    };
+        // Create minimal request body with just the username
+        const requestBody = {
+            userName: userName
+        };
 
-    const userName = document.getElementById('userNameInput').value;
+        // Send the request with both identifier and configurationId
+        sendDeviceData(requestBody, identifier, configurationId);
+    } else {
+        // Original code for when no previous configuration is selected
+        const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'))
+            .map(checkbox => ({
+                deviceId: checkbox.value,
+                label: checkbox.dataset.label,
+                order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
+            }))
+            .sort((a, b) => a.order - b.order);
 
-    const requestBody = {
-        cameras: selectedCameras,
-        audio: audioDevice,
-        gridSize: gridSize,
-        userName: userName
-    };
+        const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
+        const audioDevice = selectedAudio ? [{
+            deviceId: selectedAudio.value,
+            label: selectedAudio.dataset.label
+        }] : [];
 
-    sendDeviceData(requestBody, identifier);
+        const gridSize = {
+            rows: parseInt(document.getElementById('gridRows').value),
+            cols: parseInt(document.getElementById('gridCols').value)
+        };
+
+        const userName = document.getElementById('userNameInput').value;
+
+        const requestBody = {
+            cameras: selectedCameras,
+            audio: audioDevice,
+            gridSize: gridSize,
+            userName: userName
+        };
+
+        sendDeviceData(requestBody, identifier);
+    }
 }
 
-function sendDeviceData(requestBody, identifier = null) {
+function sendDeviceData(requestBody, identifier = null, configurationId = null) {
     // Add userName to URL parameters
     const userName = encodeURIComponent(requestBody.userName);
-    const url = '/connect-devices' +
-        (identifier ? `?identifier=${identifier}` : '') +
-        (userName ? `${identifier ? '&' : '?'}userName=${userName}` : '');
+
+    // Build URL with all parameters
+    let url = '/connect-devices';
+    const params = [];
+
+    if (identifier) params.push(`identifier=${identifier}`);
+    if (userName) params.push(`userName=${userName}`);
+    if (configurationId) params.push(`configurationId=${configurationId}`);
+
+    if (params.length > 0) {
+        url += '?' + params.join('&');
+    }
 
     fetch(url, {
         method: 'POST',
