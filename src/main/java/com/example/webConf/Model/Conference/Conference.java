@@ -26,14 +26,17 @@ public class Conference {
 
     @OneToMany(mappedBy = "conference", cascade = CascadeType.ALL)
     @ToString.Exclude
+    @JsonIgnore
     private List<UserConferenceJoin> userJoins = new ArrayList<>(); // to track how many user accounts are currently in the conference
 
     @ManyToMany(mappedBy = "conferences")
     @ToString.Exclude
+    @JsonIgnore
     private List<UserEntity> users = new ArrayList<>();
 
     @OneToMany(mappedBy = "conference", cascade = CascadeType.ALL)
     @ToString.Exclude
+    @JsonIgnore
     private List<ConferenceDevices> devices = new ArrayList<>();
 
     @PrePersist // will be executed before store value to database

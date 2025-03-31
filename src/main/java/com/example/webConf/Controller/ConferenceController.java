@@ -100,11 +100,10 @@ public class ConferenceController {
             throw new ConferenceException("You are not a member of a conference");
         }
 
+        
         model.addAttribute("userName", userName);
         model.addAttribute("conferenceId", conference.getId());
-        if(conference.getPassword() != null){
-            model.addAttribute("password" , conference.getPassword());
-        }
+
 
         /// Find user's devices
         ConferenceDevices devices = devicesRepository.findFirstByUserNameAndConference(userName, conference);
