@@ -82,6 +82,7 @@ public class ConferenceServiceImpl implements ConferenceService {
             userService.save(temporaryUser);
             savedConference.getUsers().add(temporaryUser);
         }
+        savedConference.setChat(Chat.builder().conference(conference).build());
         Conference updatedConference = conferenceRepository.save(savedConference);
         if (!updatedConference.getId().equals(savedConference.getId())) {
             log.error("Error while saving conference");

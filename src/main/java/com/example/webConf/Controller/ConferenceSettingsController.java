@@ -52,9 +52,9 @@ public class ConferenceSettingsController {
 
                 log.info("User name : {}", userName);
                 model.addAttribute("userName", userName);
-                model.addAttribute("user", user); // for account information
+                model.addAttribute("user", user);
                 // for chats
-                model.addAttribute("chats", new ArrayList<Chat>());
+                model.addAttribute("chats", user.getChats());
                 model.addAttribute("users", userService.findAllUsers());
             }
         } else {
@@ -124,7 +124,7 @@ public class ConferenceSettingsController {
         }
 
         try {
-            UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).get();
+            UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElse(null);
             Conference conference;
             String conferenceId;
 
@@ -139,8 +139,7 @@ public class ConferenceSettingsController {
 
             // Create and save conference new devices configuration
             ConferenceDevices devices ;
-            if (conferenceId == null) {
-                log.info("Create new Configuration");
+            if (configurationId == null) {
                  devices =  ConferenceDevices.builder()
                         .conference(conference)
                         .userName(deviceSelection.getUserName())
@@ -164,7 +163,6 @@ public class ConferenceSettingsController {
                         .build();
 
                  log.info("Found configuration with id: {}", conferenceId);
-                 conferenceDevicesService.save(devices);
             }
             conferenceDevicesService.save(devices);
 

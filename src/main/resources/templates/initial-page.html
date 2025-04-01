@@ -143,17 +143,31 @@
                 <!-- Chats Section -->
                 <div th:if="${chats != null}" class="chats-section">
                     <h3 class="text-center mb-4">Your Chats</h3>
-                    <div th:if="${not #lists.isEmpty(chats)}">
+
+                    <div th:if="${not #lists.isEmpty(chats)}" class="chat-list-container">
                         <div th:each="chat : ${chats}" class="chat-item">
                             <div class="chat-details">
-                                <strong th:text="${chat.name}">Chat Name</strong>
-                                <p th:text="${chat.lastMessage}">Last message preview...</p>
+                                <strong th:text="'Chat ID: ' + ${chat.id}">Chat Id</strong>
+                                <!-- Participants Section -->
+                                <div class="chat-participants">
+                                    <strong>Participants:</strong>
+                                    <div class="participants-list">
+                                    <span th:each="participant : ${chat.participants}"
+                                          th:text="${participant.name}"
+                                          class="participant-name">
+                                        Participant Name
+                                    </span>
+                                    </div>
+                                </div>
                             </div>
-                            <a th:href="@{/chat/open(chatId=${chat.id})}" class="btn btn-primary btn-chat">
+                            <!-- Open Chat Button -->
+                            <a th:href="@{/chat/{chatId}(chatId=${chat.id})}" class="btn btn-primary btn-chat">
                                 Open Chat
                             </a>
                         </div>
                     </div>
+
+                    <!-- Message shown if there are no chats -->
                     <div th:if="${#lists.isEmpty(chats)}" class="text-center">
                         <p>You don't have any active chats yet.</p>
                     </div>

@@ -540,7 +540,7 @@ class VideoConference {
             if (!response.ok) {
                 throw new Error('Failed to update user count');
             }
-            const count = await response.json();
+            const count = await response.json().catch(() => 0);
 
             // Update the count regardless of value
             this.userCounts.set(userName, count);

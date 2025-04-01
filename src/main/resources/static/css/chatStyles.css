@@ -1,10 +1,28 @@
+/* Keep your existing styles */
+.chat-participants {
+    margin-top: 10px; /* This might be overridden later, kept for now */
+    font-size: 14px;
+}
+.participants-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px; /* This might be overridden later, kept for now */
+}
+.participant-name {
+    background: #007bff;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
 .message {
     border: 1px solid #ccc;
     padding: 10px;
     margin-bottom: 20px;
     border-radius: 5px;
     background-color: #b0b0b0;
-    width: calc(100% - 1500px);
+    width: calc(100% - 1500px); /* Note: This width calculation seems unusual */
     display: flex;
     flex-direction: column;
 }
@@ -43,15 +61,13 @@
     background-color: #ccc;
     margin-right: 5px;
 }
-
 .user-status.online {
     background-color: #2ecc71;
 }
 .container {
-    max-width: 10000px;
+    max-width: 10000px; /* Note: Very large max-width */
     display: flex;
     margin-top: 15px;
-
 }
 .projects-container {
     width: 100%;
@@ -71,20 +87,116 @@
     text-align: center;
     vertical-align: middle;
     cursor: pointer;
-    background-color: #021d44;
+    background-color: #021d44; /* Default button color */
     border: 1px solid transparent;
     padding: .375rem .75rem;
     font-size: 1rem;
     line-height: 1.5;
     border-radius: .25rem;
     transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-    margin-top: 20px;
+    margin-top: 20px; /* Default margin, might be overridden */
 }
+
+/* Specific style for btn-primary used in the chat link */
+.btn-primary {
+    color: #fff;
+    background-color: #007bff;
+    border-color: #007bff;
+}
+
 .btn:hover {
     color: #ffffff;
-    background-color: #5d5d5d;
+    background-color: #5d5d5d; /* Generic hover, maybe add specific for btn-primary */
     border-color: #bbb4b4;
 }
+
+.btn-primary:hover {
+    color: #fff;
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+
 body {
     background-image: url("/assets/mainPageBackground.jpg");
+    /* Add background properties if needed, like size, repeat */
+    background-size: cover; /* Example */
+    background-repeat: no-repeat; /* Example */
+    background-attachment: fixed; /* Example */
+}
+
+/* --- CORE CHANGES START HERE --- */
+
+/* Container for the whole section (Title + List) */
+.chats-section {
+    /* Removed flex display here, let it be block or add column flex if needed */
+    width: 100%;
+    padding: 10px;
+    /* Removed display: flex; flex-direction: row; gap: 10px; */
+}
+
+/* NEW: Container specifically for the list of chat items */
+.chat-list-container {
+    display: flex;       /* Arrange children (chat-item) in a row */
+    flex-direction: row; /* Default, explicit for clarity */
+    flex-wrap: wrap;     /* Allow items to wrap to the next line */
+    gap: 15px;           /* Space between chat items horizontally and vertically when wrapped */
+    margin-top: 15px;    /* Space below the "Your Chats" title */
+}
+
+/* Individual chat item styling */
+.chat-item {
+    display: flex;             /* Internal layout: details and button */
+    flex-direction: column;    /* Stack details and button vertically within the item */
+    /* Removed justify-content: space-between; */
+    /* Removed align-items: center; */ /* Align items to the start (top) */
+    align-items: flex-start;
+    border: 1px solid #ddd;
+    padding: 15px;
+    border-radius: 8px;
+    background: #f9f9f9;
+    /* Removed width: 100%; */ /* Let flexbox determine width based on content/flex properties */
+    /* Removed margin-bottom: 10px; */ /* Use gap in parent container instead */
+    min-width: 250px; /* Optional: give items a minimum width */
+    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+}
+
+/* Adjust the chat details container */
+.chat-details {
+    /* Removed display: flex; align-items: center; gap: 15px; */
+    text-align: left;
+    margin-bottom: 10px; /* Add space between details and button */
+    width: 100%; /* Ensure details take full width before button */
+}
+
+/* Style for the participants section - make label and list stack */
+.chat-participants {
+    margin-top: 8px; /* Space below chat ID */
+    /* Removed display: flex; align-items: center; gap: 5px; */
+    font-size: 14px; /* Keep font size */
+}
+
+/* Participants list itself remains a flex row for the tags */
+.participants-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px; /* Space below "Participants:" label */
+}
+
+/* Adjust the positioning of the button */
+.btn-chat {
+    margin-top: auto; /* Pushes button to bottom if details vary in height */
+    /* Removed white-space: nowrap; */ /* Allow button text to wrap if needed */
+    align-self: flex-start; /* Align button to the left within the item */
+}
+
+/* --- CORE CHANGES END HERE --- */
+
+/* Ensure h3 styles are appropriate */
+.text-center {
+    text-align: center;
+}
+.mb-4 {
+    margin-bottom: 1.5rem !important; /* Adjust spacing as needed */
 }

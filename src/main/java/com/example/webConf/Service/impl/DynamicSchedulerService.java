@@ -45,7 +45,7 @@ public class DynamicSchedulerService {
             }
         }
         catch (Exception e) {
-            log.error("Error while scheduling \" Delete unused conferences\" task (Default interval will be used (72 hours)) : {}", e.getMessage());
+            log.warn("Error while scheduling \" Delete unused conferences\" task (Default interval will be used (72 hours)) : {}", e.getMessage());
         }
 
         if (conferenceTask != null) {
@@ -72,7 +72,7 @@ public class DynamicSchedulerService {
             }
         }
         catch (Exception e){
-            log.error("Error while scheduling \" Delete temporary Users Accounts\" task (Default interval will be used (1 hour)) : {}", e.getMessage());
+            log.warn("Error while scheduling \" Delete temporary Users Accounts\" task (Default interval will be used (1 hour)) : {}", e.getMessage());
         }
 
         if (userTask != null) {

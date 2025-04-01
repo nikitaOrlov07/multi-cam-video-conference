@@ -32,6 +32,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
@@ -49,7 +50,7 @@ public class ChatController {
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
 
     @Autowired
-    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService , ObjectMapper objectMapper) {
+    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper) {
         this.conferenceService = conferenceService;
         this.userService = userService;
         this.messageService = messageService;
@@ -67,24 +68,6 @@ public class ChatController {
         return "redirect:/chat/" + chat.getId();
     }
 
-    @GetMapping("/conference/{conferenceId}/chat/{chatId}")
-    public String getChat(@PathVariable("chatId") Long chatId,
-                          Model model,
-                          @PathVariable("conferenceId") String conferenceId) throws JsonProcessingException {
-        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).get();
-        Conference conference = conferenceService.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
-        List<Message> messages = conference.getChat().getMessages();
-
-        if (SecurityUtil.getSessionUserEmail() == null || SecurityUtil.getSessionUserEmail().isEmpty() || (!conference.getUsers().contains(currentUser))) {
-            return "redirect:/home";
-        }
-
-        model.addAttribute("messages", messages);
-        model.addAttribute("messagesJson", new ObjectMapper().writeValueAsString(messages));
-        model.addAttribute("chat",conference.getChat());
-        model.addAttribute("user", currentUser);
-        return "chat";
-    }
 
     @GetMapping("/chat/{chatId}")
     public String getChat(@PathVariable("chatId") Long chatId, Model model) throws JsonProcessingException {
@@ -99,21 +82,28 @@ public class ChatController {
         model.addAttribute("messagesJson", objectMapper.writeValueAsString(messages));
         model.addAttribute("user", currentUser);
         model.addAttribute("participants", chat.getParticipants().remove(currentUser));
-        model.addAttribute("chat",chat);
+        model.addAttribute("chat", chat);
         return "chat";
     }
 
     @MessageMapping("/chat/{chatId}/sendMessage")
     @SendTo("/topic/chat/{chatId}")
-    public Message sendMessage(@DestinationVariable Long chatId, @Payload Message message,
+    public Message sendMessage(@DestinationVariable Long chatId, @Payload Message message, // TODO -> implement userName for conference chat for temporary users and implement chat deleting when conference is ended
                                SimpMessageHeaderAccessor headerAccessor) {
         String email = SecurityUtil.getSessionUserEmail(headerAccessor.getUser());
-        if (email == null) {
-            throw new IllegalStateException("User not authenticated");
+        UserEntity user = null;
+        if (email == null || email.isEmpty()) {
+            // It`s temporary user (from conference chat)
+            user = userService.findUserByUsername(message.getAuthor()).orElse(null);
+        } else {
+            // it`s Permanent user
+            user = userService.findByEmail(email).orElse(null);
+        }
+        if (user == null) {
+            throw new AuthException("User not found");
         }
 
         logger.info("Sending message" + headerAccessor.getUser());
-        UserEntity user = userService.findByEmail(email).orElseThrow(() -> new AuthException("User not found"));
 
         message.setUser(user);
         message.setPubDate(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
@@ -125,11 +115,22 @@ public class ChatController {
 
     @MessageMapping("/chat/{chatId}/addUser")
     @SendTo("/topic/chat/{chatId}")
-    public Message addUser(@DestinationVariable Long chatId, @Payload Message message ,
+    public Message addUser(@DestinationVariable Long chatId, @Payload Message message,
                            SimpMessageHeaderAccessor headerAccessor) {
-        String email = message.getAuthor(); // * message.getAuthor will contain email of author
-        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail(headerAccessor.getUser())).orElseThrow(() -> new AuthException("User not found"));
-        Chat chat = chatService.findById(chatId).orElseThrow();
+
+        Chat chat = chatService.findById(chatId).orElse(null);
+        UserEntity currentUser = null;
+
+        if (chat.getConference() != null) { // if it is conference chat -> look user by userName
+            currentUser = userService.findUserByUsername(message.getAuthor()).orElse(null);
+        } else {
+            currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail(headerAccessor.getUser())).orElse(null);
+        }
+        if(currentUser == null){
+            throw new AuthException("User not found");
+        }
+
+        String author = message.getAuthor();
 
         Conference project = conferenceService.findConferenceByChat(chat);
 
@@ -137,7 +138,7 @@ public class ChatController {
         if (!chat.getParticipants().contains(currentUser) && project == null) {
             Optional<UserEntity> otherUser = userService.findById(
                     chat.getParticipants().stream()
-                            .filter(u -> !u.getEmail().equals(email))
+                            .filter(u -> !u.getEmail().equals(author) && !u.getUserName().equals(author))
                             .findFirst()
                             .orElseThrow()
                             .getId()
@@ -185,25 +186,25 @@ public class ChatController {
             return null;
         }
     }
+
     @MessageMapping("/chat/{chatId}/deleteMessage")
     @SendTo("/topic/chat/{chatId}")
     @Transactional
-    public Message deleteMessage(@DestinationVariable Long chatId, @Payload DeleteMessageRequest request,SimpMessageHeaderAccessor headerAccessor) {
+    public Message deleteMessage(@DestinationVariable Long chatId, @Payload DeleteMessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
         UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail(headerAccessor.getUser())).orElseThrow(() -> new AuthException("User not found"));
         Message message = messageService.findById(request.getMessageId()).orElseThrow(() -> new ChatException("Message not found"));
         Chat chat = chatService.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
         if (message != null && chat != null && message.getUser().equals(user)) {
             messageService.deleteMessage(message, user, chat);
             logger.info("Message deleted successfully");
-            if(user.getEmail() != null && !user.getEmail().isEmpty()){
+            if (user.getEmail() != null && !user.getEmail().isEmpty()) {
                 return Message.builder() // for permanent users
                         .type(MessageType.DELETE)
                         .author(user.getEmail())
                         .id(request.getMessageId())
                         .text(request.getMessageId().toString())
                         .build();
-            }
-            else {
+            } else {
                 return Message.builder() // for temporary users
                         .type(MessageType.DELETE)
                         .author(user.getSurname())
@@ -226,7 +227,7 @@ public class ChatController {
         String email = (String) headerAccessor.getSessionAttributes().get("email");
         UserEntity currentUser = userService.findByEmail(email).get();
         Chat chat = chatService.findById(chatId).orElseThrow();
-        Conference conference  = conferenceService.findConferenceByChat(chat);
+        Conference conference = conferenceService.findConferenceByChat(chat);
 
         // implement "List.contains()" logic -> if i use regular contains method -> won`t working
         boolean userInChat = chat.getParticipants().stream()
@@ -236,7 +237,7 @@ public class ChatController {
                 .anyMatch(userChat -> userChat.getId().equals(chat.getId()));
 
         boolean userInProject = false;
-        if(conference != null) {
+        if (conference != null) {
             userInProject = conference.getUsers().stream()
                     .anyMatch(user -> user.getId().equals(currentUser.getId()));
 

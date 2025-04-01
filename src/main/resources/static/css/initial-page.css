@@ -308,4 +308,21 @@
         font-size: 1rem;
     }
 }
+.chat-participants {
+    margin-top: 10px;
+    font-size: 14px;
+}
+.participants-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 5px;
+}
+.participant-name {
+    background: #007bff;
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 12px;
+    font-size: 12px;
+}
 

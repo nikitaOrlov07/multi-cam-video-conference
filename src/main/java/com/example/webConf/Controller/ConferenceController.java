@@ -4,6 +4,7 @@ import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.dto.Conference.ConferenceDto;
 import com.example.webConf.mappers.ConferenceMapper;
+import com.example.webConf.model.Chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.model.user.UserEntity;
@@ -15,6 +16,8 @@ import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -45,6 +48,7 @@ public class ConferenceController {
     private final ConferenceService conferenceService;
     private final UserConferenceJoinRepository userConferenceJoinRepository;
     private final UserEntityService userService;
+    private final ObjectMapper objectMapper;
 
 
     @GetMapping("/join")
@@ -82,7 +86,7 @@ public class ConferenceController {
     public String showConference(
             @RequestParam(value = "userName", required = false) String userName,
             @RequestParam(value = "conferenceId") String conferenceId,
-            Model model) {
+            Model model) throws JsonProcessingException {
         log.info("Processing conference page request for user: {}, conference: {}", userName, conferenceId);
 
         /// Validate input parameters
@@ -104,6 +108,10 @@ public class ConferenceController {
         model.addAttribute("userName", userName);
         model.addAttribute("conferenceId", conference.getId());
 
+        ///  Chat logic
+        List<Message> messages = conference.getChat().getMessages();
+        model.addAttribute("messagesJson", objectMapper.writeValueAsString(messages));
+        model.addAttribute("chatId" ,conference.getChat().getId());
 
         /// Find user's devices
         ConferenceDevices devices = devicesRepository.findFirstByUserNameAndConference(userName, conference);
