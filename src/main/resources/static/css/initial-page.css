@@ -1,196 +1,91 @@
+/* Основные стили */
 .welcome-container {
     min-height: 100vh;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 2rem;
-}
-
-.welcome-card {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 15px;
-    padding: 2rem;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
-.btn-custom {
-    padding: 1rem 2rem;
-    font-size: 1.2rem;
-    margin: 0.5rem;
+    /* Ensure container itself doesn't cause overflow issues */
+    box-sizing: border-box;
     width: 100%;
-    max-width: 400px;
-    transition: transform 0.2s;
+    overflow-x: hidden; /* Prevent horizontal scroll on body/container */
 }
 
-.btn-custom:hover {
-    transform: translateY(-3px);
-}
-
-.main-title {
-    color: #2c3e50;
-    font-size: 3rem;
-    margin-bottom: 2rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-#conferenceForm {
-    max-width: 400px;
-    margin: 0 auto;
-    display: none;
-}
-
-.modal-content {
-    border-radius: 15px;
-}
-
-.modal-header {
-    background-color: #4a90e2;
-    color: white;
-    border-radius: 15px 15px 0 0;
-}
-
-.form-control:focus {
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
-}
-
-.alert {
-    margin-bottom: 1rem;
-}
-.account{
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 10px;
-    border: 1px solid #0b5ed7;
-    padding: 1.5rem;
-    height: fit-content;
-    max-height: 500px;
-    overflow: auto;
-    margin-top: 2rem;
-}
-.past-conferences {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 10px;
-    border: 1px solid #0b5ed7;
-    padding: 1.5rem;
-    height: fit-content;
-    max-height: 500px;
-    overflow: auto;
-    margin-top: 2rem;
-}
-
-.past-conferences h3 {
-    font-weight: 700;
-    font-size: 1.75rem;
-    color: #2c3e50;
-    margin-bottom: 1.5rem;
-}
-
-.past-conference-item {
-    padding: 1rem;
-    margin: 0;
-    background: white;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-bottom: 1px solid #dee2e6;
-}
-
-.past-conference-item:first-child {
-    border-top: 1px solid #dee2e6;
-}
-
-.conference-name {
-    font-size: 1.1rem;
-    margin: 0;
-}
-
-.split-content {
-    display: grid;
-    gap: 2rem;
-    align-items: start;
-}
-
-.welcome-container {
-    min-height: 100vh;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    padding: 2rem;
-}
-
-.welcome-card {
-    background: rgba(255, 255, 255, 0.9);
-    border-radius: 15px;
-    padding: 2rem;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
-}
-
-.btn-custom {
-    padding: 1rem 2rem;
-    font-size: 1.2rem;
-    margin: 0.5rem;
-    width: 100%;
-    max-width: 400px;
-    transition: transform 0.2s;
-}
-
-.btn-custom:hover {
-    transform: translateY(-3px);
-}
-
-.main-title {
-    color: #2c3e50;
-    font-size: 3rem;
-    margin-bottom: 2rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-#conferenceForm {
-    max-width: 400px;
-    margin: 0 auto;
-    display: none;
-}
-
-.modal-content {
-    border-radius: 15px;
-}
-
-.modal-header {
-    background-color: #4a90e2;
-    color: white;
-    border-radius: 15px 15px 0 0;
-}
-
-.form-control:focus {
-    border-color: #4a90e2;
-    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
-}
-
-.alert {
-    margin-bottom: 1rem;
-}
-
-.account-details {
+.welcome-card, .account, .past-conferences, .chats-section, .users-section, .account-details {
     background: rgba(255, 255, 255, 0.95);
     border-radius: 15px;
     border: 1px solid #0b5ed7;
     padding: 1.5rem;
     margin-top: 2rem;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    /* Prevent card itself from overflowing */
+    max-width: 100%;
+    box-sizing: border-box;
+}
+
+.btn-custom {
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    margin: 0.5rem;
+    width: 100%;
+    max-width: 400px;
+    transition: transform 0.2s;
+}
+
+.btn-custom:hover {
+    transform: translateY(-3px);
+}
+
+.main-title {
+    color: #2c3e50;
+    font-size: 3rem; /* Consider slightly smaller font on very small screens if needed */
+    margin-bottom: 2rem;
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+    word-wrap: break-word; /* Ensure title wraps */
+}
+
+.modal-content, .modal-header {
+    border-radius: 15px;
+}
+
+.modal-header {
+    background-color: #4a90e2;
+    color: white;
+    border-radius: 15px 15px 0 0;
+}
+
+.form-control:focus {
+    border-color: #4a90e2;
+    box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
+}
+
+/* Account Information Specific Styles */
+.split-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* More flexible grid */
+    gap: 2rem; /* Add gap between sections */
+    align-items: start; /* Align items to the top */
+}
+
+.account-details {
+    /* Keep specific styling for the account details section */
+    padding: 1.5rem; /* Keep padding here, adjust in media query if needed */
 }
 
 .account-header {
     display: flex;
     align-items: center;
+    gap: 0.75rem;
     margin-bottom: 1.5rem;
-    border-bottom: 2px solid #4a90e2;
     padding-bottom: 1rem;
+    border-bottom: 1px solid #e0e0e0;
 }
 
 .account-header-icon {
-    font-size: 3rem;
-    margin-right: 1rem;
-    color: #4a90e2;
+    font-size: 1.5rem;
 }
 
 .account-info-grid {
     display: grid;
+    /* Start with 2 columns */
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
 }
@@ -198,131 +93,198 @@
 .account-info-item {
     background-color: #f8f9fa;
     border-radius: 8px;
-    padding: 1rem;
-    display: flex;
-    flex-direction: column;
+    padding: 1rem; /* Default padding */
+    box-sizing: border-box; /* Include padding in width calculation */
+    word-wrap: break-word; /* Ensure container wraps if needed */
 }
 
 .account-info-item label {
     font-weight: 600;
     color: #6c757d;
-    margin-bottom: 0.5rem;
+    display: block; /* Ensure label takes full width */
+    margin-bottom: 0.25rem;
 }
 
 .account-info-item .value {
     font-size: 1.1rem;
     color: #2c3e50;
+    /* Add word wrapping for long content like emails */
+    overflow-wrap: break-word;
+    word-wrap: break-word; /* older browsers */
+    word-break: break-word; /* Tries to break words if needed */
 }
 
-.action-button {
+.account-actions {
     display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 300px;
-}
-
-.chats-section,
-.users-section,
-.past-conferences {
-    background: rgba(255, 255, 255, 0.95);
-    border-radius: 15px;
-    border: 1px solid #0b5ed7;
-    padding: 1.5rem;
-    margin-top: 2rem;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-}
-
-.chat-item,
-.user-item,
-.past-conference-item {
+    gap: 10px;
+    justify-content: flex-start;
     flex-wrap: wrap;
-    word-break: break-word;
+    /* Make actions span full width in grid if needed */
+    grid-column: 1 / -1; /* Span across all columns */
+    margin-top: 1rem; /* Add some space above actions */
 }
 
-.chat-item:last-child,
-.user-item:last-child,
-.past-conference-item:last-child {
-    border-bottom: none;
+/* Список конференций и чатов */
+.chat-list-container, .users-section > div:not(.search-form):not(.text-center) {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: flex-start; /* Keep items aligned left */
 }
+
+.chat-item, .user-item, .past-conference-item {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    /* Flexbox basis for better wrapping */
+    flex-basis: calc(33.333% - 1rem);
+    min-width: 250px; /* Minimum width before wrapping */
+    margin-bottom: 1rem; /* Use gap instead of margin where possible */
+    border: 1px solid #dee2e6;
+    box-sizing: border-box;
+}
+
+/* Ensure content inside items wraps */
+.chat-details, .user-details, .conference-name {
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.chat-participants .participants-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    font-size: 0.9em;
+}
+.participant-name {
+    background-color: #e9ecef;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+}
+
 
 .btn-chat {
     transition: all 0.3s ease;
+    margin-top: auto; /* Pushes button to bottom */
 }
 
 .btn-chat:hover {
     transform: scale(1.05);
 }
 
-.split-layout {
-    display: grid;
-    grid-template-columns: 60% 40%;
-    gap: 2rem;
-    margin-top: 2rem;
+/* Search form adjustments */
+.search-form .input-group {
+    flex-wrap: nowrap; /* Prevent button from wrapping */
+}
+.search-form input {
+    min-width: 150px; /* Ensure input has some minimum width */
 }
 
-.search-form {
-    margin-bottom: 1rem;
-}
-
+/* Адаптивность */
 @media (max-width: 992px) {
     .split-layout {
-        grid-template-columns: 1fr;
+        grid-template-columns: 1fr; /* Stack sections */
     }
-
+    /* Make account grid 1 column */
     .account-info-grid {
         grid-template-columns: 1fr;
+    }
+    /* Make chat/user/conference items 2 columns */
+    .chat-item, .user-item, .past-conference-item {
+        flex-basis: calc(50% - 1rem); /* Adjust basis for 2 columns */
+        min-width: 200px; /* Adjust min-width if needed */
+    }
+    .main-title {
+        font-size: 2.5rem; /* Slightly smaller title */
     }
 }
-@media (max-width: 768px) {
-    .split-layout {
-        grid-template-columns: 1fr;
-    }
 
-    .account-info-grid {
-        grid-template-columns: 1fr;
-    }
+@media (max-width: 768px) {
+    /* No need for account-info-grid rule here, already handled by 992px */
 
     .btn-custom {
-        width: 100%;
-        max-width: none;
+        max-width: none; /* Allow buttons to take full width */
+        padding: 0.8rem 1.5rem; /* Adjust padding slightly */
+        font-size: 1.1rem;
     }
-
-    .welcome-card {
-        padding: 1rem;
-    }
-
     .main-title {
-        font-size: 2rem;
+        font-size: 2.2rem;
+    }
+    .welcome-container {
+        padding: 1rem; /* Reduce container padding */
+    }
+    .welcome-card, .account-details, .chats-section, .users-section, .past-conferences {
+        padding: 1rem; /* Reduce card padding */
+    }
+    .chat-item, .user-item, .past-conference-item {
+        min-width: 180px; /* Further adjust min-width */
     }
 }
+
 @media (max-width: 576px) {
-    .search-form .input-group {
-        flex-direction: column;
+    /* Make chat/user/conference items 1 column */
+    .chat-item, .user-item, .past-conference-item {
+        flex-basis: 100%; /* Full width */
+        min-width: 0; /* Remove min-width constraint */
     }
-
-    .search-form .btn {
-        margin-top: 0.5rem;
+    .main-title {
+        font-size: 1.8rem; /* Even smaller title */
     }
+    /* --- FIX FOR ACCOUNT INFO OVERFLOW --- */
+    .account-info-item {
+        padding: 0.75rem; /* Reduce padding inside account items */
+    }
+    .account-details {
+        padding: 1rem 0.75rem; /* Reduce padding on the container too */
+    }
+    .account-info-grid {
+        gap: 0.75rem; /* Reduce gap between items */
+    }
+    /* --- END FIX --- */
 
-    input, button {
+    .btn-custom {
         font-size: 1rem;
+        padding: 0.75rem 1rem;
+    }
+    .account-actions {
+        /* Ensure buttons stack nicely if needed */
+        flex-direction: column;
+        align-items: stretch; /* Make buttons full width of container */
+    }
+    .account-actions .btn {
+        width: 100%; /* Make buttons take full width */
+        margin-bottom: 0.5rem; /* Add space between stacked buttons */
+    }
+    .account-actions .btn:last-child {
+        margin-bottom: 0;
     }
 }
-.chat-participants {
-    margin-top: 10px;
-    font-size: 14px;
-}
-.participants-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 5px;
-}
-.participant-name {
-    background: #007bff;
-    color: #fff;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-}
 
+/* Specific fix for very narrow screens if 576px isn't enough */
+@media (max-width: 380px) {
+    .welcome-container {
+        padding: 0.5rem;
+    }
+    .welcome-card, .account-details, .chats-section, .users-section, .past-conferences {
+        padding: 0.75rem;
+        border-radius: 10px; /* Slightly smaller radius */
+    }
+    .account-info-item {
+        padding: 0.5rem; /* Further reduce padding */
+    }
+    .account-info-item label {
+        font-size: 0.9em;
+    }
+    .account-info-item .value {
+        font-size: 1em;
+    }
+    .main-title {
+        font-size: 1.6rem;
+    }
+    .account-header h3 {
+        font-size: 1.2rem;
+    }
+}
