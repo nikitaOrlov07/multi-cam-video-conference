@@ -226,8 +226,19 @@
                                     <p class="alert alert-success mb-0 me-2"
                                        th:if="${activeConferences.contains(conference)}">Active</p>
                                     <a class="btn btn-primary"
+                                       th:if="${!activeConferences.contains(conference)}"
                                        th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName})}">
                                         Join
+                                    </a>
+                                    <form th:action="@{/conference/leaveConference(conferenceId=${conference.id}, userName=${userName})}"
+                                          th:if="${activeConferences.contains(conference)}"
+                                          method="post">
+                                        <button type="submit" class="btn btn-danger">Leave Conference</button>
+                                    </form>
+                                    <a class="btn btn-danger"
+                                       th:if="${!activeConferences.contains(conference) && user.conferences.contains(conference)}"
+                                       th:href="@{/conference/removeConference(conferenceId =${conference.id} , userName = userName)}">
+                                        Remove Conference
                                     </a>
                                 </div>
                             </div>

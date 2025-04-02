@@ -42,4 +42,6 @@ public interface UserEntityService {
     void editSettings(Map<String, String> settings);
 
     List<SettingsEntity> getSettings();
+
+    List<UserConferenceJoin> findAllUserConferenceJoins(UserEntity userEntity);
 }

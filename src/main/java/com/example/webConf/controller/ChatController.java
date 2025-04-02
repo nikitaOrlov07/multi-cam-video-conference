@@ -88,7 +88,7 @@ public class ChatController {
 
     @MessageMapping("/chat/{chatId}/sendMessage")
     @SendTo("/topic/chat/{chatId}")
-    public Message sendMessage(@DestinationVariable Long chatId, @Payload Message message, // TODO -> implement userName for conference chat for temporary users and implement chat deleting when conference is ended
+    public Message sendMessage(@DestinationVariable Long chatId, @Payload Message message, // TODO -> test conference chat for temporary users
                                SimpMessageHeaderAccessor headerAccessor) {
         String email = SecurityUtil.getSessionUserEmail(headerAccessor.getUser());
         UserEntity user = null;

@@ -13,8 +13,10 @@ import com.example.webConf.repository.*;
 import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
+import jdk.jshell.spi.ExecutionControl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationContext;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
@@ -36,6 +38,7 @@ public class ConferenceServiceImpl implements ConferenceService {
     private final UserEntityService userEntityService;
     private final RoleRepository roleRepository;
     private final SettingsEntityRepository settingsEntityRepository;
+    private final ApplicationContext context;
 
     @Override
     public ConferenceDto findConferenceById(String identifier) {
@@ -60,27 +63,10 @@ public class ConferenceServiceImpl implements ConferenceService {
 
         if (userEntity != null && (userName != null || !userName.isEmpty())) {
             /// If user is registered
-            log.info("User is registered");
-            savedConference.getUsers().add(userEntity);
-            userEntity.getConferences().add(savedConference);
-            userRepository.save(userEntity);
+            context.getBean(ConferenceServiceImpl.class).addUser(userName, conference.getId()); // for working Transactional annotation for method addUser
         } else if (userName != null && !userName.isEmpty() && userEntity == null) {
             /// If user is not registered , but write his name
-            //  Create temporary user profile
-            log.info("User doesn`t registered , temporaryName: {}", userName);
-            UserEntity temporaryUser = UserEntity.builder()
-                    .surname(userName)
-                    .password(null)
-                    .city(null)
-                    .conferences(List.of(conference))
-                    .email(null)
-                    .country(null)
-                    .accountType(UserEntity.AccountType.TEMPORARY)
-                    .roles(List.of(roleRepository.findByName("USER").orElseThrow(() -> new AuthException("User Role Not Found"))))
-                    .build();
-
-            userService.save(temporaryUser);
-            savedConference.getUsers().add(temporaryUser);
+            context.getBean(ConferenceServiceImpl.class).addUser(userName, conference.getId()); // for working Transactional annotation for method addUser
         }
         savedConference.setChat(Chat.builder().conference(conference).build());
         Conference updatedConference = conferenceRepository.save(savedConference);
@@ -141,7 +127,7 @@ public class ConferenceServiceImpl implements ConferenceService {
     @Override
     public List<Conference> findUserActiveConferences(Long id) {
         UserEntity userEntity = userEntityService.findById(id).get();
-        return userService.findUserConferenceJoin(userEntity, null).stream().map(UserConferenceJoin::getConference).toList();
+        return userService.findAllUserConferenceJoins(userEntity).stream().map(UserConferenceJoin::getConference).toList();
     }
 
     @Override
@@ -201,5 +187,46 @@ public class ConferenceServiceImpl implements ConferenceService {
         conferenceRepository.save(conference);
 
         return ResponseEntity.ok().build();
+    }
+
+    @Override
+    @Transactional
+    public void removeUserConference(String conferenceId, String userName) {
+        log.info("Removing user conference: {} for user {}", conferenceId , userName);
+        Conference conference = conferenceRepository.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
+        UserEntity userEntity = userService.findUserByUsername(userName).orElseThrow(() -> new AuthException("User not found"));
+        if(conference.getUsers().contains(userEntity) && userEntity.getConferences().contains(conference)) {
+            conference.getUsers().remove(userEntity);
+            userEntity.getConferences().remove(conference);
+        }
+    }
+
+    @Override
+    @Transactional
+    public void addUser(String userName, String identifier) {
+        System.out.println("Adding user to conference: " + identifier);
+        Conference conference = conferenceRepository.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
+        UserEntity userEntity = userService.findUserByUsername(userName).orElse(null);
+        ///  If account is permanent
+        if(userEntity != null && userEntity.getAccountType().equals(UserEntity.AccountType.PERMANENT)
+                && !conference.getUsers().contains(userEntity) && !userEntity.getConferences().contains(conference)) {
+            log.info("User is permanent : {}" , userEntity.getId());
+            conference.getUsers().add(userEntity);
+            userEntity.getConferences().add(conference);
+        }
+        else if (userEntity == null){ ///  if account is temporary
+            log.info("User doesn`t registered , temporaryName: {}", userName);
+            userEntity= UserEntity.builder()
+                    .surname(userName.toLowerCase())
+                    .password(null)
+                    .city(null)
+                    .conferences(List.of(conference))
+                    .email(null)
+                    .country(null)
+                    .accountType(UserEntity.AccountType.TEMPORARY)
+                    .roles(List.of(roleRepository.findByName("USER").orElseThrow(() -> new AuthException("User Role Not Found"))))
+                    .build();
+            userRepository.save(userEntity);
+        }
     }
 }

@@ -32,4 +32,8 @@ public interface ConferenceService {
     List<Conference> searchConferencesById(String id);
 
     ResponseEntity<Void> changePassword(String conferenceId, String password , String userName);
+
+    void removeUserConference(String conferenceId, String userName);
+
+    void addUser(String userName, String identifier);
 }

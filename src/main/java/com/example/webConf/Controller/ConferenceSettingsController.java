@@ -45,7 +45,10 @@ public class ConferenceSettingsController {
                 List<Conference> activeConference = conferenceService.findUserActiveConferences(user.getId());
                 String userName = user.getName() + " " + user.getSurname();
                 log.info("Size of past conferences: {}", pastConferences.size());
-
+                System.out.println("active conferences: " + activeConference.size());
+                activeConference.forEach(conference -> {
+                    System.out.println(conference.getId());
+                });
                 model.addAttribute("pastConferences", pastConferences);
                 model.addAttribute("isAuthorized", true);
                 model.addAttribute("activeConferences", activeConference);
@@ -131,6 +134,7 @@ public class ConferenceSettingsController {
             // Handle existing or new conference
             if (identifier != null && !identifier.isEmpty()) {
                 conference = conferenceService.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
+                conferenceService.addUser(userName , identifier);
                 conferenceId = identifier;
             } else {
                 conferenceId = conferenceService.createConference(currentUser, userName);

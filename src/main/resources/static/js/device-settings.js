@@ -676,3 +676,15 @@ function sendDeviceData(requestBody, identifier = null, configurationId = null) 
             console.error('Error during fetch request:', error);
         });
 }
+function togglePreviousConfig(radio) {
+    if (radio.getAttribute('data-was-checked') === 'true') {
+        radio.checked = false;
+        radio.setAttribute('data-was-checked', 'false');
+    } else {
+        // Сначала сбросим атрибут у всех радиокнопок
+        document.querySelectorAll('.previous-config-radio').forEach(r => {
+            r.setAttribute('data-was-checked', 'false');
+        });
+        radio.setAttribute('data-was-checked', 'true');
+    }
+}

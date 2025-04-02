@@ -63,7 +63,9 @@
                                 <input type="radio" name="previousConfiguration"
                                        th:id="'config-' + ${deviceStat.index}"
                                        th:value="${device.id}"
-                                       class="form-check-input previous-config-radio">
+                                       class="form-check-input previous-config-radio"
+                                       onclick="togglePreviousConfig(this)"
+                                       data-was-checked="false">
                             </div>
                             <div class="flex-grow-1">
                                 <strong>Microphone:</strong> <span th:text="${device.microphoneLabel}"></span><br>

@@ -84,8 +84,8 @@ public class ConferenceController {
 
     @GetMapping
     public String showConference(
-            @RequestParam(value = "userName", required = false) String userName,
-            @RequestParam(value = "conferenceId") String conferenceId,
+            @RequestParam("userName") String userName,
+            @RequestParam("conferenceId") String conferenceId,
             Model model) throws JsonProcessingException {
         log.info("Processing conference page request for user: {}, conference: {}", userName, conferenceId);
 
@@ -95,6 +95,7 @@ public class ConferenceController {
             log.error("Missing required parameters - conferenceId: {}, userName: {}", conferenceId, userName);
             throw new ConferenceException("Missing required parameters");
         }
+        System.out.println(userName);
         UserEntity user = userService.findUserByUsername(userName).orElseThrow(() -> new AuthException("User not found"));
         /// Find conference
         Conference conference = conferenceRepository.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
@@ -203,5 +204,12 @@ public class ConferenceController {
     @GetMapping("/changePassword/{conferenceId}")
     public ResponseEntity<Void> changePassword(@PathVariable String conferenceId , @RequestParam String password ,@RequestParam String userName){
         return conferenceService.changePassword(conferenceId,password,userName);
+    }
+    /// Remove Conference from users conferences (only for non active conferences)
+    @GetMapping("/removeConference") // TODO -> make that after this will be updated only fragment , not all page
+    public String removeConference(@RequestParam("conferenceId") String conferenceId,
+                                 @RequestParam("") String userName) {
+      conferenceService.removeUserConference(conferenceId,userName);
+      return "initial-page";
     }
 }
