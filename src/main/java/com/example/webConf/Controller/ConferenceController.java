@@ -4,6 +4,7 @@ import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.dto.Conference.ConferenceDto;
 import com.example.webConf.mappers.ConferenceMapper;
+import com.example.webConf.model.Chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.model.user.UserEntity;
@@ -15,6 +16,8 @@ import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -45,6 +48,7 @@ public class ConferenceController {
     private final ConferenceService conferenceService;
     private final UserConferenceJoinRepository userConferenceJoinRepository;
     private final UserEntityService userService;
+    private final ObjectMapper objectMapper;
 
 
     @GetMapping("/join")
@@ -80,9 +84,9 @@ public class ConferenceController {
 
     @GetMapping
     public String showConference(
-            @RequestParam(value = "userName", required = false) String userName,
-            @RequestParam(value = "conferenceId") String conferenceId,
-            Model model) {
+            @RequestParam("userName") String userName,
+            @RequestParam("conferenceId") String conferenceId,
+            Model model) throws JsonProcessingException {
         log.info("Processing conference page request for user: {}, conference: {}", userName, conferenceId);
 
         /// Validate input parameters
@@ -91,6 +95,7 @@ public class ConferenceController {
             log.error("Missing required parameters - conferenceId: {}, userName: {}", conferenceId, userName);
             throw new ConferenceException("Missing required parameters");
         }
+        System.out.println(userName);
         UserEntity user = userService.findUserByUsername(userName).orElseThrow(() -> new AuthException("User not found"));
         /// Find conference
         Conference conference = conferenceRepository.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
@@ -100,11 +105,14 @@ public class ConferenceController {
             throw new ConferenceException("You are not a member of a conference");
         }
 
+        
         model.addAttribute("userName", userName);
         model.addAttribute("conferenceId", conference.getId());
-        if(conference.getPassword() != null){
-            model.addAttribute("password" , conference.getPassword());
-        }
+
+        ///  Chat logic
+        List<Message> messages = conference.getChat().getMessages();
+        model.addAttribute("messagesJson", objectMapper.writeValueAsString(messages));
+        model.addAttribute("chatId" ,conference.getChat().getId());
 
         /// Find user's devices
         ConferenceDevices devices = devicesRepository.findFirstByUserNameAndConference(userName, conference);
@@ -196,5 +204,12 @@ public class ConferenceController {
     @GetMapping("/changePassword/{conferenceId}")
     public ResponseEntity<Void> changePassword(@PathVariable String conferenceId , @RequestParam String password ,@RequestParam String userName){
         return conferenceService.changePassword(conferenceId,password,userName);
+    }
+    /// Remove Conference from users conferences (only for non active conferences)
+    @GetMapping("/removeConference") // TODO -> make that after this will be updated only fragment , not all page
+    public String removeConference(@RequestParam("conferenceId") String conferenceId,
+                                 @RequestParam("") String userName) {
+      conferenceService.removeUserConference(conferenceId,userName);
+      return "initial-page";
     }
 }

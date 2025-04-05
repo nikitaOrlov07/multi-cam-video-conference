@@ -70,7 +70,7 @@ public class UserEntityServiceImpl implements UserEntityService {
         String decodedUsername = URLDecoder.decode(userName, StandardCharsets.UTF_8).toLowerCase();
         String[] parts = decodedUsername.split(" "); // parts[0] = name , parts[1] = username
         if (parts.length == 1) { // for temporary user
-            userEntity = userEntityRepository.findFirstByNameAndSurname(null, parts[0].toLowerCase());
+            userEntity = userEntityRepository.findFirstByNameAndSurname(null, parts[0]);
         } else { // for permanent user
             userEntity = userEntityRepository.findFirstByNameAndSurname(parts[0], parts[1]);
         }
@@ -203,6 +203,11 @@ public class UserEntityServiceImpl implements UserEntityService {
         List<SettingsEntity> settings = settingsEntityRepository.findAll();
         log.info("Found settings size is {}", settings.size());
         return settings;
+    }
+
+    @Override
+    public List<UserConferenceJoin> findAllUserConferenceJoins(UserEntity userEntity) {
+        return  userConderenceJoinRepository.findAll();
     }
 
     @Override

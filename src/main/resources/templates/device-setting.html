@@ -52,10 +52,52 @@
             </ul>
         </div>
     </div>
+    <div class="row mt-4">
+        <div class="col-md-12">
+            <h2 class="mb-3">Previously Selected Devices</h2>
+            <div th:if="${devices != null and not #lists.isEmpty(devices)}">
+                <ul class="list-group">
+                    <li th:each="device, deviceStat : ${devices}" class="list-group-item">
+                        <div class="d-flex align-items-start">
+                            <div class="me-3">
+                                <input type="radio" name="previousConfiguration"
+                                       th:id="'config-' + ${deviceStat.index}"
+                                       th:value="${device.id}"
+                                       class="form-check-input previous-config-radio"
+                                       onclick="togglePreviousConfig(this)"
+                                       data-was-checked="false">
+                            </div>
+                            <div class="flex-grow-1">
+                                <strong>Microphone:</strong> <span th:text="${device.microphoneLabel}"></span><br>
+                                <strong>Grid:</strong> <span th:text="${device.gridRows} + ' x ' + ${device.gridCols}"></span><br>
+                                <strong>Cameras:</strong>
+                                <ul>
+                                    <li th:each="camera : ${device.getCameras()}" class="mb-1">
+                                        <span th:text="${camera.label}"></span> (ID: <span th:text="${camera.deviceId}"></span>)
+                                        <span th:if="${camera.order != null}">
+                                        - Order: <span th:text="${camera.order}"></span>
+                                    </span>
+                                    </li>
+                                </ul>
+                                <div th:if="${#lists.isEmpty(device.getCameras())}" class="text-muted">
+                                    No cameras configured
+                                </div>
+                            </div>
+                        </div>
+                    </li>
+                </ul>
+            </div>
+            <div th:if="${devices == null or #lists.isEmpty(devices)}" class="alert alert-info">
+                No devices have been selected yet.
+            </div>
+        </div>
+    </div>
+
 
     <div class="text-center mt-4">
         <button class="btn btn-primary btn-lg" onclick="openPreviewModal()">Connect Selected Devices</button>
     </div>
+
 </div>
 
 <!-- Preview Modal -->

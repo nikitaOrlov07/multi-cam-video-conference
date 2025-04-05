@@ -81,6 +81,31 @@ public class UserEntity {
     @JsonIgnore
     @OneToMany(mappedBy = "user", fetch = FetchType.EAGER, cascade = CascadeType.ALL , orphanRemoval = true)  // one user --> many comments in comment side i have @ ManyToone annotation
     private List<Message> messages = new ArrayList<>();
+
+    ///  UserName logic
+    private String userName;
+
+    @PrePersist
+    @PreUpdate
+    private void setDefaultUserName() {
+        if (userName == null || userName.isBlank()) {
+            userName = (name != null ? name : "") + (surname != null ? " " + surname : "");
+            userName = userName.trim(); // Убираем лишние пробелы
+        }
+    }
+    public String getUserName() {
+        if ((name == null || name.isBlank()) && (surname == null || surname.isBlank())) {
+            return null;
+        }
+        if (name == null || name.isBlank()) {
+            return surname;
+        }
+        if (surname == null || surname.isBlank()) {
+            return name;
+        }
+        return name + " " + surname;
+    }
+
 }
 
 
