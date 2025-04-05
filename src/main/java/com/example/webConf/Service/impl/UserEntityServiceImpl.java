@@ -15,6 +15,7 @@ import com.example.webConf.service.UserEntityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,15 +32,17 @@ public class UserEntityServiceImpl implements UserEntityService {
     private final UserConferenceJoinRepository userConderenceJoinRepository;
     private final ConferenceRepository conferenceRepository;
     private final SettingsEntityRepository settingsEntityRepository;
+    private final PasswordEncoder passwordEncoder;
 
     @Autowired
     public UserEntityServiceImpl(UserEntityRepository userEntityRepository,
-                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository, SettingsEntityRepository settingsEntityRepository) {
+                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository, SettingsEntityRepository settingsEntityRepository, PasswordEncoder passwordEncoder) {
         this.userEntityRepository = userEntityRepository;
         this.userEntityMapper = userEntityMapper;
         this.userConderenceJoinRepository = userConderenceJoinRepository;
         this.conferenceRepository = conferenceRepository;
         this.settingsEntityRepository = settingsEntityRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
@@ -140,7 +143,8 @@ public class UserEntityServiceImpl implements UserEntityService {
     public void editUser(Long uuid,RegistrationDto registrationDto) {
         UserEntity user = userEntityRepository.findById(uuid).get();
         BeanUtils.copyProperties(registrationDto, user);
-        user.setUserName(user.getName()+" "+user.getSurname());
+        user.setUserName(registrationDto.getName() + " " + registrationDto.getSurname());
+        user.setPassword(passwordEncoder.encode(registrationDto.getPassword()));
     }
 
     @Override

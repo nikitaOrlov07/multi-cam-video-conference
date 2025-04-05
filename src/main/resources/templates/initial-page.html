@@ -123,6 +123,10 @@
                                 <label for="edit-address">Address</label>
                                 <input type="text" id="edit-address" class="form-control" th:value="${user.address}">
                             </div>
+                            <div class="account-info-item">
+                                <label for="edit-name">Enter new password</label>
+                                <input type="text" id="edit-password" class="form-control" th:value="${user.address}">
+                            </div>
                             <div class="account-actions">
                                 <button
                                         th:data-id="${user.id}"
