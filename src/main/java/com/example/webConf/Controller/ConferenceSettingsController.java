@@ -45,10 +45,7 @@ public class ConferenceSettingsController {
                 List<Conference> activeConference = conferenceService.findUserActiveConferences(user.getId());
                 String userName = user.getName() + " " + user.getSurname();
                 log.info("Size of past conferences: {}", pastConferences.size());
-                System.out.println("active conferences: " + activeConference.size());
-                activeConference.forEach(conference -> {
-                    System.out.println(conference.getId());
-                });
+
                 model.addAttribute("pastConferences", pastConferences);
                 model.addAttribute("isAuthorized", true);
                 model.addAttribute("activeConferences", activeConference);
