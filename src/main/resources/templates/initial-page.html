@@ -246,11 +246,14 @@
                                        th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName},toDeviceSettings=true)}">
                                         Join
                                     </a>
+                                    <a class="btn btn-primary btn-sm"
+                                       th:if="${activeConferences.contains(conference)}"
+                                       th:href="@{/conference(conferenceId=${conference.getId()}, userName=${userName})}">
+                                        Connect
+                                    </a>
                                     <a class="btn btn-danger btn-sm"
-                                       th:if="${!activeConferences.contains(conference)}"
-                                       href="#"
-                                       th:attr="onclick=|return removeConference('${conference.id}', '${userName}')|"
-                                       th:data-conference-id="${conference.id}">
+                                       th:if="${!activeConferences.contains(conference) && conference.getUsers().contains(user)}"
+                                       th:href="@{/conference/removeConference(conferenceId=${conference.getId()}, userName=${userName})}">
                                         Remove
                                     </a>
                                 </div>
@@ -265,7 +268,8 @@
             <script th:inline="javascript">
                 $(document).ready(function () {
                     const pastConferences = /*[[${pastConferences}]]*/ [];
-
+                    const userConferenceIds = /*[[${userConferenceIds}]]*/ [];
+                    console.log('User COnference Ids', userConferenceIds)
                     $("#pastConferencesSearchForm").on("submit", function (e) {
                         e.preventDefault();
                         const searchQuery = $("#pastConferencesSearchQuery").val().toLowerCase().trim();
@@ -301,6 +305,9 @@
                             const day = String(dateArray[2]).padStart(2, '0');
                             return `${year}-${month}-${day}`;
                         }
+                        if(dateArray === null)
+                            return null;
+
                         return dateArray.toString();
                     }
 
@@ -310,7 +317,6 @@
                         container.empty();
                         const user = /*[[${user}]]*/ null;
 
-                        console.log('U',user)
                         if (conferences.length === 0) {
                             container.html('<div class="text-center"><p>No conferences found.</p></div>');
                             return;
@@ -323,6 +329,8 @@
                             const formattedDate = formatConferenceDate(conference.conferenceDate);
                             const isActive = conference.active || false;
                             const userName = /*[[${userName}]]*/ 'user';
+                            // Перемещаем проверку сюда, где переменная conference уже определена
+                            const isUserConference = userConferenceIds.indexOf(conference.id) !== -1;
 
                             const conferenceCard = $(`
             <div class="conference-item" data-conference-id="${conference.id}">
@@ -334,13 +342,18 @@
                     <div class="conference-info">
                         <p class="participant-count">${conference.userJoins ? conference.userJoins.length : 0} participants</p>
                     </div>
-                    ${isActive ? '<div class="conference-status"><span class="badge bg-success">Active</span></div>' : ''}
+                    ${isActive ? `
+                    <div class="conference-status">
+                        <span class="badge bg-success">Active</span>
+                        <a href="/conference?conferenceId=${conference.id}&userName=${userName}">Connect</a>
+                    </div>` : ''}
                 </div>
                 <div class="conference-actions">
                     <a href="/conference/join?conferenceId=${conference.id}&userName=${userName}&toDeviceSettings=true" class="btn btn-primary btn-sm">
                         Join
                     </a>
-                   ${!isActive && user.getConferences().contains(conference) ?`<a href="#" onclick="return removeConference('${conference.id}', '${userName}')" class="btn btn-danger btn-sm">
+                    ${!isActive && isUserConference ? `
+                    <a href="#" onclick="return removeConference('${conference.id}', '${userName}')" class="btn btn-danger btn-sm">
                         Remove
                     </a>` : ''}
                 </div>
@@ -356,10 +369,12 @@
                     // Reset to all conferences when search is cleared
                     $("#pastConferencesSearchQuery").on('input', function () {
                         if ($(this).val() === '') {
+                            console.log("RENDER PAST CONFERENCE NULL QUERY")
                             renderPastConferences(pastConferences);
                         }
                     });
                 });
+
                 function removeConference(conferenceId, userName) {
                     if (confirm('Are you sure you want to remove this conference?')) {
                         $.ajax({
@@ -369,10 +384,10 @@
                                 conferenceId: conferenceId,
                                 userName: userName
                             },
-                            success: function(response) {
+                            success: function (response) {
                                 // Find and remove the specific conference element
                                 const conferenceElement = $(`.conference-item[data-conference-id="${conferenceId}"]`);
-                                conferenceElement.fadeOut(300, function() {
+                                conferenceElement.fadeOut(300, function () {
                                     $(this).remove();
 
                                     // Check if there are no conferences left after removal
@@ -383,7 +398,7 @@
                                     }
                                 });
                             },
-                            error: function(xhr, status, error) {
+                            error: function (xhr, status, error) {
                                 alert('Error removing conference: ' + error);
                             }
                         });
