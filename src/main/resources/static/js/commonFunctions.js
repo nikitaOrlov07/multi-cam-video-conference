@@ -49,6 +49,7 @@ function handleUserEditing(id) {
     // Get values from the edit form fields
     const userData = {
         name: document.getElementById('edit-name').value,
+        password: document.getElementById('edit-password').value,
         surname: document.getElementById('edit-surname').value,
         email: document.getElementById('edit-email').value,
         city: document.getElementById('edit-city').value,
