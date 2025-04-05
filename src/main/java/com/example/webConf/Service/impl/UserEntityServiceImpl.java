@@ -70,6 +70,7 @@ public class UserEntityServiceImpl implements UserEntityService {
     @Override
     public Optional<UserEntity> findUserByUsername(String userName) {
         String decodedUsername = URLDecoder.decode(userName, StandardCharsets.UTF_8);
+        System.out.println("Decoded username: " + decodedUsername);
         return userEntityRepository.findFirstByUserName(decodedUsername);
     }
 

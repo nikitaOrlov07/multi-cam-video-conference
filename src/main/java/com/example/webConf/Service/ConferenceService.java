@@ -36,4 +36,6 @@ public interface ConferenceService {
     void removeUserConference(String conferenceId, String userName);
 
     void addUser(String userName, String identifier);
+
+    List<Conference> findUserConferences(UserEntity userEntity);
 }

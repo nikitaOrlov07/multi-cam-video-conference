@@ -6,6 +6,7 @@ import com.example.webConf.dto.Conference.ConferenceDto;
 import com.example.webConf.mappers.ConferenceMapper;
 import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.conference.Conference;
+import com.example.webConf.model.role.RoleEntity;
 import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
@@ -13,6 +14,7 @@ import com.example.webConf.repository.*;
 import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
+import jakarta.annotation.PostConstruct;
 import jdk.jshell.spi.ExecutionControl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -39,7 +41,14 @@ public class ConferenceServiceImpl implements ConferenceService {
     private final RoleRepository roleRepository;
     private final SettingsEntityRepository settingsEntityRepository;
     private final ApplicationContext context;
+    private RoleEntity adminRole;
+    private RoleEntity creatorRole;
 
+    @PostConstruct // will be called when constructor is created
+    public void init() {
+        this.adminRole = roleRepository.findByName("ADMIN").orElseThrow(() -> new AuthException("Role [ADMIN] not found"));
+        this.creatorRole = roleRepository.findByName("CREATOR").orElseThrow(() -> new AuthException("Role [CREATOR] not found"));
+    }
     @Override
     public ConferenceDto findConferenceById(String identifier) {
         Optional<Conference> conference = conferenceRepository.findById(identifier);
@@ -84,7 +93,10 @@ public class ConferenceServiceImpl implements ConferenceService {
         Optional<UserEntity> user = userRepository.findById(id);
         if (user.isPresent()) {
             log.info("Finding conference for user {} {}", user.get().getName(), user.get().getSurname());
-            return conferenceRepository.findAllByUsersContains(user.get());
+            if(user.get().getRoles().contains(adminRole) || user.get().getRoles().contains(creatorRole))
+                return conferenceRepository.findAll();
+            else
+                return conferenceRepository.findAllByUsersContains(user.get());
         }
         return null;
     }
@@ -196,6 +208,7 @@ public class ConferenceServiceImpl implements ConferenceService {
         Conference conference = conferenceRepository.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
         UserEntity userEntity = userService.findUserByUsername(userName).orElseThrow(() -> new AuthException("User not found"));
         if(conference.getUsers().contains(userEntity) && userEntity.getConferences().contains(conference)) {
+            System.out.println("REMOVING");
             conference.getUsers().remove(userEntity);
             userEntity.getConferences().remove(conference);
         }
@@ -204,10 +217,9 @@ public class ConferenceServiceImpl implements ConferenceService {
     @Override
     @Transactional
     public void addUser(String userName, String identifier) {
+        System.out.println("AddUser UserName " + userName);
         Conference conference = conferenceRepository.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
         UserEntity userEntity = userService.findUserByUsername(userName).orElse(null);
-        System.out.println("1 "+ !conference.getUsers().contains(userEntity));
-        System.out.println("2 " + !userEntity.getConferences().contains(conference));
         ///  If account is permanent
         if(userEntity != null && userEntity.getAccountType().equals(UserEntity.AccountType.PERMANENT)
                 && !conference.getUsers().contains(userEntity) && !userEntity.getConferences().contains(conference)) {
@@ -224,10 +236,16 @@ public class ConferenceServiceImpl implements ConferenceService {
                     .conferences(List.of(conference))
                     .email(null)
                     .country(null)
+                    .userName(userName)
                     .accountType(UserEntity.AccountType.TEMPORARY)
                     .roles(List.of(roleRepository.findByName("USER").orElseThrow(() -> new AuthException("User Role Not Found"))))
                     .build();
             userRepository.save(userEntity);
         }
+    }
+
+    @Override
+    public List<Conference> findUserConferences(UserEntity userEntity) {
+        return conferenceRepository.findAllByUsersContains(userEntity);
     }
 }

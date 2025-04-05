@@ -22,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Controller
 @Slf4j
@@ -41,11 +42,16 @@ public class ConferenceSettingsController {
             // User is authorized
             user = userService.findByEmail(currentUserEmail).get();
             if (user != null) {
-                List<Conference> pastConferences = conferenceService.findConferencesByUser(user.getId());
+                List<Conference> conferences = conferenceService.findConferencesByUser(user.getId());
+                List<Conference> userConferences = conferenceService.findUserConferences(user);
                 List<Conference> activeConference = conferenceService.findUserActiveConferences(user.getId());
-                log.info("Size of past conferences: {}", pastConferences.size());
+                log.info("Size of past conferences: {}", conferences.size());
+                List<String> userConferenceIds = userConferences.stream()
+                        .map(Conference::getId)
+                        .toList();
 
-                model.addAttribute("pastConferences", pastConferences);
+                model.addAttribute("pastConferences", conferences);
+                model.addAttribute("userConferenceIds", userConferenceIds);
                 model.addAttribute("isAuthorized", true);
                 model.addAttribute("activeConferences", activeConference);
 
