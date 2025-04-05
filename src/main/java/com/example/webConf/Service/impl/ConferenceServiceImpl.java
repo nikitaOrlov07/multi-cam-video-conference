@@ -204,9 +204,10 @@ public class ConferenceServiceImpl implements ConferenceService {
     @Override
     @Transactional
     public void addUser(String userName, String identifier) {
-        System.out.println("Adding user to conference: " + identifier);
         Conference conference = conferenceRepository.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
         UserEntity userEntity = userService.findUserByUsername(userName).orElse(null);
+        System.out.println("1 "+ !conference.getUsers().contains(userEntity));
+        System.out.println("2 " + !userEntity.getConferences().contains(conference));
         ///  If account is permanent
         if(userEntity != null && userEntity.getAccountType().equals(UserEntity.AccountType.PERMANENT)
                 && !conference.getUsers().contains(userEntity) && !userEntity.getConferences().contains(conference)) {

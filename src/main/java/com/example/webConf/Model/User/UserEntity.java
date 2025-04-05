@@ -49,6 +49,7 @@ public class UserEntity {
             joinColumns = @JoinColumn(name = "user_id"),
             inverseJoinColumns = @JoinColumn(name = "conference_id")
     )
+    @ToString.Exclude
     private List<Conference> conferences = new ArrayList<>();
 
 
@@ -58,6 +59,7 @@ public class UserEntity {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     @JsonIgnore
+    @ToString.Exclude
     private List<UserConferenceJoin> userJoins = new ArrayList<>();
 
 
@@ -88,24 +90,8 @@ public class UserEntity {
     @PrePersist
     @PreUpdate
     private void setDefaultUserName() {
-        if (userName == null || userName.isBlank()) {
-            userName = (name != null ? name : "") + (surname != null ? " " + surname : "");
-            userName = userName.trim(); // Убираем лишние пробелы
-        }
+        userName = (name != null ? name : "") + (surname != null ? " " + surname : "");
     }
-    public String getUserName() {
-        if ((name == null || name.isBlank()) && (surname == null || surname.isBlank())) {
-            return null;
-        }
-        if (name == null || name.isBlank()) {
-            return surname;
-        }
-        if (surname == null || surname.isBlank()) {
-            return name;
-        }
-        return name + " " + surname;
-    }
-
 }
 
 

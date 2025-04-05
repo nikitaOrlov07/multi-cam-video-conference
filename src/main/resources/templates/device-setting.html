@@ -14,6 +14,7 @@
 <body layout:fragment="body" class="bg-light">
 <div class="container mt-5">
     <input type="hidden" id="userNameInput" th:value="${userName}">
+    <input type="hidden" id="conferenceIdInput" th:if="${conferenceId != null}" th:value="${conferenceId}">
     <h1 class="text-center mb-4" th:text="'Hello ' + ${userName} + ' please select videos and cameras'"></h1>
 
     <div class="grid-selector">

@@ -8,6 +8,7 @@
     <script th:src="@{/js/videoConferenceLogic.js}"></script>
     <link href="/css/conferencePage.css" rel="stylesheet">
     <script th:src="@{/js/conferenceChatLogic.js}"></script>
+    <script th:src="@{/js/commonFunctions.js}"></script>
 </head>
 <body>
 <div id="passwordModal" class="modal">
@@ -48,11 +49,19 @@
     <div class="conference-details">
         <div class="conference-id">
             <span class="detail-label">Conference ID:</span>
-            <span class="detail-value" th:text="${conferenceId}"></span>
+            <span class="detail-value" id="conferenceIdDisplay" th:text="${conferenceId}"></span>
+            <button class="copy-btn" onclick="copyToClipboard('conferenceIdDisplay')">
+                📋
+            </button>
         </div>
+
         <div class="conference-password edit-password-container">
             <span class="detail-label">Password:</span>
             <span class="detail-value" id="passwordDisplay" th:text="${password != null ? password : 'disabled'}"></span>
+            <button class="copy-btn" onclick="copyToClipboard('passwordDisplay')">
+                📋
+            </button>
+
             <button id="editPasswordBtn" class="edit-btn">Edit</button>
             <input type="text" id="passwordInput" class="password-input" placeholder="Enter new password">
             <button id="savePasswordBtn" class="save-btn" style="display:none;">Save</button>
@@ -60,6 +69,7 @@
         </div>
     </div>
 </div>
+
 <div class="users-list-container">
     <div class="users-list-title">Conference Members</div>
     <div id="users-list" class="users-list"></div>

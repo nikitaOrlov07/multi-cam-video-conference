@@ -151,3 +151,16 @@ function submitUserData(id, userData) {
             alert('An error occurred while updating the user: ' + error.message);
         });
 }
+
+/// Copy to Clipboard
+function copyToClipboard(elementId) {
+    const text = document.getElementById(elementId).innerText;
+
+    navigator.clipboard.writeText(text)
+        .then(() => {
+            console.log("Text was successfully copied")
+        })
+        .catch(err => {
+            console.error('Error copying text: ', err);
+        });
+}

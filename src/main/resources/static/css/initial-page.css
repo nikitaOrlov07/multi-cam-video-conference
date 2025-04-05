@@ -288,3 +288,51 @@
         font-size: 1.2rem;
     }
 }
+.conference-list-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: flex-start;
+}
+
+/* Conference items - this ensures 3 per row */
+.conference-item {
+    display: flex;
+    flex-direction: column;
+    background: white;
+    padding: 1rem;
+    border-radius: 10px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    /* Set to take up one third of the row minus the gap */
+    flex: 0 0 calc(33.333% - 1rem);
+    min-width: 250px;
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    box-sizing: border-box;
+}
+
+/* Make sure the conference details and actions are properly spaced */
+.conference-details {
+    flex: 1;
+    overflow-wrap: break-word;
+    word-wrap: break-word;
+}
+
+.conference-actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: auto;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .conference-item {
+        flex: 0 0 calc(50% - 1rem); /* 2 columns on medium screens */
+    }
+}
+
+@media (max-width: 576px) {
+    .conference-item {
+        flex: 0 0 100%; /* 1 column on small screens */
+    }
+}

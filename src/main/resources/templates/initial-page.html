@@ -186,7 +186,7 @@
                         </div>
                     </form>
 
-                    <div th:if="${not #lists.isEmpty(users)}">
+                    <div th:if="${not #lists.isEmpty(users)}" class="user-list-container">
                         <div th:each="otherUser : ${users}" class="user-item">
                             <div class="user-details">
                                 <strong th:text="${otherUser.name + ' ' + otherUser.surname}">User Name</strong>
@@ -202,7 +202,8 @@
                         <p>No users found.</p>
                     </div>
                 </div>
-                <!-- Conferences Section -->
+
+                <!-- Conference Section in your Thymeleaf template -->
                 <div th:if="${pastConferences != null}" class="past-conferences">
                     <h3 class="text-center mb-4">Your Conferences</h3>
                     <!-- Search Form for Conferences -->
@@ -214,38 +215,46 @@
                             <button class="btn btn-outline-primary" type="submit">Search</button>
                         </div>
                     </form>
+
+                    <!-- Conference Cards Container -->
                     <div id="pastConferencesContainer">
-                        <div th:if="${not #lists.isEmpty(pastConferences)}">
-                            <div th:each="conference : ${pastConferences}" class="past-conference-item">
-                                <p class="conference-name" th:text="${conference.getConferenceDate()}">Conference
-                                    Date</p>
-                                <p class="conference-name" th:text="${conference.userJoins.size()} + ' participants'">
-                                    Amount
-                                    of users</p>
-                                <div class="d-flex align-items-center">
-                                    <p class="alert alert-success mb-0 me-2"
-                                       th:if="${activeConferences.contains(conference)}">Active</p>
-                                    <a class="btn btn-primary"
-                                       th:if="${!activeConferences.contains(conference)}"
-                                       th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName})}">
+                        <div th:if="${not #lists.isEmpty(pastConferences)}" class="conference-list-container">
+                            <div th:each="conference : ${pastConferences}" class="conference-item">
+                                <div class="conference-details">
+                                    <div class="conference-header">
+                                        <strong class="conference-id" th:text="'ID: ' + ${conference.getId()}">Conference
+                                            ID</strong>
+                                        <span class="conference-date" th:text="${conference.getConferenceDate()}">Conference Date</span>
+                                    </div>
+                                    <div class="conference-info">
+                                        <p class="participant-count"
+                                           th:text="${conference.userJoins.size()} + ' participants'">
+                                            Participants Count
+                                        </p>
+                                    </div>
+                                    <div class="conference-status" th:if="${activeConferences.contains(conference)}">
+                                        <span class="badge bg-success">Active</span>
+                                    </div>
+                                </div>
+                                <div class="conference-actions">
+                                    <a class="btn btn-primary btn-sm"
+                                       th:if="${!activeConferences.contains(conference) || #lists.contains(user.roles.![name], 'ADMIN') || #lists.contains(user.roles.![name], 'CREATOR')}"
+                                       th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName},toDeviceSettings=true)}">
                                         Join
                                     </a>
-                                    <form th:action="@{/conference/leaveConference(conferenceId=${conference.id}, userName=${userName})}"
-                                          th:if="${activeConferences.contains(conference)}"
-                                          method="post">
-                                        <button type="submit" class="btn btn-danger">Leave Conference</button>
-                                    </form>
-                                    <a class="btn btn-danger"
-                                       th:if="${!activeConferences.contains(conference) && user.conferences.contains(conference)}"
-                                       th:href="@{/conference/removeConference(conferenceId =${conference.id} , userName = userName)}">
-                                        Remove Conference
+                                    <a class="btn btn-danger btn-sm"
+                                       th:if="${!activeConferences.contains(conference)}"
+                                       href="#"
+                                       th:attr="onclick=|return removeConference('${conference.id}', '${userName}')|"
+                                       th:data-conference-id="${conference.id}">
+                                        Remove
                                     </a>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div th:if="${#lists.isEmpty(pastConferences)}" class="text-center">
-                        <p>You haven't participated in any conferences yet.</p>
+                        <div th:if="${#lists.isEmpty(pastConferences)}" class="text-center">
+                            <p>You haven't participated in any conferences yet.</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -278,7 +287,8 @@
 
                         return false;
                     });
-                    /// Function to convert array conferenceDate that comes from backend to normal view)
+
+                    // Function to convert array conferenceDate that comes from backend to normal view
                     function formatConferenceDate(dateArray) {
                         if (Array.isArray(dateArray) && dateArray.length === 3) {
                             // Ensure month and day are two digits
@@ -290,36 +300,53 @@
                         return dateArray.toString();
                     }
 
-                    // Render conferences function
+                    // Render conferences function with card-based layout
                     function renderPastConferences(conferences) {
                         const container = $("#pastConferencesContainer");
                         container.empty();
+                        const user = /*[[${user}]]*/ null;
 
+                        console.log('U',user)
                         if (conferences.length === 0) {
                             container.html('<div class="text-center"><p>No conferences found.</p></div>');
                             return;
                         }
 
+                        // Create a div with the conference-list-container class
+                        const conferencesList = $('<div class="conference-list-container"></div>');
+
                         conferences.forEach(conference => {
                             const formattedDate = formatConferenceDate(conference.conferenceDate);
+                            const isActive = conference.active || false;
+                            const userName = /*[[${userName}]]*/ 'user';
 
-                            const conferenceItem = $(`
-                    <div class="past-conference-item">
-                        <p class="conference-name">${conference.id}</p>
-                        <p class="conference-name">${formattedDate}</p>
-                        <div class="d-flex align-items-center">
-                            ${conference.active ?
-                                '<p class="alert alert-success mb-0 me-2">Active</p>' :
-                                ''
-                            }
-                            <a href="/conference/join?conferenceId=${conference.id}" class="btn btn-primary">
-                                Join
-                            </a>
-                        </div>
+                            const conferenceCard = $(`
+            <div class="conference-item" data-conference-id="${conference.id}">
+                <div class="conference-details">
+                    <div class="conference-header">
+                        <strong class="conference-id">ID: ${conference.id}</strong>
+                        <span class="conference-date">${formattedDate}</span>
                     </div>
-                `);
-                            container.append(conferenceItem);
+                    <div class="conference-info">
+                        <p class="participant-count">${conference.userJoins ? conference.userJoins.length : 0} participants</p>
+                    </div>
+                    ${isActive ? '<div class="conference-status"><span class="badge bg-success">Active</span></div>' : ''}
+                </div>
+                <div class="conference-actions">
+                    <a href="/conference/join?conferenceId=${conference.id}&userName=${userName}&toDeviceSettings=true" class="btn btn-primary btn-sm">
+                        Join
+                    </a>
+                   ${!isActive && user.getConferences().contains(conference) ?`<a href="#" onclick="return removeConference('${conference.id}', '${userName}')" class="btn btn-danger btn-sm">
+                        Remove
+                    </a>` : ''}
+                </div>
+            </div>
+        `);
+
+                            conferencesList.append(conferenceCard);
                         });
+
+                        container.append(conferencesList);
                     }
 
                     // Reset to all conferences when search is cleared
@@ -329,6 +356,37 @@
                         }
                     });
                 });
+                function removeConference(conferenceId, userName) {
+                    if (confirm('Are you sure you want to remove this conference?')) {
+                        $.ajax({
+                            url: '/conference/removeConference',
+                            method: 'GET',
+                            data: {
+                                conferenceId: conferenceId,
+                                userName: userName
+                            },
+                            success: function(response) {
+                                // Find and remove the specific conference element
+                                const conferenceElement = $(`.conference-item[data-conference-id="${conferenceId}"]`);
+                                conferenceElement.fadeOut(300, function() {
+                                    $(this).remove();
+
+                                    // Check if there are no conferences left after removal
+                                    if ($('.conference-item').length === 0) {
+                                        $('#pastConferencesContainer').html(
+                                            '<div class="text-center"><p>You haven\'t participated in any conferences yet.</p></div>'
+                                        );
+                                    }
+                                });
+                            },
+                            error: function(xhr, status, error) {
+                                alert('Error removing conference: ' + error);
+                            }
+                        });
+                    }
+                    return false; // Prevent default link behavior
+                }
+
             </script>
             <!-- Conference Form for non-authenticated users -->
             <form id="conferenceForm" action="/setDevices" method="GET" class="mt-4" style="display: none;">

@@ -32,6 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,8 +55,13 @@ public class ConferenceController {
     @GetMapping("/join")
     public String joinConference(@RequestParam(value = "userName", required = false) String userName,
                                  @RequestParam(value = "conferenceId") String conferenceId,
+                                 @RequestParam(value = "toDeviceSettings",defaultValue = "false") boolean toDeviceSettingsPage,
                                  RedirectAttributes redirectAttributes) {
         log.info("Join conference controller method called for user [{}] and conference", userName);
+        /// Redirecting to device setting page
+        if(toDeviceSettingsPage){
+            return "redirect:/setDevices?userName="+ userName + "&conferenceId="+ conferenceId;
+        }
         /// Find the conference
         Conference conference = conferenceService.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
         if (conference == null) {
@@ -95,7 +101,6 @@ public class ConferenceController {
             log.error("Missing required parameters - conferenceId: {}, userName: {}", conferenceId, userName);
             throw new ConferenceException("Missing required parameters");
         }
-        System.out.println(userName);
         UserEntity user = userService.findUserByUsername(userName).orElseThrow(() -> new AuthException("User not found"));
         /// Find conference
         Conference conference = conferenceRepository.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
@@ -105,14 +110,16 @@ public class ConferenceController {
             throw new ConferenceException("You are not a member of a conference");
         }
 
-        
+
         model.addAttribute("userName", userName);
         model.addAttribute("conferenceId", conference.getId());
 
         ///  Chat logic
-        List<Message> messages = conference.getChat().getMessages();
-        model.addAttribute("messagesJson", objectMapper.writeValueAsString(messages));
-        model.addAttribute("chatId" ,conference.getChat().getId());
+        if (conference.getChat() != null) {
+            List<Message> messages = conference.getChat().getMessages();
+            model.addAttribute("messagesJson", objectMapper.writeValueAsString(messages));
+            model.addAttribute("chatId", conference.getChat().getId());
+        }
 
         /// Find user's devices
         ConferenceDevices devices = devicesRepository.findFirstByUserNameAndConference(userName, conference);
@@ -194,22 +201,28 @@ public class ConferenceController {
         log.info("User has join count: {}", count);
         return count;
     }
+
     /// Get conferences by id
     @GetMapping("/searchConferences")
     @ResponseBody
     public List<ConferenceDto> getConferencesById(@RequestParam(name = "query") String conferenceId) {
         return conferenceService.searchConferencesById(conferenceId).stream().map(ConferenceMapper::getConferenceDtoFromConference).toList();
     }
+
     /// Dynamically change conference password
     @GetMapping("/changePassword/{conferenceId}")
-    public ResponseEntity<Void> changePassword(@PathVariable String conferenceId , @RequestParam String password ,@RequestParam String userName){
-        return conferenceService.changePassword(conferenceId,password,userName);
+    public ResponseEntity<Void> changePassword(@PathVariable String conferenceId, @RequestParam String password, @RequestParam String userName) {
+        return conferenceService.changePassword(conferenceId, password, userName);
     }
+
     /// Remove Conference from users conferences (only for non active conferences)
-    @GetMapping("/removeConference") // TODO -> make that after this will be updated only fragment , not all page
-    public String removeConference(@RequestParam("conferenceId") String conferenceId,
-                                 @RequestParam("") String userName) {
-      conferenceService.removeUserConference(conferenceId,userName);
-      return "initial-page";
+    @GetMapping("/removeConference")
+    @ResponseBody
+    public ResponseEntity<String> removeConference(
+            @RequestParam("conferenceId") String conferenceId,
+            @RequestParam("userName") String userName) {
+
+        conferenceService.removeUserConference(conferenceId, userName);
+        return ResponseEntity.ok("Conference removed successfully");
     }
 }

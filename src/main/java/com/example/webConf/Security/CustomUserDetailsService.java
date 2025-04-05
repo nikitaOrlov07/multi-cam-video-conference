@@ -32,6 +32,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         //If the user is found, the method returns a UserDetails object that represents the user in the Spring Security context.
         //If the user is not found, the method throws a UsernameNotFoundException exception.
         Optional<UserEntity> userEntity = userEntityRepository.findFirstByEmail(email);
+        System.out.println("UserEntity " + userEntity.get().getRoles());
         if (userEntity.isPresent()) {
             User authUser = new User(
                     userEntity.get().getEmail(),

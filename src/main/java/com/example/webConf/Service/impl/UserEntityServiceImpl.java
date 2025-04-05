@@ -66,15 +66,8 @@ public class UserEntityServiceImpl implements UserEntityService {
 
     @Override
     public Optional<UserEntity> findUserByUsername(String userName) {
-        Optional<UserEntity> userEntity = Optional.empty();
-        String decodedUsername = URLDecoder.decode(userName, StandardCharsets.UTF_8).toLowerCase();
-        String[] parts = decodedUsername.split(" "); // parts[0] = name , parts[1] = username
-        if (parts.length == 1) { // for temporary user
-            userEntity = userEntityRepository.findFirstByNameAndSurname(null, parts[0]);
-        } else { // for permanent user
-            userEntity = userEntityRepository.findFirstByNameAndSurname(parts[0], parts[1]);
-        }
-        return userEntity;
+        String decodedUsername = URLDecoder.decode(userName, StandardCharsets.UTF_8);
+        return userEntityRepository.findFirstByUserName(decodedUsername);
     }
 
 
@@ -147,6 +140,7 @@ public class UserEntityServiceImpl implements UserEntityService {
     public void editUser(Long uuid,RegistrationDto registrationDto) {
         UserEntity user = userEntityRepository.findById(uuid).get();
         BeanUtils.copyProperties(registrationDto, user);
+        user.setUserName(user.getName()+" "+user.getSurname());
     }
 
     @Override

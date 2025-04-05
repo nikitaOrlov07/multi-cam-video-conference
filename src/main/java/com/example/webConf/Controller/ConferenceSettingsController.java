@@ -43,18 +43,14 @@ public class ConferenceSettingsController {
             if (user != null) {
                 List<Conference> pastConferences = conferenceService.findConferencesByUser(user.getId());
                 List<Conference> activeConference = conferenceService.findUserActiveConferences(user.getId());
-                String userName = user.getName() + " " + user.getSurname();
                 log.info("Size of past conferences: {}", pastConferences.size());
-                System.out.println("active conferences: " + activeConference.size());
-                activeConference.forEach(conference -> {
-                    System.out.println(conference.getId());
-                });
+
                 model.addAttribute("pastConferences", pastConferences);
                 model.addAttribute("isAuthorized", true);
                 model.addAttribute("activeConferences", activeConference);
 
-                log.info("User name : {}", userName);
-                model.addAttribute("userName", userName);
+                log.info("User name : {}", user.getUserName());
+                model.addAttribute("userName", user.getUserName());
                 model.addAttribute("user", user);
                 // for chats
                 model.addAttribute("chats", user.getChats());
@@ -82,14 +78,20 @@ public class ConferenceSettingsController {
 
     @GetMapping("/setDevices")
     public String getAvailableCameras(@RequestParam(value = "userName", required = false) String userName,
+                                      @RequestParam(value = "conferenceId", required = false) String conferenceId,
                                       Model model) {
         log.info("Initial device setting page is working");
-        if (userName != null && !userName.isEmpty()) {
+        if (userName != null && !userName.isEmpty() && (SecurityUtil.getSessionUserEmail() == null || SecurityUtil.getSessionUserEmail().isEmpty())) {
             model.addAttribute("userName", userName);
-        } else if (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) {
+        }
+        else if (SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty()) {
             UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail()).get();
             String nameSurname = user.getName() + " " + user.getSurname();
             model.addAttribute("userName", nameSurname);
+            if (conferenceId != null) {
+                System.out.println("Передача conferenceId");
+                model.addAttribute("conferenceId", conferenceId);
+            }
             List<ConferenceDevices> devices = conferenceDevicesService.findUserDevices(nameSurname);
             log.info("Found: {} device configuration for user: {}", devices.size(), nameSurname);
             model.addAttribute("devices", devices);
@@ -134,7 +136,7 @@ public class ConferenceSettingsController {
             // Handle existing or new conference
             if (identifier != null && !identifier.isEmpty()) {
                 conference = conferenceService.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
-                conferenceService.addUser(userName , identifier);
+                conferenceService.addUser(userName, identifier);
                 conferenceId = identifier;
             } else {
                 conferenceId = conferenceService.createConference(currentUser, userName);
@@ -142,9 +144,9 @@ public class ConferenceSettingsController {
             }
 
             // Create and save conference new devices configuration
-            ConferenceDevices devices ;
+            ConferenceDevices devices;
             if (configurationId == null) {
-                 devices =  ConferenceDevices.builder()
+                devices = ConferenceDevices.builder()
                         .conference(conference)
                         .userName(deviceSelection.getUserName())
                         .microphoneDeviceId(deviceSelection.getAudio().get(0).getDeviceId())
@@ -155,8 +157,8 @@ public class ConferenceSettingsController {
                         .build();
 
             } else { // use already defined configuration
-                 ConferenceDevices existedConfiguration  = conferenceDevicesService.findById(configurationId).orElseThrow(() -> new ConferenceException("Device Configuration not found"));
-                 devices =  ConferenceDevices.builder()
+                ConferenceDevices existedConfiguration = conferenceDevicesService.findById(configurationId).orElseThrow(() -> new ConferenceException("Device Configuration not found"));
+                devices = ConferenceDevices.builder()
                         .conference(conference)
                         .userName(existedConfiguration.getUserName())
                         .microphoneDeviceId(existedConfiguration.getMicrophoneDeviceId())
@@ -166,7 +168,7 @@ public class ConferenceSettingsController {
                         .gridCols(deviceSelection.getGridSize().getCols())
                         .build();
 
-                 log.info("Found configuration with id: {}", conferenceId);
+                log.info("Found configuration with id: {}", conferenceId);
             }
             conferenceDevicesService.save(devices);
 

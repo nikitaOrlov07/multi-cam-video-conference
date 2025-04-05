@@ -311,11 +311,15 @@ async function tryGetVideoStream(deviceId, videoElement) {
 async function openPreviewModal() {
     console.log("open Preview model");
 
+    // Check if conferenceId is available in the model
+    const conferenceIdElement = document.getElementById('conferenceIdInput');
+    const hasPresetConferenceId = !!(conferenceIdElement && conferenceIdElement.value.trim());
+
     // Check if previous configuration is selected
     const selectedConfig = document.querySelector('input[name="previousConfiguration"]:checked');
-
     if (selectedConfig) {
         try {
+            console.log("SELECTED CONFIG")
             // Fetch the configuration details
             const response = await fetch(`/api/conference/devices/${selectedConfig.value}`);
             if (!response.ok) {
@@ -372,7 +376,6 @@ async function openPreviewModal() {
                 }
             }
 
-
             // Update selected audio device
             selectedAudioLabel.textContent = config.audio && config.audio.length > 0
                 ? config.audio[0].label
@@ -380,6 +383,45 @@ async function openPreviewModal() {
 
             // Show modal
             previewModal.show();
+
+            // If conferenceId is preset, modify the modal buttons
+            if (hasPresetConferenceId) {
+                const modalElement = document.getElementById('previewModal');
+
+                if (!modalElement) {
+                    console.error("Could not find modal window element with ID “previewModal”!");
+                    return;
+                }
+
+                // Search buttons inside modal window
+                const createBtn = modalElement.querySelector('.btn-success');
+                const cancelBtn = modalElement.querySelector('.btn-secondary');
+                const joinBtn = modalElement.querySelector('.btn-primary');
+
+
+                if (createBtn) {
+                    createBtn.style.display = 'none';
+                } else {
+                    console.error("The .btn-success button was not found OUTSIDE the modal window!");
+                }
+
+                if (cancelBtn) {
+                    cancelBtn.style.display = 'inline-block';
+                } else {
+                    console.error("The .btn-secondary button is not found OUTSIDE the modal window!");
+                }
+
+                if (joinBtn) {
+                    joinBtn.textContent = 'Join Conference';
+                    joinBtn.onclick = function() {
+                        // Auto-join the preset conference
+                        const conferenceId = conferenceIdElement.value;
+                        joinPresetConference(conferenceId);
+                    };
+                } else {
+                    console.error("The .btn-primary button is not found OUTSIDE the modal window");
+                }
+            }
 
         } catch (error) {
             console.error('Error setting up preview for previous configuration:', error);
@@ -480,6 +522,96 @@ async function openPreviewModal() {
 
     // Show modal using Bootstrap
     previewModal.show();
+
+    // If conferenceId is preset, modify the modal buttons
+    if (hasPresetConferenceId) {
+
+        const modalElement = document.getElementById('previewModal');
+
+        if (!modalElement) {
+            console.error("Could not find modal window element with ID “previewModal”!");
+            return;
+        }
+
+        // Search buttons inside modal window
+        const createBtn = modalElement.querySelector('.btn-success');
+        const cancelBtn = modalElement.querySelector('.btn-secondary');
+        const joinBtn = modalElement.querySelector('.btn-primary');
+
+
+        if (createBtn) {
+            createBtn.style.display = 'none';
+        } else {
+            console.error("The .btn-success button was not found OUTSIDE the modal window!");
+        }
+
+        if (cancelBtn) {
+             cancelBtn.style.display = 'inline-block';
+        } else {
+            console.error("The .btn-secondary button is not found OUTSIDE the modal window!");
+        }
+
+        if (joinBtn) {
+            joinBtn.textContent = 'Join Conference';
+            joinBtn.onclick = function() {
+                // Auto-join the preset conference
+                const conferenceId = conferenceIdElement.value;
+                joinPresetConference(conferenceId);
+            };
+        } else {
+            console.error("The .btn-primary button is not found OUTSIDE the modal window");
+        }
+    }
+}
+
+function joinPresetConference(conferenceId) {
+    // Check if previous configuration is selected
+    const selectedConfig = document.querySelector('input[name="previousConfiguration"]:checked');
+
+    if (selectedConfig) {
+        // If a previous configuration is selected, use its ID
+        const configurationId = selectedConfig.value;
+        const userName = document.getElementById('userNameInput').value;
+
+        // Create minimal request body with just the username
+        const requestBody = {
+            userName: userName
+        };
+
+        // Send the request with both identifier and configurationId
+        sendDeviceData(requestBody, conferenceId, configurationId);
+    } else {
+        // Original code for when no previous configuration is selected
+        const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'))
+            .map(checkbox => ({
+                deviceId: checkbox.value,
+                label: checkbox.dataset.label,
+                order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
+            }))
+            .sort((a, b) => a.order - b.order);
+
+        const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
+        const audioDevice = selectedAudio ? [{
+            deviceId: selectedAudio.value,
+            label: selectedAudio.dataset.label
+        }] : [];
+
+        const gridSize = {
+            rows: parseInt(document.getElementById('gridRows').value),
+            cols: parseInt(document.getElementById('gridCols').value)
+        };
+
+        const userName = document.getElementById('userNameInput').value;
+
+        const requestBody = {
+            cameras: selectedCameras,
+            audio: audioDevice,
+            gridSize: gridSize,
+            userName: userName
+        };
+
+        sendDeviceData(requestBody, conferenceId);
+    }
 }
 
 function closePreviewModal() {
