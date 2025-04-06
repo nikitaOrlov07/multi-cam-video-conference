@@ -208,7 +208,6 @@ public class ConferenceServiceImpl implements ConferenceService {
         Conference conference = conferenceRepository.findById(conferenceId).orElseThrow(() -> new ConferenceException("Conference not found"));
         UserEntity userEntity = userService.findUserByUsername(userName).orElseThrow(() -> new AuthException("User not found"));
         if(conference.getUsers().contains(userEntity) && userEntity.getConferences().contains(conference)) {
-            System.out.println("REMOVING");
             conference.getUsers().remove(userEntity);
             userEntity.getConferences().remove(conference);
         }
@@ -217,7 +216,6 @@ public class ConferenceServiceImpl implements ConferenceService {
     @Override
     @Transactional
     public void addUser(String userName, String identifier) {
-        System.out.println("AddUser UserName " + userName);
         Conference conference = conferenceRepository.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
         UserEntity userEntity = userService.findUserByUsername(userName).orElse(null);
         ///  If account is permanent

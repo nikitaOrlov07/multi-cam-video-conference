@@ -95,7 +95,6 @@ public class ConferenceSettingsController {
             String nameSurname = user.getName() + " " + user.getSurname();
             model.addAttribute("userName", nameSurname);
             if (conferenceId != null) {
-                System.out.println("Передача conferenceId");
                 model.addAttribute("conferenceId", conferenceId);
             }
             List<ConferenceDevices> devices = conferenceDevicesService.findUserDevices(nameSurname);
