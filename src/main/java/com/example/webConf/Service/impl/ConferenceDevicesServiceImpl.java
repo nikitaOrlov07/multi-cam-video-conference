@@ -73,9 +73,12 @@ public class ConferenceDevicesServiceImpl implements ConferenceDevicesService {
                             List<ConferenceDevices.Camera> existingCameras = existing.getCameras();
                             List<ConferenceDevices.Camera> replacementCameras = replacement.getCameras();
 
-                            return replacementCameras.size() > existingCameras.size() ?
-                                    replacement : existing;
+                            int existingCount = (existingCameras != null) ? existingCameras.size() : 0;
+                            int replacementCount = (replacementCameras != null) ? replacementCameras.size() : 0;
+
+                            return replacementCount > existingCount ? replacement : existing;
                         }
+
                 ))
                 .values()
                 .stream()

@@ -148,7 +148,7 @@
                 <div th:if="${chats != null}" class="chats-section">
                     <h3 class="text-center mb-4">Your Chats</h3>
 
-                    <div th:if="${not #lists.isEmpty(chats)}" class="chat-list-container">
+                    <div th:if="${not #lists.isEmpty(chats)}" class="chat-list-container" style="overflow-y: auto ; max-height: 1000px">
                         <div th:each="chat : ${chats}" class="chat-item">
                             <div class="chat-details">
                                 <strong th:text="'Chat ID: ' + ${chat.id}">Chat Id</strong>
@@ -178,7 +178,7 @@
                 </div>
 
                 <!-- Users Section with Search -->
-                <div th:if="${users != null}" id="usersContainer" class="users-section" th:fragment="users">
+                <div th:if="${users != null}" id="usersContainer" class="users-section" th:fragment="users" >
                     <h3 class="text-center mb-4">Users</h3>
 
                     <!-- Search Form -->
@@ -190,7 +190,7 @@
                         </div>
                     </form>
 
-                    <div th:if="${not #lists.isEmpty(users)}" class="user-list-container">
+                    <div th:if="${not #lists.isEmpty(users)}" class="user-list-container" style="overflow-y: auto ; max-height: 1000px">
                         <div th:each="otherUser : ${users}" class="user-item">
                             <div class="user-details">
                                 <strong th:text="${otherUser.name + ' ' + otherUser.surname}">User Name</strong>
@@ -222,7 +222,7 @@
 
                     <!-- Conference Cards Container -->
                     <div id="pastConferencesContainer">
-                        <div th:if="${not #lists.isEmpty(pastConferences)}" class="conference-list-container">
+                        <div th:if="${not #lists.isEmpty(pastConferences)}" class="conference-list-container" style="overflow-y: auto ; max-height: 1000px">
                             <div th:each="conference : ${pastConferences}" class="conference-item">
                                 <div class="conference-details">
                                     <div class="conference-header">

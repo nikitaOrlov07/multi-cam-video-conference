@@ -1,6 +1,5 @@
 async function getDevices() {
     try {
-        console.log("getDevices function is called");
         // Stop any existing streams
         const existingVideos = document.querySelectorAll('video');
         existingVideos.forEach(video => {

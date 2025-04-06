@@ -114,16 +114,6 @@ public class ConferenceSettingsController {
                                                  @RequestParam(value = "configurationId", required = false) Long configurationId) {
         log.info("\"connectDevices\" controller method is working");
 
-        // Validate device selection
-        if ((deviceSelection.getCameras() == null || deviceSelection.getCameras().isEmpty()) && configurationId == null) {
-            log.error("No cameras selected");
-            return ResponseEntity.badRequest().body("No cameras selected");
-        }
-        if ((deviceSelection.getAudio() == null || deviceSelection.getAudio().isEmpty()) && configurationId == null) {
-            log.warn("No microphone selected");
-            return ResponseEntity.badRequest().body("No microphone selected");
-        }
-
         // Validate conference identifier if provided
         if (identifier != null && !identifier.isEmpty()) {
             Conference existingConference = conferenceService.findById(identifier).orElseThrow(() -> new ConferenceException("Conference not found"));
@@ -169,8 +159,8 @@ public class ConferenceSettingsController {
                         .microphoneDeviceId(existedConfiguration.getMicrophoneDeviceId())
                         .microphoneLabel(existedConfiguration.getMicrophoneLabel())
                         .cameraConfiguration(objectMapper.writeValueAsString(deviceSelection.getCameras()))
-                        .gridRows(deviceSelection.getGridSize().getRows())
-                        .gridCols(deviceSelection.getGridSize().getCols())
+                        .gridRows(existedConfiguration.getGridRows())
+                        .gridCols(existedConfiguration.getGridCols())
                         .build();
 
                 log.info("Found configuration with id: {}", conferenceId);
