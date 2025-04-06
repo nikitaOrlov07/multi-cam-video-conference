@@ -113,6 +113,7 @@ public class ConferenceController {
 
         model.addAttribute("userName", userName);
         model.addAttribute("conferenceId", conference.getId());
+        model.addAttribute("password", conference.getPassword());
 
         ///  Chat logic
         if (conference.getChat() != null) {

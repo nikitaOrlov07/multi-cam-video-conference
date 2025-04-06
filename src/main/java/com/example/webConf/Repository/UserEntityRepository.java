@@ -30,5 +30,5 @@ public interface UserEntityRepository extends JpaRepository<UserEntity, Long> {
     @Query("SELECT u FROM UserEntity u WHERE u.name LIKE %:query% OR u.surname LIKE %:query%")
     List<UserEntity> searchByNameOrSurname(@Param("query") String query);
 
-    Optional<UserEntity> findFirstByUserName(String username);
+    Optional<UserEntity> findFirstByUserNameIgnoreCase(String username);
 }

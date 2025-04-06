@@ -90,8 +90,20 @@ public class UserEntity {
     @PrePersist
     @PreUpdate
     private void setDefaultUserName() {
-        userName = (name != null ? name : "") + (surname != null ? " " + surname : "");
+        String trimmedName = (name != null) ? name.trim() : "";
+        String trimmedSurname = (surname != null) ? surname.trim() : "";
+
+        if (!trimmedName.isEmpty() && !trimmedSurname.isEmpty()) {
+            userName = trimmedName + " " + trimmedSurname;
+        } else if (!trimmedName.isEmpty()) {
+            userName = trimmedName;
+        } else if (!trimmedSurname.isEmpty()) {
+            userName = trimmedSurname;
+        } else {
+            userName = "";
+        }
     }
+
 }
 
 

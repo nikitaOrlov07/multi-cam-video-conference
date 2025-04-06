@@ -56,12 +56,17 @@ public class AuthController {
             throw new AuthException("User with this name and surname already exists");
         });
 
+        ///  Check by userName
+        userService.findUserByUsername(registrationDto.getName() + " " + registrationDto.getSurname()).ifPresent(user -> {
+            log.warn("User with this userName already exists: {}",registrationDto.getName() + " " + registrationDto.getSurname());
+            throw new AuthException("User with this userName already exists");
+        });
+
         /// Check by email
         userService.findByEmail(registrationDto.getEmail()).ifPresent(user -> {
             log.warn("User with this name:{} and surname:{} already exists", registrationDto.getName().toLowerCase(), registrationDto.getSurname().toLowerCase());
             throw new AuthException("User with this email is already registered");
         });
-
 
         if (result.hasErrors()) {
             // Add user object to model to preserve form data
