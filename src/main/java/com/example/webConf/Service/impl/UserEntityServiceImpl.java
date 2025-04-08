@@ -144,7 +144,8 @@ public class UserEntityServiceImpl implements UserEntityService {
         UserEntity user = userEntityRepository.findById(uuid).get();
         BeanUtils.copyProperties(registrationDto, user);
         user.setUserName(registrationDto.getName() + " " + registrationDto.getSurname());
-        user.setPassword(passwordEncoder.encode(registrationDto.getPassword()));
+        if(registrationDto.getPassword() != null || !registrationDto.getPassword().isEmpty())
+            user.setPassword(passwordEncoder.encode(registrationDto.getPassword()));
     }
 
     @Override

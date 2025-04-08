@@ -1,5 +1,5 @@
 class VideoConference {
-    constructor(conferenceId ,userName) {
+    constructor(conferenceId, userName) {
         this.conferenceId = conferenceId;
         this.userName = userName;
         this.connection = null;
@@ -18,6 +18,52 @@ class VideoConference {
         this.processedParticipants = new Set();
         this.reconnecting = false;  // Add this flag to track reconnections
         this.myParticipantId = null; // Track the user's own participant ID
+
+        // Add a map to track display names to section IDs
+        this.displayNameToSectionMap = new Map();
+    }
+    updateUserCount(userName) {
+        try {
+            // Skip if we're reconnecting and the user is the local user
+            if (this.reconnecting && userName === this.userName) {
+                console.log('Skipping user count update for reconnecting user');
+                return Promise.resolve(this.userCounts.get(userName) || 1);
+            }
+
+            // Important change: Don't process the local user in backend updates
+            // This prevents the local user from being removed during user count updates
+            if (userName === this.userName) {
+                // Just ensure there's a count for the local user
+                if (!this.userCounts.has(userName)) {
+                    this.userCounts.set(userName, 1);
+                }
+                this.updateUsersList();
+                return Promise.resolve(this.userCounts.get(userName));
+            }
+
+            return fetch(`/conference/updateUserJoinCount?userName=${encodeURIComponent(userName)}&conferenceId=${this.conferenceId}`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Failed to update user count');
+                    }
+                    return response.json().catch(() => 0);
+                })
+                .then(count => {
+                    // Update the count
+                    this.userCounts.set(userName, count);
+                    this.updateUsersList();
+                    return count;
+                })
+                .catch(error => {
+                    console.error('Error updating user count:', error);
+                    this.showError('Ошибка обновления количества пользователей');
+                    return null;
+                });
+        } catch (error) {
+            console.error('Error updating user count:', error);
+            this.showError('Ошибка обновления количества пользователей');
+            return Promise.resolve(null);
+        }
     }
 
     isUserAlreadyInConference(userName) {
@@ -88,21 +134,33 @@ class VideoConference {
             document.getElementById('loading').style.display = 'none';
         } catch (error) {
             console.error('Conference connection error:', error);
-            this.showError('Ошибка подключения к конференции');
+            this.showError('Conference connection error');
             document.getElementById('loading').style.display = 'none';
         }
     }
 
     sendIdentityMessage() {
-        if (this.room) {
-            const message = {
-                type: 'identity',
-                userName: this.userName,
-                timestamp: Date.now()
-            };
-            this.room.sendEndpointMessage('', { identity: message });
+        if (this.room && this.room.getBridgeChannel && this.room.getBridgeChannel()) {
+            try {
+                const message = {
+                    type: 'identity',
+                    userName: this.userName,
+                    timestamp: Date.now()
+                };
+                this.room.sendEndpointMessage('', {identity: message});
+                console.log('Identity message sent successfully');
+            } catch (error) {
+                console.warn('Failed to send identity message, will retry in 2 seconds', error);
+                // Retry after a delay
+                setTimeout(() => this.sendIdentityMessage(), 2000);
+            }
+        } else {
+            console.warn('BridgeChannel not ready, will retry in 2 seconds');
+            // Retry after a delay
+            setTimeout(() => this.sendIdentityMessage(), 2000);
         }
     }
+
     onEndpointMessageReceived(participant, message) {
         if (message && message.identity && message.identity.type === 'identity') {
             const participantId = participant.getId();
@@ -125,10 +183,38 @@ class VideoConference {
                 }
             }
         }
+
+        // Add this new handler for track requests
+        if (message && message.trackRequest && message.trackRequest.type === 'track_request') {
+            console.log(`Received track request from ${message.trackRequest.requesterId}`);
+
+            // Re-share all local tracks
+            this.localTracks.video.forEach(async track => {
+                try {
+                    if (this.room && !track.isDisposed()) {
+                        console.log(`Re-sharing local track ${track.getId()}`);
+                        // First remove track if it exists
+                        await this.room.removeTrack(track);
+                        // Then add it again to trigger sharing
+                        await this.room.addTrack(track);
+                    }
+                } catch (error) {
+                    console.error('Error re-sharing track:', error);
+                }
+            });
+        }
     }
+
     onUserLeft(id) {
         console.log('User left:', id);
         const participant = this.participants.get(id);
+
+        // Critical change: Never remove the local user
+        // Protect the local user from being removed
+        if (participant && participant.displayName === this.userName) {
+            console.log('Ignoring user left event for local user');
+            return;
+        }
 
         if (participant) {
             const displayName = participant.displayName;
@@ -145,9 +231,14 @@ class VideoConference {
                 .filter(p => p.displayName === displayName);
 
             if (remainingParticipants.length === 0) {
-                const section = document.querySelector(`[data-participant-id="${id}"]`);
-                if (section) {
-                    section.remove();
+                // Only remove the section if no participants with the same display name remain
+                if (this.displayNameToSectionMap.has(displayName)) {
+                    const sectionId = this.displayNameToSectionMap.get(displayName);
+                    const section = document.querySelector(`[data-participant-id="${sectionId}"]`);
+                    if (section) {
+                        section.remove();
+                    }
+                    this.displayNameToSectionMap.delete(displayName);
                 }
             }
         }
@@ -157,7 +248,6 @@ class VideoConference {
             this.remoteTracks.delete(id);
         }
     }
-
 
     updateUsersList() {
         const usersListElement = document.getElementById('users-list');
@@ -180,25 +270,38 @@ class VideoConference {
             }
         });
 
+        // Critical change: Always ensure the local user is in the participants map
+        if (!this.participants.has("local")) {
+            this.participants.set("local", {
+                id: "local",
+                displayName: this.userName,
+                tracks: new Map()
+            });
+        }
+
         this.userCounts.forEach((count, userName) => {
-            // Skip rendering users who aren't in the participants list unless it's the local user
+            // Ensure the local user is always shown
             if (!uniqueUsers.has(userName) && userName !== this.userName) {
                 return;
             }
 
             const isVisible = this.userVisibility.get(userName) !== false;
+            const isLocalUser = userName === this.userName;
+
+            // Add "(You)" label for the local user
+            const displayName = isLocalUser ? `${userName} (You)` : userName;
 
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
             userItem.innerHTML = `
-                <label class="user-checkbox">
-                    <input type="checkbox"
-                           data-username="${userName}"
-                           ${isVisible ? 'checked' : ''}>
-                    <span>${userName}</span>
-                </label>
-                <span class="user-count">${count}</span>
-            `;
+        <label class="user-checkbox">
+            <input type="checkbox"
+                   data-username="${userName}"
+                   ${isVisible ? 'checked' : ''}>
+            <span>${displayName}</span>
+        </label>
+        <span class="user-count">${count}</span>
+    `;
 
             const checkbox = userItem.querySelector('input[type="checkbox"]');
             checkbox.addEventListener('change', (e) => {
@@ -234,12 +337,50 @@ class VideoConference {
         const participantId = track.getParticipantId();
         const trackId = track.getId();
 
-        const section = document.querySelector(`[data-participant-id="${participantId}"]`);
+        const section = document.querySelector(`[data-participant-id*="${participantId}"]`);
         if (section) {
             const wrapper = document.querySelector(`[data-track-id="${trackId}"]`);
             if (wrapper) {
                 wrapper.remove();
                 this.updateSectionLayout(section);
+
+                // Show the placeholder if no video tracks remain
+                const camerasContainer = section.querySelector('.cameras-container');
+                if (camerasContainer) {
+                    const videoWrappers = camerasContainer.querySelectorAll('.video-wrapper');
+                    if (videoWrappers.length === 0) {
+                        let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+
+                        if (!placeholder) {
+                            // Create placeholder if it doesn't exist
+                            placeholder = document.createElement('div');
+                            placeholder.className = 'no-camera-placeholder';
+                            placeholder.innerHTML = `
+                            <div class="camera-icon">
+                                <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 7c0-1.1-.9-2-2-2H6L0 11v4h4v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2h4v-4l-4-4z"/>
+                                    <line x1="1" y1="1" x2="23" y2="23" stroke="red"/>
+                                </svg>
+                            </div>
+                            <p>No camera available</p>
+                        `;
+                            placeholder.style.display = 'flex';
+                            placeholder.style.flexDirection = 'column';
+                            placeholder.style.alignItems = 'center';
+                            placeholder.style.justifyContent = 'center';
+                            placeholder.style.height = '100%';
+                            placeholder.style.color = '#999';
+                            placeholder.style.fontSize = '14px';
+                            placeholder.style.backgroundColor = '#2a2a2a';
+                            placeholder.style.borderRadius = '8px';
+                            placeholder.style.padding = '20px';
+
+                            camerasContainer.appendChild(placeholder);
+                        } else {
+                            placeholder.style.display = 'flex';
+                        }
+                    }
+                }
             }
         }
 
@@ -251,28 +392,67 @@ class VideoConference {
 
             if (tracks.size === 0) {
                 this.remoteTracks.delete(participantId);
-                const section = document.querySelector(`[data-participant-id="${participantId}"]`);
-                if (section) {
-                    section.remove();
+
+                // Only remove section if no other participants with same display name
+                const participant = this.participants.get(participantId);
+                if (participant) {
+                    const displayName = participant.displayName;
+                    const remainingParticipants = Array.from(this.participants.values())
+                        .filter(p => p.displayName === displayName && p.id !== participantId);
+
+                    if (remainingParticipants.length === 0) {
+                        if (this.displayNameToSectionMap.has(displayName)) {
+                            const sectionId = this.displayNameToSectionMap.get(displayName);
+                            const section = document.querySelector(`[data-participant-id="${sectionId}"]`);
+                            if (section) {
+                                section.remove();
+                            }
+                            this.displayNameToSectionMap.delete(displayName);
+                        }
+                    }
                 }
             }
         }
     }
 
+    // Modified to return the main section ID for a display name
+    getParticipantSection(displayName) {
+        if (this.displayNameToSectionMap.has(displayName)) {
+            const sectionId = this.displayNameToSectionMap.get(displayName);
+            const section = document.querySelector(`[data-participant-id="${sectionId}"]`);
+            if (section) {
+                return section;
+            }
+        }
+        return null;
+    }
 
     createParticipantSection(participantId, displayName) {
-        // Check if section already exists for this participant
-        let section = document.querySelector(`[data-participant-id="${participantId}"]`);
+        // First check if we already have a section for this display name
+        let section = this.getParticipantSection(displayName);
+
         if (section) {
+            console.log(`Using existing section for ${displayName}`);
+            // Update participant IDs list in existing section
             return section;
         }
+
+        if (displayName === 'Участник') {
+            console.log(`Skipping section creation for default participant: ${participantId}`);
+            return null;
+        }
+
+        // Important change: Special handling for the local user
+        // Always use "local" as the participant ID for the local user
+        const isLocalUser = displayName === this.userName;
+        const sectionId = isLocalUser ? "local" : participantId;
 
         section = document.createElement('div');
         section.className = 'participant-section';
         if (this.userVisibility.get(displayName.split(' (')[0]) === false) {
             section.classList.add('hidden');
         }
-        section.setAttribute('data-participant-id', participantId);
+        section.setAttribute('data-participant-id', sectionId);
         section.setAttribute('data-size', '1');
 
         const nameDiv = document.createElement('div');
@@ -283,14 +463,55 @@ class VideoConference {
         camerasContainer.className = 'cameras-container';
         camerasContainer.setAttribute('data-layout', '1');
 
+        // Add a placeholder for users without cameras
+        const noCameraPlaceholder = document.createElement('div');
+        noCameraPlaceholder.className = 'no-camera-placeholder';
+        noCameraPlaceholder.innerHTML = `
+    <div class="camera-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 7c0-1.1-.9-2-2-2H6L0 11v4h4v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2h4v-4l-4-4z"/>
+            <line x1="1" y1="1" x2="23" y2="23" stroke="red"/>
+        </svg>
+    </div>
+    <p>No camera available</p>
+`;
+        noCameraPlaceholder.style.display = 'flex';
+        noCameraPlaceholder.style.flexDirection = 'column';
+        noCameraPlaceholder.style.alignItems = 'center';
+        noCameraPlaceholder.style.justifyContent = 'center';
+        noCameraPlaceholder.style.height = '100%';
+        noCameraPlaceholder.style.color = '#999';
+        noCameraPlaceholder.style.fontSize = '14px';
+        noCameraPlaceholder.style.backgroundColor = '#2a2a2a';
+        noCameraPlaceholder.style.borderRadius = '8px';
+        noCameraPlaceholder.style.padding = '20px';
+
+        camerasContainer.appendChild(noCameraPlaceholder);
+
         section.appendChild(nameDiv);
         section.appendChild(camerasContainer);
         document.getElementById('video-container').appendChild(section);
 
+        // If this is the local user, ensure they're in the participants map
+        if (isLocalUser) {
+            // Add/update the local user in the participants map
+            this.participants.set("local", {
+                id: "local",
+                displayName: this.userName,
+                tracks: new Map()
+            });
+
+            // Always ensure the local user has a count
+            if (!this.userCounts.has(this.userName)) {
+                this.userCounts.set(this.userName, 1);
+            }
+        }
+
+        // Save this section as the main one for this display name
+        this.displayNameToSectionMap.set(displayName, sectionId);
+
         return section;
     }
-
-
 
     // Обновим инициализацию камер
     createVideoPreview(track, label, index) {
@@ -299,9 +520,25 @@ class VideoConference {
 
         if (!section) {
             section = this.createParticipantSection('local', this.userName);
+
+            // Make sure section was created successfully
+            if (!section) {
+                console.error('Failed to create section for local user');
+                return;
+            }
         }
 
         const camerasContainer = section.querySelector('.cameras-container');
+        if (!camerasContainer) {
+            console.error('No cameras container found in section');
+            return;
+        }
+
+        // Hide the no-camera placeholder if it exists
+        const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
 
         const wrapper = document.createElement('div');
         wrapper.className = 'video-wrapper';
@@ -325,6 +562,36 @@ class VideoConference {
     }
 
 
+    isValidVideoTrack(track) {
+        if (!track || track.getType() !== 'video') {
+            console.log("Track is not a video track");
+            return false;
+        }
+
+        const stream = track.getOriginalStream();
+        if (!stream || stream.getVideoTracks().length === 0) {
+            console.log("Track has no video tracks in stream");
+            return false;
+        }
+
+        // Additional check for active state
+        const videoTracks = stream.getVideoTracks();
+        if (videoTracks.length > 0 && !videoTracks[0].enabled) {
+            console.log("Video track is disabled");
+            return false;
+        }
+
+        const deviceName = (typeof track.getDeviceName === 'function')
+            ? track.getDeviceName()
+            : '';
+
+        if (deviceName.includes('Камера')) {
+            console.log(`Skipping camera with generic name: ${deviceName}`);
+            return false;
+        }
+
+        return true;
+    }
 
     onRemoteTrackAdded(track) {
         if (track.isLocal()) {
@@ -342,16 +609,45 @@ class VideoConference {
         this.remoteTracks.get(participantId).set(track.getId(), track);
 
         if (track.getType() === 'video') {
-            const participant = this.participants.get(participantId);
-            const displayName = participant ? participant.displayName : 'Участник';
+            // Check if the video track is valid
+            if (!this.isValidVideoTrack(track)) {
+                console.log(`Skipping invalid video track from participant ${participantId}`);
+                return;
+            }
 
-            // Get or create section for this participant
-            let section = document.querySelector(`[data-participant-id="${participantId}"]`);
+            const participant = this.participants.get(participantId);
+            if (!participant) {
+                console.error(`No participant found for ID ${participantId}`);
+                return;
+            }
+
+            const displayName = participant.displayName || 'Участник';
+
+            // Try to get the existing section for this display name
+            let section = this.getParticipantSection(displayName);
+
+            // If no section exists, create a new one
             if (!section) {
                 section = this.createParticipantSection(participantId, displayName);
+
+                // Check if section creation was successful
+                if (!section) {
+                    console.log(`Unable to create section for ${displayName} with ID ${participantId}, skipping track addition`);
+                    return;
+                }
             }
 
             const camerasContainer = section.querySelector('.cameras-container');
+            if (!camerasContainer) {
+                console.error(`No cameras container found for participant ${participantId} with name ${displayName}`);
+                return;
+            }
+
+            // Hide the no-camera placeholder if it exists
+            const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
 
             const wrapper = document.createElement('div');
             wrapper.className = 'video-wrapper';
@@ -361,25 +657,70 @@ class VideoConference {
             video.autoplay = true;
             video.playsInline = true;
 
-            const label = document.createElement('div');
-            label.className = 'camera-label';
-            label.textContent = `Камера ${camerasContainer.children.length + 1}`;
-
+            // Don't append the video to the DOM yet
             track.attach(video);
-            wrapper.appendChild(video);
-            wrapper.appendChild(label);
-            camerasContainer.appendChild(wrapper);
 
-            this.updateSectionLayout(section);
+            // Create a promise to check if video has dimensions after attaching
+            const checkVideoDimensions = new Promise((resolve, reject) => {
+                // Set timeout to prevent hanging if metadata never loads
+                const timeout = setTimeout(() => {
+                    reject('Video metadata loading timed out');
+                }, 5000);
 
-            video.play().catch(error => {
-                console.error('Ошибка воспроизведения видео:', error);
+                video.addEventListener('loadedmetadata', () => {
+                    clearTimeout(timeout);
+                    if (video.videoWidth === 0 || video.videoHeight === 0) {
+                        reject('Video has zero dimensions');
+                    } else {
+                        resolve();
+                    }
+                });
+            });
+
+            // Only add the video to the DOM after we've confirmed it has dimensions
+            checkVideoDimensions.then(() => {
+                const label = document.createElement('div');
+                label.className = 'camera-label';
+                label.textContent = `Камера ${camerasContainer.querySelectorAll('.video-wrapper').length + 1}`;
+
+                wrapper.appendChild(video);
+                wrapper.appendChild(label);
+                camerasContainer.appendChild(wrapper);
+
+                this.updateSectionLayout(section);
+
+                video.play().catch(error => {
+                    console.error('Video playback error:', error);
+                    wrapper.remove();
+                    this.updateSectionLayout(section);
+
+                    // Show placeholder again if no other videos
+                    if (camerasContainer.querySelectorAll('.video-wrapper').length === 0) {
+                        if (placeholder) {
+                            placeholder.style.display = 'flex';
+                        }
+                    }
+                });
+            }).catch(error => {
+                console.log(`Skipping invalid video track: ${error}`);
+                track.detach(video);
+                // Make sure to clean up the track in our remoteTracks map
+                if (this.remoteTracks.has(participantId)) {
+                    this.remoteTracks.get(participantId).delete(track.getId());
+                }
+
+                // Show placeholder again if no other videos
+                if (camerasContainer.querySelectorAll('.video-wrapper').length === 0) {
+                    if (placeholder) {
+                        placeholder.style.display = 'flex';
+                    }
+                }
             });
         } else if (track.getType() === 'audio') {
             const audio = document.createElement('audio');
             track.attach(audio);
             audio.play().catch(error => {
-                console.error('Ошибка воспроизведения аудио:', error);
+                console.error('Video playback error:', error);
             });
         }
     }
@@ -418,13 +759,97 @@ class VideoConference {
                 return;
             }
 
-            const deviceConfig = this.deviceConfig;
-            if (!deviceConfig || !deviceConfig.cameras) {
-                throw new Error('Device configuration not loaded');
+            // Create a section for the local user even if no cameras - IMPORTANT: This ensures user section exists
+            let section = document.querySelector(`[data-participant-id="local"]`);
+            if (!section) {
+                section = this.createParticipantSection('local', this.userName);
+
+                // Ensure the section was created successfully
+                if (!section) {
+                    console.error('Failed to create section for local user');
+                    // Still try to continue with audio setup
+                }
             }
 
-            for (let index = 0; index < deviceConfig.cameras.length; index++) {
-                const camera = deviceConfig.cameras[index];
+            // Initialize audio track
+            try {
+                const audioTracks = await JitsiMeetJS.createLocalTracks({
+                    devices: ['audio']
+                });
+
+                if (audioTracks && audioTracks.length > 0) {
+                    this.localTracks.audio = audioTracks[0];
+
+                    if (this.room) {
+                        await this.room.addTrack(audioTracks[0]);
+                    }
+
+                    console.log('Audio track initialized successfully');
+                }
+            } catch (audioError) {
+                console.error('Error initializing audio track:', audioError);
+                this.showError('Microphone access error');
+            }
+
+            // Make sure we have a valid section object before continuing
+            if (!section) {
+                // Try once more to get/create the section
+                section = document.querySelector(`[data-participant-id="local"]`);
+                if (!section) {
+                    section = this.createParticipantSection('local', this.userName);
+                }
+            }
+
+            // Handle device config for video
+            const deviceConfig = this.deviceConfig;
+            if (!deviceConfig || !deviceConfig.cameras || deviceConfig.cameras.length === 0) {
+                console.log('No camera configuration available, joining with audio only');
+
+                // Show "No camera available" message for local user
+                if (section) {
+                    const camerasContainer = section.querySelector('.cameras-container');
+                    if (camerasContainer) {
+                        let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+                        if (placeholder) {
+                            placeholder.style.display = 'flex';
+                        }
+                    }
+                }
+
+                // Always update the user count and list
+                this.updateUserCount(this.userName);
+                this.updateUsersList();
+
+                return; // Exit after setting up audio
+            }
+
+            // Filter out cameras with "Камера" in the name
+            const validCameras = deviceConfig.cameras.filter(camera =>
+                !camera.label.includes('Камера')
+            );
+
+            if (validCameras.length === 0) {
+                console.warn('No valid cameras found after filtering');
+                // Show "No camera available" message for local user
+                if (section) {
+                    const camerasContainer = section.querySelector('.cameras-container');
+                    if (camerasContainer) {
+                        let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+                        if (placeholder) {
+                            placeholder.style.display = 'flex';
+                        }
+                    }
+                }
+
+                // Always update the user count and list
+                this.updateUserCount(this.userName);
+                this.updateUsersList();
+
+                return; // Exit after setting up audio
+            }
+
+            for (let index = 0; index < validCameras.length; index++) {
+                const camera = validCameras[index];
                 try {
                     const tracks = await JitsiMeetJS.createLocalTracks({
                         devices: ['video'],
@@ -438,6 +863,19 @@ class VideoConference {
                         }
                     });
 
+                    // Check if we got a valid track with actual video
+                    if (!tracks || tracks.length === 0 || !tracks[0]) {
+                        console.log(`No valid tracks created for camera: ${camera.label}`);
+                        continue;
+                    }
+
+                    // Test if this track is valid
+                    if (!this.isValidVideoTrack(tracks[0])) {
+                        console.log(`Skipping invalid video track from camera: ${camera.label}`);
+                        tracks[0].dispose();
+                        continue;
+                    }
+
                     this.localTracks.video.push(tracks[0]);
                     this.createVideoPreview(tracks[0], camera.label, index);
 
@@ -446,12 +884,28 @@ class VideoConference {
                     }
                 } catch (e) {
                     console.error(`Error accessing camera: ${camera.label}`, e);
-                    this.showError(`Ошибка доступа к камере: ${camera.label}`);
+                    this.showError(`Camera access error: ${camera.label}`);
                 }
             }
+
+            // If no video tracks were successfully added, show the placeholder
+            if (this.localTracks.video.length === 0 && section) {
+                const camerasContainer = section.querySelector('.cameras-container');
+                if (camerasContainer) {
+                    let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+                    if (placeholder) {
+                        placeholder.style.display = 'flex';
+                    }
+                }
+            }
+
+            // Always update the user count and list
+            this.updateUserCount(this.userName);
+            this.updateUsersList();
+
         } catch (error) {
             console.error('Error initializing devices:', error);
-            this.showError('Ошибка инициализации устройств');
+            this.showError('Device initialization error');
         }
         document.getElementById('loading').style.display = 'none';
     }
@@ -542,7 +996,7 @@ class VideoConference {
     }
 
     onConnectionFailed() {
-        this.showError('Ошибка подключения к серверу');
+        this.showError('Server connection error');
         document.getElementById('loading').style.display = 'none';
     }
 
@@ -550,92 +1004,102 @@ class VideoConference {
         if (this.userUpdateInterval) {
             clearInterval(this.userUpdateInterval);
         }
-        console.log('Соединение разорвано');
+        console.log('The connection is broken');
     }
 
-    async onConferenceJoined() {
-        console.log('Конференция успешно подключена');
+    onConferenceJoined() {
+        console.log('The conference has been successfully connected');
         this.isInitialized = true;
 
         // Store the user's own participant ID
         this.myParticipantId = this.room.myUserId();
         console.log(`My participant ID on join: ${this.myParticipantId}`);
 
-        // First check if this is a reconnection
-        if (this.reconnecting) {
-            console.log('Handling reconnection in onConferenceJoined');
-            // For reconnections, we don't update user count to avoid duplicates
-        } else {
-            // For new connections, update user count if not already in conference
-            if (!this.isUserAlreadyInConference(this.userName)) {
-                await this.updateUserCount(this.userName);
-            }
-        }
-
-        this.updateUsersList();
-
-        // Fetch and process existing participants
-        const participants = this.room.getParticipants();
-        participants.forEach(participant => {
-            this.onUserJoined(participant.getId(), participant);
+        // Important change: Always ensure the local user is in the participants map
+        // Add local user to participants map with "local" as the ID
+        this.participants.set("local", {
+            id: "local",
+            displayName: this.userName,
+            tracks: new Map()
         });
 
-        // Add a short delay before sending identity message
-        setTimeout(() => {
-            try {
+        // For both new connections and reconnections, ensure local user exists
+        if (!this.getParticipantSection(this.userName)) {
+            this.createParticipantSection("local", this.userName);
+        }
+
+        // Ensure local user has a count
+        if (!this.userCounts.has(this.userName)) {
+            this.userCounts.set(this.userName, 1);
+        }
+
+        // Update the users list
+        this.updateUsersList();
+
+        // Process existing participants
+        const participants = this.room.getParticipants();
+
+        // IMPORTANT: After reconnection, request video tracks from all participants
+        if (this.reconnecting) {
+            console.log('Reconnecting - requesting all participants to send tracks again');
+
+            // Send identity message with a delay to allow BridgeChannel to initialize
+            setTimeout(() => {
                 this.sendIdentityMessage();
-                console.log('Identity message sent successfully');
+
+                // Request tracks from all participants
+                participants.forEach(participant => {
+                    const id = participant.getId();
+                    // Request all tracks from this participant
+                    this.requestParticipantTracks(id);
+                });
+            }, 3000); // Increase timeout to 3 seconds to ensure BridgeChannel is ready
+        } else {
+            // Normal flow for first connection
+            participants.forEach(participant => {
+                this.onUserJoined(participant.getId(), participant);
+            });
+
+            // Send identity after longer delay for new connections
+            setTimeout(() => {
+                this.sendIdentityMessage();
+            }, 3000); // Increase timeout to 3 seconds
+        }
+    }
+
+
+// New method to request tracks explicitly
+    requestParticipantTracks(participantId) {
+        // Send a message to request tracks
+        if (this.room) {
+            const message = {
+                type: 'track_request',
+                requesterId: this.myParticipantId,
+                timestamp: Date.now()
+            };
+
+            try {
+                this.room.sendEndpointMessage(participantId, {trackRequest: message});
+                console.log(`Requested tracks from participant ${participantId}`);
             } catch (error) {
-                console.error('Error sending identity message:', error);
+                console.error(`Failed to request tracks from ${participantId}`, error);
             }
-        }, 1000); // Wait 1 second
+        }
     }
 
     onUserJoined(id, user) {
-        const displayName = user.getDisplayName() || null;
+        const displayName = user.getDisplayName() || "Участник";
 
         console.log(`User joined: ${id}, name: ${displayName}`);
 
-        // Check if this is the user's own connection from another tab/window
-        if ((displayName === this.userName && id !== this.myParticipantId)  || displayName === 'Участник') {
-            console.log(`Detected own user from another connection: ${id}`);
-            // Don't create duplicate UI elements for the same user
-            if (this.reconnecting || displayName === 'Участник') {
-                console.log('Reconnection detected, skipping duplicate UI creation');
-                return;
-            }
-        }
-
-        // Don't add duplicate participant entries
+        // Check if this user ID is already in participants map
         if (this.participants.has(id)) {
             console.log(`User ID ${id} already in participants map, updating`);
             this.participants.get(id).displayName = displayName;
             return;
         }
 
-        // Check if we already have sections with this display name
-        const existingSectionsWithName = Array.from(document.querySelectorAll('.participant-section'))
-            .filter(section => {
-                const nameDiv = section.querySelector('.participant-name');
-                return nameDiv && nameDiv.textContent === displayName;
-            });
-
-        // If we're reconnecting and we already have a section for this user name, don't create another
-        if (this.reconnecting && existingSectionsWithName.length > 0 && displayName === this.userName) {
-            console.log(`Skipping duplicate UI creation for reconnecting user ${displayName}`);
-            // Just add to participants map but don't create UI elements
-            this.participants.set(id, {
-                id,
-                displayName,
-                tracks: new Map()
-            });
-            return;
-        }
-
-        // Mark as processed to avoid duplicate UI elements
-        this.processedParticipants.add(id);
-
-        // Add to participants map
+        // Add to participants map first
         this.participants.set(id, {
             id,
             displayName,
@@ -647,26 +1111,32 @@ class VideoConference {
             this.userVisibility.set(displayName, true);
         }
 
+        // Check if there's already a section for this display name
+        const existingSection = this.getParticipantSection(displayName);
+
+        if (existingSection && displayName !== this.userName) {
+            console.log(`Using existing section for user with same name: ${displayName}`);
+            // No need to create a new section - the video tracks will be added
+            // to the existing section when they arrive in onRemoteTrackAdded
+        } else {
+            // Create a new section only if we don't have one with this name
+            // or if it's the local user
+            this.createParticipantSection(id, displayName);
+        }
+
+        // Process any existing tracks from this participant
+        if (user.getTracks) {
+            const existingTracks = user.getTracks();
+            existingTracks.forEach(track => this.onRemoteTrackAdded(track));
+        }
+
         // Update user counts
-        this.updateUserCount(displayName).then(count => {
-            // Check if UI section already exists for this participant
-            const existingSections = Array.from(document.querySelectorAll('.participant-section'))
-                .filter(section => section.getAttribute('data-participant-id') === id);
-
-            if (existingSections.length === 0) {
-                const section = this.createParticipantSection(id, displayName);
-
-                // Process any existing tracks from this participant
-                if (user.getTracks) {
-                    const existingTracks = user.getTracks();
-                    existingTracks.forEach(track => this.onRemoteTrackAdded(track));
-                }
-            }
-
+        this.updateUserCount(displayName).then(() => {
             // Update UI
             this.updateUsersList();
         });
     }
+
     showError(message) {
         const errorElement = document.getElementById('error-message');
         if (errorElement) {
@@ -695,30 +1165,6 @@ class VideoConference {
         }
     }
 
-    async updateUserCount(userName) {
-        try {
-            // Skip if we're reconnecting and the user is the local user
-            if (this.reconnecting && userName === this.userName) {
-                console.log('Skipping user count update for reconnecting user');
-                return this.userCounts.get(userName) || 1;
-            }
-
-            const response = await fetch(`/conference/updateUserJoinCount?userName=${encodeURIComponent(userName)}&conferenceId=${this.conferenceId}`);
-            if (!response.ok) {
-                throw new Error('Failed to update user count');
-            }
-            const count = await response.json().catch(() => 0);
-
-            // Update the count
-            this.userCounts.set(userName, count);
-            this.updateUsersList();
-            return count;
-        } catch (error) {
-            console.error('Error updating user count:', error);
-            this.showError('Ошибка обновления количества пользователей');
-            return null;
-        }
-    }
 
     async init() {
         try {
@@ -731,6 +1177,9 @@ class VideoConference {
             if (storedUserId === this.userName && storedConferenceId === this.conferenceId) {
                 console.log('Detected page refresh/reconnection');
                 this.reconnecting = true;
+
+                // Add this line to force a small delay to ensure browser is ready
+                await new Promise(resolve => setTimeout(resolve, 500));
             }
 
             await this.loadDeviceConfig();
