@@ -35,6 +35,7 @@ import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 import java.util.Optional;
 
@@ -82,8 +83,10 @@ public class ConferenceController {
         } else {
             log.warn("User account not found with username: {}", userName);
         }
-        redirectAttributes.addAttribute("userName", userName);
-        redirectAttributes.addAttribute("conferenceId", conferenceId);
+        String encodeConferenceId = Base64.getUrlEncoder().encodeToString(conferenceId.getBytes(StandardCharsets.UTF_8));
+        String encodeUserName = Base64.getUrlEncoder().encodeToString(userName.getBytes(StandardCharsets.UTF_8));
+        redirectAttributes.addAttribute("userName", encodeUserName);
+        redirectAttributes.addAttribute("conferenceId", encodeConferenceId);
 
         return "redirect:/conference";
     }
@@ -94,9 +97,9 @@ public class ConferenceController {
             @RequestParam("conferenceId") String conferenceId,
             Model model) throws JsonProcessingException {
         log.info("Processing conference page request for user: {}, conference: {}", userName, conferenceId);
-
-        /// Validate input parameters
-
+        /// Decode and Validate input parameters
+        conferenceId = new String(Base64.getUrlDecoder().decode(conferenceId), StandardCharsets.UTF_8);
+        userName = new String(Base64.getUrlDecoder().decode(userName), StandardCharsets.UTF_8);
         if (StringUtils.isEmpty(conferenceId) || StringUtils.isEmpty(userName)) {
             log.error("Missing required parameters - conferenceId: {}, userName: {}", conferenceId, userName);
             throw new ConferenceException("Missing required parameters");
