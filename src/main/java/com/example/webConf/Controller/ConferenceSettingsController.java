@@ -87,6 +87,8 @@ public class ConferenceSettingsController {
                                       @RequestParam(value = "conferenceId", required = false) String conferenceId,
                                       Model model) {
         log.info("Initial device setting page is working");
+        boolean isAuthorized = SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty();
+        model.addAttribute("isAuthorized", isAuthorized);
         if (userName != null && !userName.isEmpty() && (SecurityUtil.getSessionUserEmail() == null || SecurityUtil.getSessionUserEmail().isEmpty())) {
             model.addAttribute("userName", userName);
         }

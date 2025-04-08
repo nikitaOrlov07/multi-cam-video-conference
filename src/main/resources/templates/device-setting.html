@@ -56,9 +56,9 @@
     <div class="row mt-4">
         <div class="col-md-12">
             <h2 class="mb-3">Previously Selected Devices</h2>
-            <div th:if="${devices != null and not #lists.isEmpty(devices)}">
-                <ul class="list-group">
-                    <li th:each="device, deviceStat : ${devices}" class="list-group-item">
+            <div th:if="${isAuthorized and (devices != null and not #lists.isEmpty(devices))}">
+                <ul class="list-group" style="overflow-y: auto; max-height: 250px">
+                    <li th:each="device, deviceStat : ${devices}" class="list-group-item" >
                         <div class="d-flex align-items-start">
                             <div class="me-3">
                                 <input type="radio" name="previousConfiguration"
@@ -88,8 +88,11 @@
                     </li>
                 </ul>
             </div>
-            <div th:if="${devices == null or #lists.isEmpty(devices)}" class="alert alert-info">
+            <div th:if="${isAuthorized and (devices == null or #lists.isEmpty(devices))}" class="alert alert-info">
                 No devices have been selected yet.
+            </div>
+            <div th:if="${!isAuthorized}" class="alert alert-danger">
+                Sing in to see previous device configuration
             </div>
         </div>
     </div>
