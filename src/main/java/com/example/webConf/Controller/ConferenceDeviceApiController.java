@@ -10,6 +10,7 @@ import com.example.webConf.repository.ConferenceDeviceRepository;
 import com.example.webConf.repository.ConferenceRepository;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,7 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/conference/devices")
+@Slf4j
 public class ConferenceDeviceApiController {
 
     @Autowired
@@ -74,5 +76,12 @@ public class ConferenceDeviceApiController {
                 .conferenceId(null)
                 .userName(devices.getUserName())
                 .build();
+    }
+    /// Method for finding all user device configuration
+    @GetMapping("/configuration/{conferenceId}")
+    public List<ConferenceDevices> findConferenceConfig(@PathVariable String conferenceId) {
+        List<ConferenceDevices> conferenceDevices = devicesRepository.findAllByConference_Id(conferenceId);
+        log.info("Find All Devices for conference: {}", conferenceId);
+        return conferenceDevices;
     }
 }

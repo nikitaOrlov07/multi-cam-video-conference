@@ -31,10 +31,6 @@ public class ConferenceDevicesServiceImpl implements ConferenceDevicesService {
         conferenceDeviceRepository.save(devices);
     }
 
-    @Override
-    public ConferenceDevices findByConferenceId(String conferenceId) {
-        return conferenceDeviceRepository.findByConferenceId(conferenceId);
-    }
     public DeviceSelectionDTO getDeviceConfigurationsForConference(String conferenceId, String userName) {
         // Находим устройства для конкретной конференции и пользователя
         ConferenceDevices deviceConfig = conferenceDeviceRepository.findByConference_IdAndUserName(conferenceId, userName);

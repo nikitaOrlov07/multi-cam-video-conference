@@ -14,6 +14,7 @@ import com.example.webConf.repository.ConferenceRepository;
 import com.example.webConf.repository.UserConferenceJoinRepository;
 import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.security.SecurityUtil;
+import com.example.webConf.service.ConferenceDevicesService;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -51,6 +52,7 @@ public class ConferenceController {
     private final UserConferenceJoinRepository userConferenceJoinRepository;
     private final UserEntityService userService;
     private final ObjectMapper objectMapper;
+    private final ConferenceDevicesService conferenceDevicesService;
 
 
     @GetMapping("/join")
@@ -229,4 +231,5 @@ public class ConferenceController {
         conferenceService.removeUserConference(conferenceId, userName);
         return ResponseEntity.ok("Conference removed successfully");
     }
+
 }

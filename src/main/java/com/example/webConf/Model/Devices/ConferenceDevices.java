@@ -56,7 +56,6 @@ public class ConferenceDevices {
         }
     }
 
-    // Внутренний статический класс для представления камеры
     @Data
     @NoArgsConstructor
     @AllArgsConstructor

@@ -14,4 +14,5 @@ public interface ConferenceDeviceRepository extends JpaRepository<ConferenceDevi
     ConferenceDevices findByConference_IdAndUserName(String conferenceId, String userName);
     void deleteAllByConference(Conference conference);
     List<ConferenceDevices> findAllByUserName(String userName);
+    List<ConferenceDevices> findAllByConference_Id(String conferenceId);
 }

@@ -21,7 +21,64 @@ class VideoConference {
 
         // Add a map to track display names to section IDs
         this.displayNameToSectionMap = new Map();
+        // Properties to track camera ordering
+        this.cameraOrderMap = new Map(); // Maps deviceId to order
+        this.orderedCameraContainers = new Map(); // Maps order to container element
     }
+    async loadAllUserCameraConfigurations() {
+        try {
+            const response = await fetch(`/api/conference/devices/configuration/${this.conferenceId}`);
+            if (!response.ok) {
+                throw new Error('Failed to load all camera configurations');
+            }
+
+            const deviceConfigs = await response.json();
+
+            console.log("AFTER RESPONSE")
+            console.log("Response ", deviceConfigs)
+
+            // Process each user's configuration
+            deviceConfigs.forEach(config => {
+                const userName = config.userName;
+                const gridRows = config.gridRows || 2;
+                const gridCols = config.gridCols || 2;
+
+                // Parse camera configurations if they exist
+                if (config.cameraConfiguration) {
+                    try {
+                        const cameras = JSON.parse(config.cameraConfiguration);
+
+                        // Store order and grid information for each camera
+                        cameras.forEach(camera => {
+                            // Store with userName+deviceId as the key to avoid conflicts across users
+                            const key = `${userName}_${camera.deviceId}`;
+                            this.cameraOrderMap.set(key, {
+                                order: camera.order,
+                                gridRows: gridRows,
+                                gridCols: gridCols
+                            });
+                        });
+
+                        // Also store grid config by username for easier access
+                        this.cameraOrderMap.set(`${userName}_gridConfig`, {
+                            gridRows: gridRows,
+                            gridCols: gridCols
+                        });
+                    } catch (e) {
+                        console.error(`Error parsing camera config for ${userName}:`, e);
+                    }
+                }
+            });
+
+            console.log('Loaded camera configurations for all users:', this.cameraOrderMap);
+            return true;
+        } catch (error) {
+            console.error('Error loading all camera configurations:', error);
+            this.showError('Ошибка загрузки конфигураций камер всех пользователей');
+            return false;
+        }
+    }
+
     updateUserCount(userName) {
         try {
             // Skip if we're reconnecting and the user is the local user
@@ -328,6 +385,61 @@ class VideoConference {
             }
         });
     }
+    updateSectionLayout(section) {
+        if (!section) return;
+
+        const camerasContainer = section.querySelector('.cameras-container');
+        if (!camerasContainer) return;
+
+        const videoWrappers = camerasContainer.querySelectorAll('.video-wrapper');
+        const count = videoWrappers.length;
+
+        // Set the section size attribute based on camera count
+        section.setAttribute('data-size', Math.min(4, Math.ceil(count / 2)));
+
+        // Get username from the section
+        const displayName = section.querySelector('.participant-name').textContent;
+
+        // Find grid configuration for this user
+        let gridRows = 2; // Default
+        let gridCols = 2; // Default
+
+        // Look for stored grid configuration
+        for (const [key, config] of this.cameraOrderMap.entries()) {
+            if (key.startsWith(`${displayName}_`) && config.gridRows && config.gridCols) {
+                gridRows = config.gridRows;
+                gridCols = config.gridCols;
+                break;
+            }
+        }
+
+        // Apply grid layout
+        camerasContainer.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
+        camerasContainer.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
+
+        // Set placement for each camera based on its order
+        videoWrappers.forEach(wrapper => {
+            const order = wrapper.getAttribute('data-camera-order') || 999;
+
+            // Calculate grid position (row and column) based on order
+            // For example: with 2x2 grid, order 1 is at (0,0), order 2 at (0,1), order 3 at (1,0), etc.
+            const col = (order - 1) % gridCols;
+            const row = Math.floor((order - 1) / gridCols);
+
+            // Apply grid position
+            wrapper.style.gridRow = `${row + 1}`;
+            wrapper.style.gridColumn = `${col + 1}`;
+        });
+
+        // Hide placeholder if we have videos
+        if (count > 0) {
+            const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+        }
+    }
+
 
     onRemoteTrackRemoved(track) {
         if (track.isLocal()) {
@@ -461,7 +573,22 @@ class VideoConference {
 
         const camerasContainer = document.createElement('div');
         camerasContainer.className = 'cameras-container';
-        camerasContainer.setAttribute('data-layout', '1');
+
+        // Look for grid configuration for this user
+        let gridRows = 2; // Default
+        let gridCols = 2; // Default
+
+        // Check if we have specific grid config for this user
+        const gridConfigKey = `${displayName}_gridConfig`;
+        if (this.cameraOrderMap.has(gridConfigKey)) {
+            const config = this.cameraOrderMap.get(gridConfigKey);
+            gridRows = config.gridRows || gridRows;
+            gridCols = config.gridCols || gridCols;
+        }
+
+        // Apply grid configuration
+        camerasContainer.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
+        camerasContainer.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
 
         // Add a placeholder for users without cameras
         const noCameraPlaceholder = document.createElement('div');
@@ -485,6 +612,8 @@ class VideoConference {
         noCameraPlaceholder.style.backgroundColor = '#2a2a2a';
         noCameraPlaceholder.style.borderRadius = '8px';
         noCameraPlaceholder.style.padding = '20px';
+        noCameraPlaceholder.style.gridColumn = `1 / span ${gridCols}`; // Span across all columns
+        noCameraPlaceholder.style.gridRow = `1 / span ${gridRows}`;   // Span across all rows
 
         camerasContainer.appendChild(noCameraPlaceholder);
 
@@ -550,14 +679,52 @@ class VideoConference {
         video.muted = true;
         track.attach(video);
 
+        // Get device information from the track to find the order
+        let deviceId = '';
+        if (typeof track.getDeviceId === 'function') {
+            deviceId = track.getDeviceId();
+        } else {
+            // Try to get from original stream or use track ID as fallback
+            deviceId = track.getId();
+        }
+
+        // Check if we have ordering information
+        const orderKey = `${this.userName}_${deviceId}`;
+        let cameraOrder = null;
+        let gridConfig = null;
+
+        if (this.cameraOrderMap.has(orderKey)) {
+            const config = this.cameraOrderMap.get(orderKey);
+            cameraOrder = config.order;
+            wrapper.setAttribute('data-camera-order', cameraOrder);
+
+            // Get grid configuration
+            gridConfig = {
+                gridRows: config.gridRows || 2,
+                gridCols: config.gridCols || 2
+            };
+        } else {
+            cameraOrder = index + 1;
+            wrapper.setAttribute('data-camera-order', cameraOrder);
+        }
+
         const cameraLabel = document.createElement('div');
         cameraLabel.className = 'camera-label';
-        cameraLabel.textContent = `${label || 'Камера'} ${index + 1}`;
+
+        // Use order in label if available
+        if (cameraOrder !== null) {
+            cameraLabel.textContent = `${label || 'Камера'} ${cameraOrder}`;
+        } else {
+            cameraLabel.textContent = `${label || 'Камера'} ${index + 1}`;
+        }
 
         wrapper.appendChild(video);
         wrapper.appendChild(cameraLabel);
+
+        // Append the wrapper
         camerasContainer.appendChild(wrapper);
 
+        // Apply grid layout
         this.updateSectionLayout(section);
     }
 
@@ -660,6 +827,29 @@ class VideoConference {
             // Don't append the video to the DOM yet
             track.attach(video);
 
+            // Get device information from the track
+            let deviceId = '';
+            if (typeof track.getDeviceId === 'function') {
+                deviceId = track.getDeviceId();
+            } else {
+                // Try to extract from source or use track ID as fallback
+                deviceId = track.getId();
+            }
+
+            // Check if we have ordering information for this camera
+            const orderKey = `${displayName}_${deviceId}`;
+            let cameraOrder = null;
+
+            if (this.cameraOrderMap.has(orderKey)) {
+                cameraOrder = this.cameraOrderMap.get(orderKey).order;
+                wrapper.setAttribute('data-camera-order', cameraOrder);
+            } else {
+                // If no specific order is found, assign next available position
+                const existingWrappers = camerasContainer.querySelectorAll('.video-wrapper');
+                cameraOrder = existingWrappers.length + 1;
+                wrapper.setAttribute('data-camera-order', cameraOrder);
+            }
+
             // Create a promise to check if video has dimensions after attaching
             const checkVideoDimensions = new Promise((resolve, reject) => {
                 // Set timeout to prevent hanging if metadata never loads
@@ -681,10 +871,17 @@ class VideoConference {
             checkVideoDimensions.then(() => {
                 const label = document.createElement('div');
                 label.className = 'camera-label';
-                label.textContent = `Камера ${camerasContainer.querySelectorAll('.video-wrapper').length + 1}`;
+
+                // Use order in label if available
+                if (cameraOrder !== null) {
+                    label.textContent = `Камера ${cameraOrder}`;
+                } else {
+                    label.textContent = `Камера ${camerasContainer.querySelectorAll('.video-wrapper').length + 1}`;
+                }
 
                 wrapper.appendChild(video);
                 wrapper.appendChild(label);
+
                 camerasContainer.appendChild(wrapper);
 
                 this.updateSectionLayout(section);
@@ -720,20 +917,9 @@ class VideoConference {
             const audio = document.createElement('audio');
             track.attach(audio);
             audio.play().catch(error => {
-                console.error('Video playback error:', error);
+                console.error('Audio playback error:', error);
             });
         }
-    }
-
-    updateSectionLayout(section) {
-        const camerasContainer = section.querySelector('.cameras-container');
-        const cameraCount = camerasContainer.children.length;
-
-        // Устанавливаем размер секции
-        section.setAttribute('data-size', Math.min(Math.ceil(cameraCount / 2), 4));
-
-        // Устанавливаем раскладку сетки
-        camerasContainer.setAttribute('data-layout', cameraCount);
     }
 
     // Обновим инициализацию камер
@@ -1182,7 +1368,11 @@ class VideoConference {
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
 
+            // Load device config for the current user
             await this.loadDeviceConfig();
+
+            // Also load all users' camera configurations
+            await this.loadAllUserCameraConfigurations();
 
             JitsiMeetJS.init({
                 disableAudioLevels: true,
