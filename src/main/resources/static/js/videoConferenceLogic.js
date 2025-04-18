@@ -614,166 +614,196 @@ class VideoConference {
         if (track.isLocal()) {
             return;
         }
+
         console.log(`Remote track added - type: ${track.getType()}, participant: ${track.getParticipantId()}`);
         const participantId = track.getParticipantId();
+
+        // Store track in remoteTracks map
         if (!this.remoteTracks.has(participantId)) {
             this.remoteTracks.set(participantId, new Map());
         }
         this.remoteTracks.get(participantId).set(track.getId(), track);
-        if (track.getType() === 'video') {
-            console.log(`Processing video track: ${track.getId()} from participant ${participantId}`);
-            const isValid = this.isValidVideoTrack(track);
-            console.log(`Video track validity check: ${isValid}`);
-            if (!isValid) {
-                console.log(`Attempting to process video track anyway from participant ${participantId}`);
-            }
-            const participant = this.participants.get(participantId);
-            if (!participant) {
-                console.error(`No participant found for ID ${participantId}, creating placeholder`);
-                this.participants.set(participantId, {
-                    id: participantId,
-                    displayName: 'Unknown Participant',
-                    tracks: new Map()
-                });
-            }
-            const displayName = participant?.displayName || 'Участник';
-            let cameraOrder = null;
-            if (participant?.isTechnical && participant?.cameraInfo) {
-                const orderMatch = participant.cameraInfo.match(/camera(\d+)/);
-                if (orderMatch && orderMatch[1]) {
-                    cameraOrder = parseInt(orderMatch[1], 10);
-                    console.log(`Found camera order ${cameraOrder} from technical user`);
-                }
-            }
-            let section = this.getParticipantSection(displayName);
-            if (!section) {
-                section = this.createParticipantSection(participantId, displayName);
-                if (!section) {
-                    console.error(`Unable to create section for ${displayName} with ID ${participantId}, creating emergency section`);
-                    section = document.createElement('div');
-                    section.className = 'participant-section';
-                    section.setAttribute('data-participant-id', participantId);
-                    section.setAttribute('data-size', '1');
-                    const nameDiv = document.createElement('div');
-                    nameDiv.className = 'participant-name';
-                    nameDiv.textContent = displayName;
-                    const camerasContainer = document.createElement('div');
-                    camerasContainer.className = 'cameras-container';
-                    camerasContainer.style.gridTemplateRows = 'repeat(2, 1fr)';
-                    camerasContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
-                    section.appendChild(nameDiv);
-                    section.appendChild(camerasContainer);
-                    document.getElementById('video-container').appendChild(section);
-                    this.displayNameToSectionMap.set(displayName, participantId);
-                }
-            }
-            const camerasContainer = section.querySelector('.cameras-container');
-            if (!camerasContainer) {
-                console.error(`No cameras container found for participant ${participantId} with name ${displayName}, creating one`);
-                const newCamerasContainer = document.createElement('div');
-                newCamerasContainer.className = 'cameras-container';
-                newCamerasContainer.style.gridTemplateRows = 'repeat(2, 1fr)';
-                newCamerasContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
-                section.appendChild(newCamerasContainer);
-                return;
-            }
-            const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
-            if (placeholder) {
-                placeholder.style.display = 'none';
-            }
-            const wrapper = document.createElement('div');
-            wrapper.className = 'video-wrapper';
-            wrapper.setAttribute('data-track-id', track.getId());
-            const video = document.createElement('video');
-            video.autoplay = true;
-            video.playsInline = true;
-            video.id = `video-${track.getId()}`;
-            let deviceId = '';
-            if (typeof track.getDeviceId === 'function') {
-                deviceId = track.getDeviceId();
-            } else {
-                deviceId = track.getId();
-            }
-            if (cameraOrder !== null) {
-                wrapper.setAttribute('data-camera-order', cameraOrder);
-            } else {
-                const orderKey = `${displayName}_${deviceId}`;
-                if (this.cameraOrderMap.has(orderKey)) {
-                    cameraOrder = this.cameraOrderMap.get(orderKey).order;
-                    wrapper.setAttribute('data-camera-order', cameraOrder);
-                } else {
-                    const existingWrappers = camerasContainer.querySelectorAll('.video-wrapper');
-                    cameraOrder = existingWrappers.length + 1;
-                    wrapper.setAttribute('data-camera-order', cameraOrder);
-                }
-            }
-            const label = document.createElement('div');
-            label.className = 'camera-label';
-            label.textContent = `Камера ${cameraOrder || camerasContainer.querySelectorAll('.video-wrapper').length + 1}`;
-            try {
-                video.addEventListener('error', (e) => {
-                    console.error(`Video error for track ${track.getId()}:`, e);});
-                track.attach(video);
-                console.log(`Successfully attached track ${track.getId()} to video element ${video.id}`);
-                video.load();
-            } catch (e) {
-                console.error('Error attaching video track:', e);
-                return;
-            }
-            wrapper.appendChild(video);
-            wrapper.appendChild(label);
-            camerasContainer.appendChild(wrapper);
-            this.updateSectionLayout(section);
-            video.play().catch(error => {
-                console.error('Video playback error:', error);
-                video.muted = true;
-                video.play().catch(e => {
-                    console.error('Second video playback attempt failed:', e);
-                    wrapper.remove();
-                    this.updateSectionLayout(section);
-                    if (camerasContainer.querySelectorAll('.video-wrapper').length === 0 && placeholder) {
-                        placeholder.style.display = 'flex';
-                    }
-                });
-            });
-        } else if (track.getType() === 'audio') {
-            const audio = document.createElement('audio');
-            audio.id = `audio-${track.getId()}`;
-            try {
-                track.attach(audio);
-                console.log(`Successfully attached audio track ${track.getId()} to element ${audio.id}`);
-                audio.play().catch(error => {
-                    console.error('Audio playback error:', error);
-                    audio.muted = true;
-                    audio.play().catch(e => {
-                        console.error('Second audio playback attempt failed:', e);
+
+        // Skip if not a video track
+        if (track.getType() !== 'video') {
+            if (track.getType() === 'audio') {
+                const audio = document.createElement('audio');
+                audio.id = `audio-${track.getId()}`;
+                try {
+                    track.attach(audio);
+                    console.log(`Successfully attached audio track ${track.getId()} to element ${audio.id}`);
+                    audio.play().catch(error => {
+                        console.error('Audio playback error:', error);
+                        audio.muted = true;
+                        audio.play().catch(e => {
+                            console.error('Second audio playback attempt failed:', e);
+                        });
                     });
-                });
-            } catch (e) {
-                console.error('Error attaching audio track:', e);
+                } catch (e) {
+                    console.error('Error attaching audio track:', e);
+                }
+            }
+            return;
+        }
+
+        console.log(`Processing video track: ${track.getId()} from participant ${participantId}`);
+
+        // Validate the video track
+        const isValid = this.isValidVideoTrack(track);
+        console.log(`Video track validity check: ${isValid}`);
+        if (!isValid) {
+            console.log(`Skipping invalid video track from participant ${participantId}`);
+            return;
+        }
+
+        // Get participant information
+        const participant = this.participants.get(participantId);
+        if (!participant) {
+            console.error(`No participant found for ID ${participantId}, skipping track`);
+            return;
+        }
+
+        // Fix: Skip tracks that don't belong to the participant's display name
+        const displayName = participant.displayName || 'Участник';
+
+        // Check if we're reconnecting and the track is being added by another user with our own display name
+        if (this.reconnecting && displayName === this.displayName && participantId !== this.myParticipantId) {
+            console.log(`Skipping track from another user with our display name during reconnection`);
+            return;
+        }
+
+        // Determine camera order
+        let cameraOrder = null;
+        if (participant.isTechnical && participant.cameraInfo) {
+            const orderMatch = participant.cameraInfo.match(/camera(\d+)/);
+            if (orderMatch && orderMatch[1]) {
+                cameraOrder = parseInt(orderMatch[1], 10);
+                console.log(`Found camera order ${cameraOrder} from technical user`);
             }
         }
+
+        // Get or create section for this participant
+        let section = this.getParticipantSection(displayName);
+        if (!section) {
+            section = this.createParticipantSection(participantId, displayName);
+            if (!section) {
+                console.error(`Unable to create section for ${displayName} with ID ${participantId}`);
+                return;
+            }
+        }
+
+        // Check if this track is already displayed
+        const camerasContainer = section.querySelector('.cameras-container');
+        if (!camerasContainer) {
+            console.error(`No cameras container found for participant ${participantId}`);
+            return;
+        }
+
+        // Check if this track ID is already in the DOM
+        if (document.querySelector(`[data-track-id="${track.getId()}"]`)) {
+            console.log(`Track ${track.getId()} is already displayed, skipping`);
+            return;
+        }
+
+        // Hide placeholder if present
+        const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+
+        // Create video wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'video-wrapper';
+        wrapper.setAttribute('data-track-id', track.getId());
+
+        // Create video element
+        const video = document.createElement('video');
+        video.autoplay = true;
+        video.playsInline = true;
+        video.id = `video-${track.getId()}`;
+
+        // Determine camera order
+        let deviceId = '';
+        if (typeof track.getDeviceId === 'function') {
+            deviceId = track.getDeviceId();
+        } else {
+            deviceId = track.getId();
+        }
+
+        if (cameraOrder !== null) {
+            wrapper.setAttribute('data-camera-order', cameraOrder);
+        } else {
+            const orderKey = `${displayName}_${deviceId}`;
+            if (this.cameraOrderMap.has(orderKey)) {
+                cameraOrder = this.cameraOrderMap.get(orderKey).order;
+                wrapper.setAttribute('data-camera-order', cameraOrder);
+            } else {
+                const existingWrappers = camerasContainer.querySelectorAll('.video-wrapper');
+                cameraOrder = existingWrappers.length + 1;
+                wrapper.setAttribute('data-camera-order', cameraOrder);
+            }
+        }
+
+        // Create camera label
+        const label = document.createElement('div');
+        label.className = 'camera-label';
+        label.textContent = `Камера ${cameraOrder || camerasContainer.querySelectorAll('.video-wrapper').length + 1}`;
+
+        // Attach track to video element
+        try {
+            video.addEventListener('error', (e) => {
+                console.error(`Video error for track ${track.getId()}:`, e);
+            });
+            track.attach(video);
+            console.log(`Successfully attached track ${track.getId()} to video element ${video.id}`);
+            video.load();
+        } catch (e) {
+            console.error('Error attaching video track:', e);
+            return;
+        }
+
+        // Add elements to DOM
+        wrapper.appendChild(video);
+        wrapper.appendChild(label);
+        camerasContainer.appendChild(wrapper);
+
+        // Update the layout
+        this.updateSectionLayout(section);
+
+        // Start playback
+        video.play().catch(error => {
+            console.error('Video playback error:', error);
+            video.muted = true;
+            video.play().catch(e => {
+                console.error('Second video playback attempt failed:', e);
+                wrapper.remove();
+                this.updateSectionLayout(section);
+                if (camerasContainer.querySelectorAll('.video-wrapper').length === 0 && placeholder) {
+                    placeholder.style.display = 'flex';
+                }
+            });
+        });
     }
     async initializeDevices() {
         try {
             const storedUserId = sessionStorage.getItem('conferenceUserId');
             const storedConferenceId = sessionStorage.getItem('conferenceId');
+
             if (storedUserId === this.userName && storedConferenceId === this.conferenceId) {
                 this.reconnecting = true;
                 console.log('Detected reconnection, handling accordingly');
             }
+
             sessionStorage.setItem('conferenceUserId', this.userName);
             sessionStorage.setItem('conferenceId', this.conferenceId);
+
             let displayName = this.userName;
             if (displayName.includes('_technical')) {
                 displayName = displayName.split('_technical')[0];
             }
             this.displayName = displayName;
-            if (this.reconnecting && this.isUserAlreadyInConference(displayName)) {
-                console.log('User already in conference, skipping device initialization');
-                document.getElementById('loading').style.display = 'none';
-                return;
-            }
+
+            // Create or get local section
             let section = document.querySelector(`[data-participant-id="local"]`);
             if (!section) {
                 section = this.createParticipantSection('local', displayName);
@@ -781,10 +811,31 @@ class VideoConference {
                     console.error('Failed to create section for local user');
                 }
             }
+
+            // Clear existing local preview videos during reconnection
+            if (this.reconnecting && section) {
+                const localVideoWrappers = section.querySelectorAll('.video-wrapper');
+                localVideoWrappers.forEach(wrapper => {
+                    wrapper.remove();
+                });
+
+                // Reset local tracks array
+                if (this.localTracks.video && this.localTracks.video.length > 0) {
+                    this.localTracks.video.forEach(track => {
+                        if (track && typeof track.dispose === 'function') {
+                            track.dispose();
+                        }
+                    });
+                    this.localTracks.video = [];
+                }
+            }
+
+            // Initialize audio
             try {
                 const audioTracks = await JitsiMeetJS.createLocalTracks({
                     devices: ['audio']
                 });
+
                 if (audioTracks && audioTracks.length > 0) {
                     this.localTracks.audio = audioTracks[0];
                     if (this.room) {
@@ -796,6 +847,8 @@ class VideoConference {
                 console.error('Error initializing audio track:', audioError);
                 this.showError('Microphone access error');
             }
+
+            // Get device configuration
             const deviceConfig = this.deviceConfig;
             if (!deviceConfig) {
                 console.log('No device configuration available, joining with audio only');
@@ -813,6 +866,8 @@ class VideoConference {
                 document.getElementById('loading').style.display = 'none';
                 return;
             }
+
+            // Parse camera configuration
             let cameras = [];
             try {
                 if (deviceConfig.cameraConfiguration && typeof deviceConfig.cameraConfiguration === 'string') {
@@ -825,6 +880,7 @@ class VideoConference {
                 cameras = [];
             }
 
+            // Filter valid cameras
             const validCameras = cameras.filter(camera =>
                 camera && camera.label && typeof camera.label === 'string' && !camera.label.includes('Камера')
             );
@@ -835,7 +891,9 @@ class VideoConference {
                     const camerasContainer = section.querySelector('.cameras-container');
                     if (camerasContainer) {
                         let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
-                        if (placeholder) {placeholder.style.display = 'flex';}
+                        if (placeholder) {
+                            placeholder.style.display = 'flex';
+                        }
                     }
                 }
                 this.updateUserCount(displayName);
@@ -843,9 +901,13 @@ class VideoConference {
                 document.getElementById('loading').style.display = 'none';
                 return;
             }
+
+            // Initialize video tracks array if needed
             if (!this.localTracks.video) {
                 this.localTracks.video = [];
             }
+
+            // Initialize primary camera
             if (validCameras.length > 0) {
                 const camera = validCameras[0];
                 try {
@@ -861,10 +923,12 @@ class VideoConference {
                             }
                         }
                     });
+
                     if (tracks && tracks.length > 0 && tracks[0]) {
                         const track = tracks[0];
                         this.localTracks.video.push(track);
                         this.createVideoPreview(track, camera.label, 0);
+
                         if (this.room) {
                             try {
                                 await this.room.addTrack(track);
@@ -873,6 +937,7 @@ class VideoConference {
                                 console.error(`Error adding track to room: ${camera.label}`, trackError);
                             }
                         }
+
                         console.log(`Successfully added primary camera ${camera.label} with order ${camera.order || 1}`);
                     }
                 } catch (e) {
@@ -880,12 +945,15 @@ class VideoConference {
                     this.showError(`Camera access error: ${camera.label}`);
                 }
             }
+
+            // Initialize additional cameras as technical users
             if (validCameras.length > 1) {
                 console.log(`Creating ${validCameras.length - 1} technical users for additional cameras`);
                 for (let i = 1; i < validCameras.length; i++) {
                     const camera = validCameras[i];
                     const technicalUserName = `${this.userName}_technical${i}_camera${i+1}`;
                     console.log(`Creating technical user: ${technicalUserName} for camera: ${camera.label} (${camera.deviceId})`);
+
                     try {
                         const additionalTracks = await JitsiMeetJS.createLocalTracks({
                             devices: ['video'],
@@ -898,10 +966,12 @@ class VideoConference {
                                 }
                             }
                         });
+
                         if (additionalTracks && additionalTracks.length > 0 && additionalTracks[0]) {
                             const additionalTrack = additionalTracks[0];
                             this.localTracks.video.push(additionalTrack);
                             this.createVideoPreview(additionalTrack, camera.label, i);
+
                             await this.createTechnicalUserWithCamera(technicalUserName, additionalTrack, camera);
                             console.log(`Successfully set up technical user ${technicalUserName} with camera ${camera.label}`);
                         }
@@ -1013,28 +1083,53 @@ class VideoConference {
             this.isInitialized = true;
             this.myParticipantId = this.room.myUserId();
             console.log(`My participant ID on join: ${this.myParticipantId}`);
+
             this.participants.set("local", {
                 id: "local",
                 displayName: this.userName,
                 tracks: new Map()
             });
+
             if (!this.getParticipantSection(this.userName)) {
                 this.createParticipantSection("local", this.userName);
             }
+
             if (!this.userCounts.has(this.userName)) {
                 this.userCounts.set(this.userName, 1);
             }
+
             this.updateUsersList();
-            const participants = this.room.getParticipants();
+
+            // Wait for a bit to let the connection stabilize
             await new Promise(resolve => setTimeout(resolve, 2000));
+
+            // Send identity message to let others know who we are
             this.sendIdentityMessage();
+
+            const participants = this.room.getParticipants();
+
             if (this.reconnecting) {
-                console.log('Reconnecting - requesting all participants to send tracks again');
+                console.log('Reconnecting - clearing existing remote cameras first');
+
+                // Clear existing remote video containers before requesting new tracks
+                const remoteVideoWrappers = document.querySelectorAll('.video-wrapper[data-track-id]:not([data-track-id^="local"])');
+                remoteVideoWrappers.forEach(wrapper => {
+                    wrapper.remove();
+                });
+
+                // Request tracks from all participants
                 participants.forEach(participant => {
                     const id = participant.getId();
-                    this.requestParticipantTracks(id);
+                    // Don't request tracks from participants with our own display name during reconnection
+                    const displayName = participant.getDisplayName();
+                    if (displayName !== this.userName) {
+                        this.requestParticipantTracks(id);
+                    }
                 });
+
                 await new Promise(resolve => setTimeout(resolve, 1000));
+
+                // Re-add our own tracks
                 if (this.localTracks.video && this.localTracks.video.length > 0) {
                     for (const videoTrack of this.localTracks.video) {
                         if (typeof videoTrack.isDisposed === 'function' &&
@@ -1048,6 +1143,7 @@ class VideoConference {
                         }
                     }
                 }
+
                 if (this.localTracks.audio &&
                     typeof this.localTracks.audio.isDisposed === 'function' &&
                     !this.localTracks.audio.isDisposed()) {
@@ -1058,6 +1154,7 @@ class VideoConference {
                     }
                 }
             } else {
+                // Normal join (not reconnecting)
                 participants.forEach(participant => {
                     this.onUserJoined(participant.getId(), participant);
                 });
@@ -1066,6 +1163,7 @@ class VideoConference {
             console.error('Error in onConferenceJoined:', error);
         }
     }
+
     requestParticipantTracks(participantId) {
         if (this.room) {
             const message = {
@@ -1346,9 +1444,6 @@ class VideoConference {
                         setTimeout(resolve, 5000);
                     }
                 });
-                if (!isTechnicalUser) {
-                    await this.createTechnicalUsers();
-                }
             }
             this.setupControlButtons();
             this.startUserCountUpdates();
