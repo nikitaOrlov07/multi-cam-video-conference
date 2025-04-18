@@ -16,8 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.example.webConf.dto.Devices.CameraDTO;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/conference/devices")
@@ -80,8 +79,97 @@ public class ConferenceDeviceApiController {
     /// Method for finding all user device configuration
     @GetMapping("/configuration/{conferenceId}")
     public List<ConferenceDevices> findConferenceConfig(@PathVariable String conferenceId) {
+        // Find all devices configurations for this conference
         List<ConferenceDevices> conferenceDevices = devicesRepository.findAllByConference_Id(conferenceId);
-        log.info("Find All Devices for conference: {}", conferenceId);
-        return conferenceDevices;
+
+        // Create a map to group devices by actual username
+        Map<String, List<ConferenceDevices>> userDevicesMap = new HashMap<>();
+
+        // Group devices by actual username (stripping technical suffix if present)
+        for (ConferenceDevices device : conferenceDevices) {
+            String actualUserName = extractActualUsername(device.getUserName());
+
+            if (!userDevicesMap.containsKey(actualUserName)) {
+                userDevicesMap.put(actualUserName, new ArrayList<>());
+            }
+            userDevicesMap.get(actualUserName).add(device);
+        }
+
+        // Create new list of devices with proper configuration
+        List<ConferenceDevices> resultDevices = new ArrayList<>();
+
+        for (Map.Entry<String, List<ConferenceDevices>> entry : userDevicesMap.entrySet()) {
+            String actualUserName = entry.getKey();
+            List<ConferenceDevices> userDevices = entry.getValue();
+
+            // If user has multiple device configs, we need to merge camera configurations
+            if (userDevices.size() > 1) {
+                // Create a merged device config for this user
+                ConferenceDevices mergedConfig = new ConferenceDevices();
+                mergedConfig.setUserName(actualUserName);
+                mergedConfig.setConference(userDevices.get(0).getConference());
+
+                // Set grid configuration from the first device (assuming they're all the same)
+                mergedConfig.setGridRows(userDevices.get(0).getGridRows());
+                mergedConfig.setGridCols(userDevices.get(0).getGridCols());
+
+                // Merge camera configurations
+                List<Map<String, Object>> allCameras = new ArrayList<>();
+                int orderOffset = 0;
+
+                for (ConferenceDevices device : userDevices) {
+                    if (device.getCameraConfiguration() != null && !device.getCameraConfiguration().isEmpty()) {
+                        try {
+                            ObjectMapper mapper = new ObjectMapper();
+                            List<Map<String, Object>> cameras = mapper.readValue(
+                                    device.getCameraConfiguration(),
+                                    new TypeReference<List<Map<String, Object>>>() {}
+                            );
+
+                            // Adjust order for cameras from each technical user
+                            for (Map<String, Object> camera : cameras) {
+                                if (camera.containsKey("order")) {
+                                    int originalOrder = ((Number) camera.get("order")).intValue();
+                                    camera.put("order", originalOrder + orderOffset);
+                                }
+                                allCameras.add(camera);
+                            }
+
+                            // Increment offset for next technical user
+                            orderOffset += cameras.size();
+
+                        } catch (Exception e) {
+                            log.error("Error parsing camera configuration for {}: {}", device.getUserName(), e.getMessage());
+                        }
+                    }
+                }
+
+                // Convert merged cameras back to JSON
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    mergedConfig.setCameraConfiguration(mapper.writeValueAsString(allCameras));
+                } catch (Exception e) {
+                    log.error("Error creating merged camera configuration: {}", e.getMessage());
+                    mergedConfig.setCameraConfiguration("[]");
+                }
+
+                // Add the merged config to results
+                resultDevices.add(mergedConfig);
+            } else {
+                // User has only one device config, add it as is
+                resultDevices.add(userDevices.get(0));
+            }
+        }
+
+        log.info("Found {} device configurations for conference: {}", resultDevices.size(), conferenceId);
+        return resultDevices;
+    }
+
+    private String extractActualUsername(String technicalUsername) {
+        // If username has format "actualName_technical1", extract the actual name
+        if (technicalUsername != null && technicalUsername.contains("_technical")) {
+            return technicalUsername.split("_technical")[0];
+        }
+        return technicalUsername;
     }
 }

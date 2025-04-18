@@ -16,12 +16,9 @@ class VideoConference {
         this.updateUserCount = this.updateUserCount.bind(this);
         this.userUpdateInterval = null;
         this.processedParticipants = new Set();
-        this.reconnecting = false;  // Add this flag to track reconnections
-        this.myParticipantId = null; // Track the user's own participant ID
-
-        // Add a map to track display names to section IDs
+        this.reconnecting = false;
+        this.myParticipantId = null;
         this.displayNameToSectionMap = new Map();
-        // Properties to track camera ordering
         this.cameraOrderMap = new Map(); // Maps deviceId to order
         this.orderedCameraContainers = new Map(); // Maps order to container element
     }
@@ -31,26 +28,15 @@ class VideoConference {
             if (!response.ok) {
                 throw new Error('Failed to load all camera configurations');
             }
-
             const deviceConfigs = await response.json();
-
-            console.log("AFTER RESPONSE")
-            console.log("Response ", deviceConfigs)
-
-            // Process each user's configuration
             deviceConfigs.forEach(config => {
                 const userName = config.userName;
                 const gridRows = config.gridRows || 2;
                 const gridCols = config.gridCols || 2;
-
-                // Parse camera configurations if they exist
                 if (config.cameraConfiguration) {
                     try {
                         const cameras = JSON.parse(config.cameraConfiguration);
-
-                        // Store order and grid information for each camera
                         cameras.forEach(camera => {
-                            // Store with userName+deviceId as the key to avoid conflicts across users
                             const key = `${userName}_${camera.deviceId}`;
                             this.cameraOrderMap.set(key, {
                                 order: camera.order,
@@ -58,8 +44,6 @@ class VideoConference {
                                 gridCols: gridCols
                             });
                         });
-
-                        // Also store grid config by username for easier access
                         this.cameraOrderMap.set(`${userName}_gridConfig`, {
                             gridRows: gridRows,
                             gridCols: gridCols
@@ -69,7 +53,6 @@ class VideoConference {
                     }
                 }
             });
-
             console.log('Loaded camera configurations for all users:', this.cameraOrderMap);
             return true;
         } catch (error) {
@@ -79,26 +62,25 @@ class VideoConference {
         }
     }
 
+
     updateUserCount(userName) {
         try {
-            // Skip if we're reconnecting and the user is the local user
-            if (this.reconnecting && userName === this.userName) {
-                console.log('Skipping user count update for reconnecting user');
-                return Promise.resolve(this.userCounts.get(userName) || 1);
+            let displayName = userName;
+            if (displayName && displayName.includes('_technical')) {
+                displayName = displayName.split('_technical')[0];
             }
-
-            // Important change: Don't process the local user in backend updates
-            // This prevents the local user from being removed during user count updates
-            if (userName === this.userName) {
-                // Just ensure there's a count for the local user
-                if (!this.userCounts.has(userName)) {
-                    this.userCounts.set(userName, 1);
+            if (this.reconnecting && displayName === this.displayName) {
+                console.log('Skipping user count update for reconnecting user');
+                return Promise.resolve(this.userCounts.get(displayName) || 1);
+            }
+            if (displayName === this.displayName) {
+                if (!this.userCounts.has(displayName)) {
+                    this.userCounts.set(displayName, 1);
                 }
                 this.updateUsersList();
-                return Promise.resolve(this.userCounts.get(userName));
+                return Promise.resolve(this.userCounts.get(displayName));
             }
-
-            return fetch(`/conference/updateUserJoinCount?userName=${encodeURIComponent(userName)}&conferenceId=${this.conferenceId}`)
+            return fetch(`/conference/updateUserJoinCount?userName=${encodeURIComponent(displayName)}&conferenceId=${this.conferenceId}`)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Failed to update user count');
@@ -106,8 +88,7 @@ class VideoConference {
                     return response.json().catch(() => 0);
                 })
                 .then(count => {
-                    // Update the count
-                    this.userCounts.set(userName, count);
+                    this.userCounts.set(displayName, count);
                     this.updateUsersList();
                     return count;
                 })
@@ -122,9 +103,7 @@ class VideoConference {
             return Promise.resolve(null);
         }
     }
-
     isUserAlreadyInConference(userName) {
-        // Check from participants Map instead of just the DOM
         for (const participant of this.participants.values()) {
             if (participant.displayName === userName) {
                 return true;
@@ -155,8 +134,6 @@ class VideoConference {
             console.log('Connection established successfully=====================');
             await this.updateUserCount();
             this.room = this.connection.initJitsiConference(this.conferenceId, options);
-
-            // Needed for proper user identification during reconnection
             this.room.on(JitsiMeetJS.events.conference.ENDPOINT_MESSAGE_RECEIVED,
                 (participant, message) => this.onEndpointMessageReceived(participant, message));
 
@@ -170,24 +147,19 @@ class VideoConference {
                 (id, user) => this.onUserJoined(id, user));
             this.room.on(JitsiMeetJS.events.conference.USER_LEFT,
                 (id) => this.onUserLeft(id));
-
-            // Send proper identity information on joining
-            this.room.setDisplayName(this.userName);
-
+            let displayName = this.userName;
+            if (displayName.includes('_technical')) {
+                displayName = displayName.split('_technical')[0];
+            }
+            this.displayName = displayName;
+            this.room.setDisplayName(displayName);
             await this.room.join();
-
-            // Store user's own participant ID
             this.myParticipantId = this.room.myUserId();
             console.log(`My participant ID: ${this.myParticipantId}`);
-
-            // REMOVE THIS LINE: This is causing the error since BridgeChannel isn't initialized yet
-            // this.sendIdentityMessage();
-
             const participants = this.room.getParticipants();
             participants.forEach(participant => {
                 this.onUserJoined(participant.getId(), participant);
             });
-
             document.getElementById('loading').style.display = 'none';
         } catch (error) {
             console.error('Conference connection error:', error);
@@ -195,6 +167,7 @@ class VideoConference {
             document.getElementById('loading').style.display = 'none';
         }
     }
+
 
     sendIdentityMessage() {
         if (this.room && this.room.getBridgeChannel && this.room.getBridgeChannel()) {
@@ -208,12 +181,10 @@ class VideoConference {
                 console.log('Identity message sent successfully');
             } catch (error) {
                 console.warn('Failed to send identity message, will retry in 2 seconds', error);
-                // Retry after a delay
                 setTimeout(() => this.sendIdentityMessage(), 2000);
             }
         } else {
             console.warn('BridgeChannel not ready, will retry in 2 seconds');
-            // Retry after a delay
             setTimeout(() => this.sendIdentityMessage(), 2000);
         }
     }
@@ -222,15 +193,10 @@ class VideoConference {
         if (message && message.identity && message.identity.type === 'identity') {
             const participantId = participant.getId();
             const userName = message.identity.userName;
-
             console.log(`Received identity from ${participantId}: ${userName}`);
-
-            // Update the participant's display name
             if (this.participants.has(participantId)) {
                 const existingParticipant = this.participants.get(participantId);
                 existingParticipant.displayName = userName;
-
-                // Update any display names in the UI
                 const section = document.querySelector(`[data-participant-id="${participantId}"]`);
                 if (section) {
                     const nameDiv = section.querySelector('.participant-name');
@@ -240,39 +206,43 @@ class VideoConference {
                 }
             }
         }
-
-        // Add this new handler for track requests
         if (message && message.trackRequest && message.trackRequest.type === 'track_request') {
             console.log(`Received track request from ${message.trackRequest.requesterId}`);
-
-            // Re-share all local tracks
-            this.localTracks.video.forEach(async track => {
-                try {
-                    if (this.room && !track.isDisposed()) {
-                        console.log(`Re-sharing local track ${track.getId()}`);
-                        // First remove track if it exists
-                        await this.room.removeTrack(track);
-                        // Then add it again to trigger sharing
-                        await this.room.addTrack(track);
+            if (this.localTracks.video && this.localTracks.video.length > 0) {
+                for (const track of this.localTracks.video) {
+                    if (typeof track.isDisposed === 'function' && !track.isDisposed()) {
+                        try {
+                            console.log(`Re-sharing video track: ${track.getId()}`);
+                            this.room.addTrack(track)
+                                .catch(error => {
+                                    console.log(`Note: Could not add video track (may already exist): ${error.message}`);
+                                });
+                        } catch (error) {
+                            console.error('Error re-sharing video track:', error);
+                        }
                     }
-                } catch (error) {
-                    console.error('Error re-sharing track:', error);
                 }
-            });
+            }
+            if (this.localTracks.audio && typeof this.localTracks.audio.isDisposed === 'function' && !this.localTracks.audio.isDisposed()) {
+                try {
+                    this.room.addTrack(this.localTracks.audio)
+                        .catch(error => {
+                            console.log(`Note: Could not add audio track (may already exist): ${error.message}`);
+                        });
+                } catch (error) {
+                    console.error('Error re-sharing audio track:', error);
+                }
+            }
         }
     }
 
     onUserLeft(id) {
         console.log('User left:', id);
         const participant = this.participants.get(id);
-
-        // Critical change: Never remove the local user
-        // Protect the local user from being removed
         if (participant && participant.displayName === this.userName) {
             console.log('Ignoring user left event for local user');
             return;
         }
-
         if (participant) {
             const displayName = participant.displayName;
             const currentCount = this.userCounts.get(displayName);
@@ -280,15 +250,11 @@ class VideoConference {
             if (currentCount > 1) {
                 this.userCounts.set(displayName, currentCount - 1);
             }
-
             this.updateUsersList();
             this.participants.delete(id);
-
             const remainingParticipants = Array.from(this.participants.values())
                 .filter(p => p.displayName === displayName);
-
             if (remainingParticipants.length === 0) {
-                // Only remove the section if no participants with the same display name remain
                 if (this.displayNameToSectionMap.has(displayName)) {
                     const sectionId = this.displayNameToSectionMap.get(displayName);
                     const section = document.querySelector(`[data-participant-id="${sectionId}"]`);
@@ -299,7 +265,6 @@ class VideoConference {
                 }
             }
         }
-
         if (this.remoteTracks.has(id)) {
             this.remoteTracks.get(id).forEach(track => track.dispose());
             this.remoteTracks.delete(id);
@@ -309,25 +274,16 @@ class VideoConference {
     updateUsersList() {
         const usersListElement = document.getElementById('users-list');
         usersListElement.innerHTML = '';
-
-        // Create a set of unique usernames from participants
         const uniqueUsers = new Set();
         this.participants.forEach(participant => {
             uniqueUsers.add(participant.displayName);
         });
-
-        // Make sure local user is included
         uniqueUsers.add(this.userName);
-
-        // Update counts for each unique user
         uniqueUsers.forEach(userName => {
             if (!this.userCounts.has(userName)) {
-                // Initialize with 1 if not present
                 this.userCounts.set(userName, 1);
             }
         });
-
-        // Critical change: Always ensure the local user is in the participants map
         if (!this.participants.has("local")) {
             this.participants.set("local", {
                 id: "local",
@@ -335,19 +291,13 @@ class VideoConference {
                 tracks: new Map()
             });
         }
-
         this.userCounts.forEach((count, userName) => {
-            // Ensure the local user is always shown
             if (!uniqueUsers.has(userName) && userName !== this.userName) {
                 return;
             }
-
             const isVisible = this.userVisibility.get(userName) !== false;
             const isLocalUser = userName === this.userName;
-
-            // Add "(You)" label for the local user
             const displayName = isLocalUser ? `${userName} (You)` : userName;
-
             const userItem = document.createElement('div');
             userItem.className = 'user-item';
             userItem.innerHTML = `
@@ -359,20 +309,15 @@ class VideoConference {
         </label>
         <span class="user-count">${count}</span>
     `;
-
             const checkbox = userItem.querySelector('input[type="checkbox"]');
             checkbox.addEventListener('change', (e) => {
                 this.toggleUserVisibility(userName, e.target.checked);
             });
-
             usersListElement.appendChild(userItem);
         });
     }
-
     toggleUserVisibility(userName, isVisible) {
         this.userVisibility.set(userName, isVisible);
-
-        // Находим все секции с данным userName
         const sections = document.querySelectorAll('.participant-section');
         sections.forEach(section => {
             const sectionName = section.querySelector('.participant-name').textContent;
@@ -387,24 +332,13 @@ class VideoConference {
     }
     updateSectionLayout(section) {
         if (!section) return;
-
         const camerasContainer = section.querySelector('.cameras-container');
         if (!camerasContainer) return;
-
         const videoWrappers = camerasContainer.querySelectorAll('.video-wrapper');
         const count = videoWrappers.length;
-
-        // Set the section size attribute based on camera count
         section.setAttribute('data-size', Math.min(4, Math.ceil(count / 2)));
-
-        // Get username from the section
         const displayName = section.querySelector('.participant-name').textContent;
-
-        // Find grid configuration for this user
-        let gridRows = 2; // Default
-        let gridCols = 2; // Default
-
-        // Look for stored grid configuration
+        let gridRows = 2; let gridCols = 2;
         for (const [key, config] of this.cameraOrderMap.entries()) {
             if (key.startsWith(`${displayName}_`) && config.gridRows && config.gridCols) {
                 gridRows = config.gridRows;
@@ -412,26 +346,15 @@ class VideoConference {
                 break;
             }
         }
-
-        // Apply grid layout
         camerasContainer.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
         camerasContainer.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
-
-        // Set placement for each camera based on its order
         videoWrappers.forEach(wrapper => {
             const order = wrapper.getAttribute('data-camera-order') || 999;
-
-            // Calculate grid position (row and column) based on order
-            // For example: with 2x2 grid, order 1 is at (0,0), order 2 at (0,1), order 3 at (1,0), etc.
             const col = (order - 1) % gridCols;
             const row = Math.floor((order - 1) / gridCols);
-
-            // Apply grid position
             wrapper.style.gridRow = `${row + 1}`;
             wrapper.style.gridColumn = `${col + 1}`;
         });
-
-        // Hide placeholder if we have videos
         if (count > 0) {
             const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
             if (placeholder) {
@@ -439,13 +362,10 @@ class VideoConference {
             }
         }
     }
-
-
     onRemoteTrackRemoved(track) {
         if (track.isLocal()) {
             return;
         }
-
         const participantId = track.getParticipantId();
         const trackId = track.getId();
 
@@ -455,8 +375,6 @@ class VideoConference {
             if (wrapper) {
                 wrapper.remove();
                 this.updateSectionLayout(section);
-
-                // Show the placeholder if no video tracks remain
                 const camerasContainer = section.querySelector('.cameras-container');
                 if (camerasContainer) {
                     const videoWrappers = camerasContainer.querySelectorAll('.video-wrapper');
@@ -464,7 +382,6 @@ class VideoConference {
                         let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
 
                         if (!placeholder) {
-                            // Create placeholder if it doesn't exist
                             placeholder = document.createElement('div');
                             placeholder.className = 'no-camera-placeholder';
                             placeholder.innerHTML = `
@@ -486,7 +403,6 @@ class VideoConference {
                             placeholder.style.backgroundColor = '#2a2a2a';
                             placeholder.style.borderRadius = '8px';
                             placeholder.style.padding = '20px';
-
                             camerasContainer.appendChild(placeholder);
                         } else {
                             placeholder.style.display = 'flex';
@@ -504,8 +420,6 @@ class VideoConference {
 
             if (tracks.size === 0) {
                 this.remoteTracks.delete(participantId);
-
-                // Only remove section if no other participants with same display name
                 const participant = this.participants.get(participantId);
                 if (participant) {
                     const displayName = participant.displayName;
@@ -526,8 +440,6 @@ class VideoConference {
             }
         }
     }
-
-    // Modified to return the main section ID for a display name
     getParticipantSection(displayName) {
         if (this.displayNameToSectionMap.has(displayName)) {
             const sectionId = this.displayNameToSectionMap.get(displayName);
@@ -538,27 +450,18 @@ class VideoConference {
         }
         return null;
     }
-
     createParticipantSection(participantId, displayName) {
-        // First check if we already have a section for this display name
         let section = this.getParticipantSection(displayName);
-
         if (section) {
             console.log(`Using existing section for ${displayName}`);
-            // Update participant IDs list in existing section
             return section;
         }
-
         if (displayName === 'Участник') {
             console.log(`Skipping section creation for default participant: ${participantId}`);
             return null;
         }
-
-        // Important change: Special handling for the local user
-        // Always use "local" as the participant ID for the local user
         const isLocalUser = displayName === this.userName;
         const sectionId = isLocalUser ? "local" : participantId;
-
         section = document.createElement('div');
         section.className = 'participant-section';
         if (this.userVisibility.get(displayName.split(' (')[0]) === false) {
@@ -566,31 +469,21 @@ class VideoConference {
         }
         section.setAttribute('data-participant-id', sectionId);
         section.setAttribute('data-size', '1');
-
         const nameDiv = document.createElement('div');
         nameDiv.className = 'participant-name';
         nameDiv.textContent = displayName;
-
         const camerasContainer = document.createElement('div');
         camerasContainer.className = 'cameras-container';
-
-        // Look for grid configuration for this user
-        let gridRows = 2; // Default
-        let gridCols = 2; // Default
-
-        // Check if we have specific grid config for this user
+        let gridRows = 2;
+        let gridCols = 2;
         const gridConfigKey = `${displayName}_gridConfig`;
         if (this.cameraOrderMap.has(gridConfigKey)) {
             const config = this.cameraOrderMap.get(gridConfigKey);
             gridRows = config.gridRows || gridRows;
             gridCols = config.gridCols || gridCols;
         }
-
-        // Apply grid configuration
         camerasContainer.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
         camerasContainer.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
-
-        // Add a placeholder for users without cameras
         const noCameraPlaceholder = document.createElement('div');
         noCameraPlaceholder.className = 'no-camera-placeholder';
         noCameraPlaceholder.innerHTML = `
@@ -612,93 +505,66 @@ class VideoConference {
         noCameraPlaceholder.style.backgroundColor = '#2a2a2a';
         noCameraPlaceholder.style.borderRadius = '8px';
         noCameraPlaceholder.style.padding = '20px';
-        noCameraPlaceholder.style.gridColumn = `1 / span ${gridCols}`; // Span across all columns
-        noCameraPlaceholder.style.gridRow = `1 / span ${gridRows}`;   // Span across all rows
-
+        noCameraPlaceholder.style.gridColumn = `1 / span ${gridCols}`;
+        noCameraPlaceholder.style.gridRow = `1 / span ${gridRows}`;
         camerasContainer.appendChild(noCameraPlaceholder);
-
         section.appendChild(nameDiv);
         section.appendChild(camerasContainer);
         document.getElementById('video-container').appendChild(section);
-
-        // If this is the local user, ensure they're in the participants map
         if (isLocalUser) {
-            // Add/update the local user in the participants map
             this.participants.set("local", {
                 id: "local",
                 displayName: this.userName,
                 tracks: new Map()
             });
-
-            // Always ensure the local user has a count
             if (!this.userCounts.has(this.userName)) {
                 this.userCounts.set(this.userName, 1);
             }
         }
-
-        // Save this section as the main one for this display name
         this.displayNameToSectionMap.set(displayName, sectionId);
 
         return section;
     }
-
-    // Обновим инициализацию камер
     createVideoPreview(track, label, index) {
-        // Use "local" as the participant ID for local tracks
         let section = document.querySelector(`[data-participant-id="local"]`);
 
         if (!section) {
             section = this.createParticipantSection('local', this.userName);
-
-            // Make sure section was created successfully
             if (!section) {
                 console.error('Failed to create section for local user');
                 return;
             }
         }
-
         const camerasContainer = section.querySelector('.cameras-container');
         if (!camerasContainer) {
             console.error('No cameras container found in section');
             return;
         }
-
-        // Hide the no-camera placeholder if it exists
         const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
         if (placeholder) {
             placeholder.style.display = 'none';
         }
-
         const wrapper = document.createElement('div');
         wrapper.className = 'video-wrapper';
         wrapper.setAttribute('data-track-id', track.getId());
-
         const video = document.createElement('video');
         video.autoplay = true;
         video.playsInline = true;
         video.muted = true;
         track.attach(video);
-
-        // Get device information from the track to find the order
         let deviceId = '';
         if (typeof track.getDeviceId === 'function') {
             deviceId = track.getDeviceId();
         } else {
-            // Try to get from original stream or use track ID as fallback
             deviceId = track.getId();
         }
-
-        // Check if we have ordering information
         const orderKey = `${this.userName}_${deviceId}`;
         let cameraOrder = null;
         let gridConfig = null;
-
         if (this.cameraOrderMap.has(orderKey)) {
             const config = this.cameraOrderMap.get(orderKey);
             cameraOrder = config.order;
             wrapper.setAttribute('data-camera-order', cameraOrder);
-
-            // Get grid configuration
             gridConfig = {
                 gridRows: config.gridRows || 2,
                 gridCols: config.gridCols || 2
@@ -707,291 +573,232 @@ class VideoConference {
             cameraOrder = index + 1;
             wrapper.setAttribute('data-camera-order', cameraOrder);
         }
-
         const cameraLabel = document.createElement('div');
         cameraLabel.className = 'camera-label';
-
-        // Use order in label if available
         if (cameraOrder !== null) {
             cameraLabel.textContent = `${label || 'Камера'} ${cameraOrder}`;
         } else {
             cameraLabel.textContent = `${label || 'Камера'} ${index + 1}`;
         }
-
         wrapper.appendChild(video);
         wrapper.appendChild(cameraLabel);
-
-        // Append the wrapper
         camerasContainer.appendChild(wrapper);
-
-        // Apply grid layout
         this.updateSectionLayout(section);
+        console.log(`Added camera ${label} to container. Total cameras: ${camerasContainer.querySelectorAll('.video-wrapper').length}`);
     }
-
-
     isValidVideoTrack(track) {
         if (!track || track.getType() !== 'video') {
             console.log("Track is not a video track");
             return false;
         }
-
         const stream = track.getOriginalStream();
         if (!stream || stream.getVideoTracks().length === 0) {
             console.log("Track has no video tracks in stream");
             return false;
         }
-
-        // Additional check for active state
         const videoTracks = stream.getVideoTracks();
         if (videoTracks.length > 0 && !videoTracks[0].enabled) {
             console.log("Video track is disabled");
             return false;
         }
-
         const deviceName = (typeof track.getDeviceName === 'function')
             ? track.getDeviceName()
             : '';
-
         if (deviceName.includes('Камера')) {
             console.log(`Skipping camera with generic name: ${deviceName}`);
             return false;
         }
-
         return true;
     }
-
     onRemoteTrackAdded(track) {
         if (track.isLocal()) {
             return;
         }
-
+        console.log(`Remote track added - type: ${track.getType()}, participant: ${track.getParticipantId()}`);
         const participantId = track.getParticipantId();
-
-        // Initialize track map for this participant if not exists
         if (!this.remoteTracks.has(participantId)) {
             this.remoteTracks.set(participantId, new Map());
         }
-
-        // Store the track
         this.remoteTracks.get(participantId).set(track.getId(), track);
-
         if (track.getType() === 'video') {
-            // Check if the video track is valid
-            if (!this.isValidVideoTrack(track)) {
-                console.log(`Skipping invalid video track from participant ${participantId}`);
-                return;
+            console.log(`Processing video track: ${track.getId()} from participant ${participantId}`);
+            const isValid = this.isValidVideoTrack(track);
+            console.log(`Video track validity check: ${isValid}`);
+            if (!isValid) {
+                console.log(`Attempting to process video track anyway from participant ${participantId}`);
             }
-
             const participant = this.participants.get(participantId);
             if (!participant) {
-                console.error(`No participant found for ID ${participantId}`);
-                return;
+                console.error(`No participant found for ID ${participantId}, creating placeholder`);
+                this.participants.set(participantId, {
+                    id: participantId,
+                    displayName: 'Unknown Participant',
+                    tracks: new Map()
+                });
             }
-
-            const displayName = participant.displayName || 'Участник';
-
-            // Try to get the existing section for this display name
-            let section = this.getParticipantSection(displayName);
-
-            // If no section exists, create a new one
-            if (!section) {
-                section = this.createParticipantSection(participantId, displayName);
-
-                // Check if section creation was successful
-                if (!section) {
-                    console.log(`Unable to create section for ${displayName} with ID ${participantId}, skipping track addition`);
-                    return;
+            const displayName = participant?.displayName || 'Участник';
+            let cameraOrder = null;
+            if (participant?.isTechnical && participant?.cameraInfo) {
+                const orderMatch = participant.cameraInfo.match(/camera(\d+)/);
+                if (orderMatch && orderMatch[1]) {
+                    cameraOrder = parseInt(orderMatch[1], 10);
+                    console.log(`Found camera order ${cameraOrder} from technical user`);
                 }
             }
-
+            let section = this.getParticipantSection(displayName);
+            if (!section) {
+                section = this.createParticipantSection(participantId, displayName);
+                if (!section) {
+                    console.error(`Unable to create section for ${displayName} with ID ${participantId}, creating emergency section`);
+                    section = document.createElement('div');
+                    section.className = 'participant-section';
+                    section.setAttribute('data-participant-id', participantId);
+                    section.setAttribute('data-size', '1');
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'participant-name';
+                    nameDiv.textContent = displayName;
+                    const camerasContainer = document.createElement('div');
+                    camerasContainer.className = 'cameras-container';
+                    camerasContainer.style.gridTemplateRows = 'repeat(2, 1fr)';
+                    camerasContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
+                    section.appendChild(nameDiv);
+                    section.appendChild(camerasContainer);
+                    document.getElementById('video-container').appendChild(section);
+                    this.displayNameToSectionMap.set(displayName, participantId);
+                }
+            }
             const camerasContainer = section.querySelector('.cameras-container');
             if (!camerasContainer) {
-                console.error(`No cameras container found for participant ${participantId} with name ${displayName}`);
+                console.error(`No cameras container found for participant ${participantId} with name ${displayName}, creating one`);
+                const newCamerasContainer = document.createElement('div');
+                newCamerasContainer.className = 'cameras-container';
+                newCamerasContainer.style.gridTemplateRows = 'repeat(2, 1fr)';
+                newCamerasContainer.style.gridTemplateColumns = 'repeat(2, 1fr)';
+                section.appendChild(newCamerasContainer);
                 return;
             }
-
-            // Hide the no-camera placeholder if it exists
             const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
             if (placeholder) {
                 placeholder.style.display = 'none';
             }
-
             const wrapper = document.createElement('div');
             wrapper.className = 'video-wrapper';
             wrapper.setAttribute('data-track-id', track.getId());
-
             const video = document.createElement('video');
             video.autoplay = true;
             video.playsInline = true;
-
-            // Don't append the video to the DOM yet
-            track.attach(video);
-
-            // Get device information from the track
+            video.id = `video-${track.getId()}`;
             let deviceId = '';
             if (typeof track.getDeviceId === 'function') {
                 deviceId = track.getDeviceId();
             } else {
-                // Try to extract from source or use track ID as fallback
                 deviceId = track.getId();
             }
-
-            // Check if we have ordering information for this camera
-            const orderKey = `${displayName}_${deviceId}`;
-            let cameraOrder = null;
-
-            if (this.cameraOrderMap.has(orderKey)) {
-                cameraOrder = this.cameraOrderMap.get(orderKey).order;
+            if (cameraOrder !== null) {
                 wrapper.setAttribute('data-camera-order', cameraOrder);
             } else {
-                // If no specific order is found, assign next available position
-                const existingWrappers = camerasContainer.querySelectorAll('.video-wrapper');
-                cameraOrder = existingWrappers.length + 1;
-                wrapper.setAttribute('data-camera-order', cameraOrder);
-            }
-
-            // Create a promise to check if video has dimensions after attaching
-            const checkVideoDimensions = new Promise((resolve, reject) => {
-                // Set timeout to prevent hanging if metadata never loads
-                const timeout = setTimeout(() => {
-                    reject('Video metadata loading timed out');
-                }, 5000);
-
-                video.addEventListener('loadedmetadata', () => {
-                    clearTimeout(timeout);
-                    if (video.videoWidth === 0 || video.videoHeight === 0) {
-                        reject('Video has zero dimensions');
-                    } else {
-                        resolve();
-                    }
-                });
-            });
-
-            // Only add the video to the DOM after we've confirmed it has dimensions
-            checkVideoDimensions.then(() => {
-                const label = document.createElement('div');
-                label.className = 'camera-label';
-
-                // Use order in label if available
-                if (cameraOrder !== null) {
-                    label.textContent = `Камера ${cameraOrder}`;
+                const orderKey = `${displayName}_${deviceId}`;
+                if (this.cameraOrderMap.has(orderKey)) {
+                    cameraOrder = this.cameraOrderMap.get(orderKey).order;
+                    wrapper.setAttribute('data-camera-order', cameraOrder);
                 } else {
-                    label.textContent = `Камера ${camerasContainer.querySelectorAll('.video-wrapper').length + 1}`;
+                    const existingWrappers = camerasContainer.querySelectorAll('.video-wrapper');
+                    cameraOrder = existingWrappers.length + 1;
+                    wrapper.setAttribute('data-camera-order', cameraOrder);
                 }
-
-                wrapper.appendChild(video);
-                wrapper.appendChild(label);
-
-                camerasContainer.appendChild(wrapper);
-
-                this.updateSectionLayout(section);
-
-                video.play().catch(error => {
-                    console.error('Video playback error:', error);
+            }
+            const label = document.createElement('div');
+            label.className = 'camera-label';
+            label.textContent = `Камера ${cameraOrder || camerasContainer.querySelectorAll('.video-wrapper').length + 1}`;
+            try {
+                video.addEventListener('error', (e) => {
+                    console.error(`Video error for track ${track.getId()}:`, e);});
+                track.attach(video);
+                console.log(`Successfully attached track ${track.getId()} to video element ${video.id}`);
+                video.load();
+            } catch (e) {
+                console.error('Error attaching video track:', e);
+                return;
+            }
+            wrapper.appendChild(video);
+            wrapper.appendChild(label);
+            camerasContainer.appendChild(wrapper);
+            this.updateSectionLayout(section);
+            video.play().catch(error => {
+                console.error('Video playback error:', error);
+                video.muted = true;
+                video.play().catch(e => {
+                    console.error('Second video playback attempt failed:', e);
                     wrapper.remove();
                     this.updateSectionLayout(section);
-
-                    // Show placeholder again if no other videos
-                    if (camerasContainer.querySelectorAll('.video-wrapper').length === 0) {
-                        if (placeholder) {
-                            placeholder.style.display = 'flex';
-                        }
-                    }
-                });
-            }).catch(error => {
-                console.log(`Skipping invalid video track: ${error}`);
-                track.detach(video);
-                // Make sure to clean up the track in our remoteTracks map
-                if (this.remoteTracks.has(participantId)) {
-                    this.remoteTracks.get(participantId).delete(track.getId());
-                }
-
-                // Show placeholder again if no other videos
-                if (camerasContainer.querySelectorAll('.video-wrapper').length === 0) {
-                    if (placeholder) {
+                    if (camerasContainer.querySelectorAll('.video-wrapper').length === 0 && placeholder) {
                         placeholder.style.display = 'flex';
                     }
-                }
+                });
             });
         } else if (track.getType() === 'audio') {
             const audio = document.createElement('audio');
-            track.attach(audio);
-            audio.play().catch(error => {
-                console.error('Audio playback error:', error);
-            });
+            audio.id = `audio-${track.getId()}`;
+            try {
+                track.attach(audio);
+                console.log(`Successfully attached audio track ${track.getId()} to element ${audio.id}`);
+                audio.play().catch(error => {
+                    console.error('Audio playback error:', error);
+                    audio.muted = true;
+                    audio.play().catch(e => {
+                        console.error('Second audio playback attempt failed:', e);
+                    });
+                });
+            } catch (e) {
+                console.error('Error attaching audio track:', e);
+            }
         }
     }
-
-    // Обновим инициализацию камер
     async initializeDevices() {
         try {
-            // Check for the special case of a page refresh/reconnection
             const storedUserId = sessionStorage.getItem('conferenceUserId');
             const storedConferenceId = sessionStorage.getItem('conferenceId');
-
             if (storedUserId === this.userName && storedConferenceId === this.conferenceId) {
                 this.reconnecting = true;
                 console.log('Detected reconnection, handling accordingly');
             }
-
-            // Always store current user and conference ID
             sessionStorage.setItem('conferenceUserId', this.userName);
             sessionStorage.setItem('conferenceId', this.conferenceId);
-
-            // If reconnecting and already showing in users list, don't initialize new devices
-            if (this.reconnecting && this.isUserAlreadyInConference(this.userName)) {
+            let displayName = this.userName;
+            if (displayName.includes('_technical')) {
+                displayName = displayName.split('_technical')[0];
+            }
+            this.displayName = displayName;
+            if (this.reconnecting && this.isUserAlreadyInConference(displayName)) {
                 console.log('User already in conference, skipping device initialization');
                 document.getElementById('loading').style.display = 'none';
                 return;
             }
-
-            // Create a section for the local user even if no cameras - IMPORTANT: This ensures user section exists
             let section = document.querySelector(`[data-participant-id="local"]`);
             if (!section) {
-                section = this.createParticipantSection('local', this.userName);
-
-                // Ensure the section was created successfully
+                section = this.createParticipantSection('local', displayName);
                 if (!section) {
                     console.error('Failed to create section for local user');
-                    // Still try to continue with audio setup
                 }
             }
-
-            // Initialize audio track
             try {
                 const audioTracks = await JitsiMeetJS.createLocalTracks({
                     devices: ['audio']
                 });
-
                 if (audioTracks && audioTracks.length > 0) {
                     this.localTracks.audio = audioTracks[0];
-
                     if (this.room) {
                         await this.room.addTrack(audioTracks[0]);
                     }
-
                     console.log('Audio track initialized successfully');
                 }
             } catch (audioError) {
                 console.error('Error initializing audio track:', audioError);
                 this.showError('Microphone access error');
             }
-
-            // Make sure we have a valid section object before continuing
-            if (!section) {
-                // Try once more to get/create the section
-                section = document.querySelector(`[data-participant-id="local"]`);
-                if (!section) {
-                    section = this.createParticipantSection('local', this.userName);
-                }
-            }
-
-            // Handle device config for video
             const deviceConfig = this.deviceConfig;
-            if (!deviceConfig || !deviceConfig.cameras || deviceConfig.cameras.length === 0) {
-                console.log('No camera configuration available, joining with audio only');
-
-                // Show "No camera available" message for local user
+            if (!deviceConfig) {
+                console.log('No device configuration available, joining with audio only');
                 if (section) {
                     const camerasContainer = section.querySelector('.cameras-container');
                     if (camerasContainer) {
@@ -1001,101 +808,117 @@ class VideoConference {
                         }
                     }
                 }
-
-                // Always update the user count and list
-                this.updateUserCount(this.userName);
+                this.updateUserCount(displayName);
                 this.updateUsersList();
-
-                return; // Exit after setting up audio
+                document.getElementById('loading').style.display = 'none';
+                return;
+            }
+            let cameras = [];
+            try {
+                if (deviceConfig.cameraConfiguration && typeof deviceConfig.cameraConfiguration === 'string') {
+                    cameras = JSON.parse(deviceConfig.cameraConfiguration);
+                } else if (Array.isArray(deviceConfig.cameras)) {
+                    cameras = deviceConfig.cameras;
+                }
+            } catch (parseError) {
+                console.error('Error parsing camera configuration:', parseError);
+                cameras = [];
             }
 
-            // Filter out cameras with "Камера" in the name
-            const validCameras = deviceConfig.cameras.filter(camera =>
-                !camera.label.includes('Камера')
+            const validCameras = cameras.filter(camera =>
+                camera && camera.label && typeof camera.label === 'string' && !camera.label.includes('Камера')
             );
 
             if (validCameras.length === 0) {
                 console.warn('No valid cameras found after filtering');
-                // Show "No camera available" message for local user
                 if (section) {
                     const camerasContainer = section.querySelector('.cameras-container');
                     if (camerasContainer) {
                         let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
-                        if (placeholder) {
-                            placeholder.style.display = 'flex';
-                        }
+                        if (placeholder) {placeholder.style.display = 'flex';}
                     }
                 }
-
-                // Always update the user count and list
-                this.updateUserCount(this.userName);
+                this.updateUserCount(displayName);
                 this.updateUsersList();
-
-                return; // Exit after setting up audio
+                document.getElementById('loading').style.display = 'none';
+                return;
             }
-
-            for (let index = 0; index < validCameras.length; index++) {
-                const camera = validCameras[index];
+            if (!this.localTracks.video) {
+                this.localTracks.video = [];
+            }
+            if (validCameras.length > 0) {
+                const camera = validCameras[0];
                 try {
+                    console.log(`Initializing primary camera: ${camera.label} (${camera.deviceId})`);
                     const tracks = await JitsiMeetJS.createLocalTracks({
                         devices: ['video'],
                         cameraDeviceId: camera.deviceId,
                         constraints: {
                             video: {
-                                deviceId: camera.deviceId,
-                                height: {ideal: 720},
-                                width: {ideal: 1280}
+                                deviceId: { exact: camera.deviceId },
+                                height: { ideal: 480 },
+                                width: { ideal: 640 }
                             }
                         }
                     });
-
-                    // Check if we got a valid track with actual video
-                    if (!tracks || tracks.length === 0 || !tracks[0]) {
-                        console.log(`No valid tracks created for camera: ${camera.label}`);
-                        continue;
-                    }
-
-                    // Test if this track is valid
-                    if (!this.isValidVideoTrack(tracks[0])) {
-                        console.log(`Skipping invalid video track from camera: ${camera.label}`);
-                        tracks[0].dispose();
-                        continue;
-                    }
-
-                    this.localTracks.video.push(tracks[0]);
-                    this.createVideoPreview(tracks[0], camera.label, index);
-
-                    if (this.room) {
-                        await this.room.addTrack(tracks[0]);
+                    if (tracks && tracks.length > 0 && tracks[0]) {
+                        const track = tracks[0];
+                        this.localTracks.video.push(track);
+                        this.createVideoPreview(track, camera.label, 0);
+                        if (this.room) {
+                            try {
+                                await this.room.addTrack(track);
+                                console.log(`Added primary camera ${camera.label} to room`);
+                            } catch (trackError) {
+                                console.error(`Error adding track to room: ${camera.label}`, trackError);
+                            }
+                        }
+                        console.log(`Successfully added primary camera ${camera.label} with order ${camera.order || 1}`);
                     }
                 } catch (e) {
                     console.error(`Error accessing camera: ${camera.label}`, e);
                     this.showError(`Camera access error: ${camera.label}`);
                 }
             }
-
-            // If no video tracks were successfully added, show the placeholder
-            if (this.localTracks.video.length === 0 && section) {
-                const camerasContainer = section.querySelector('.cameras-container');
-                if (camerasContainer) {
-                    let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
-                    if (placeholder) {
-                        placeholder.style.display = 'flex';
+            if (validCameras.length > 1) {
+                console.log(`Creating ${validCameras.length - 1} technical users for additional cameras`);
+                for (let i = 1; i < validCameras.length; i++) {
+                    const camera = validCameras[i];
+                    const technicalUserName = `${this.userName}_technical${i}_camera${i+1}`;
+                    console.log(`Creating technical user: ${technicalUserName} for camera: ${camera.label} (${camera.deviceId})`);
+                    try {
+                        const additionalTracks = await JitsiMeetJS.createLocalTracks({
+                            devices: ['video'],
+                            cameraDeviceId: camera.deviceId,
+                            constraints: {
+                                video: {
+                                    deviceId: { exact: camera.deviceId },
+                                    height: { ideal: 480 },
+                                    width: { ideal: 640 }
+                                }
+                            }
+                        });
+                        if (additionalTracks && additionalTracks.length > 0 && additionalTracks[0]) {
+                            const additionalTrack = additionalTracks[0];
+                            this.localTracks.video.push(additionalTrack);
+                            this.createVideoPreview(additionalTrack, camera.label, i);
+                            await this.createTechnicalUserWithCamera(technicalUserName, additionalTrack, camera);
+                            console.log(`Successfully set up technical user ${technicalUserName} with camera ${camera.label}`);
+                        }
+                    } catch (e) {
+                        console.error(`Error setting up technical user for camera: ${camera.label}`, e);
+                        this.showError(`Camera access error for additional camera: ${camera.label}`);
                     }
                 }
             }
-
-            // Always update the user count and list
-            this.updateUserCount(this.userName);
+            this.updateUserCount(displayName);
             this.updateUsersList();
-
         } catch (error) {
             console.error('Error initializing devices:', error);
             this.showError('Device initialization error');
         }
         document.getElementById('loading').style.display = 'none';
     }
-
     setupControlButtons() {
         document.getElementById('toggleVideo').addEventListener('click', () => {
             this.localTracks.video.forEach(track => {
@@ -1107,7 +930,6 @@ class VideoConference {
                 this.updateButtonState('toggleVideo', !track.isMuted());
             });
         });
-
         document.getElementById('toggleAudio').addEventListener('click', () => {
             if (this.localTracks.audio) {
                 if (this.localTracks.audio.isMuted()) {
@@ -1118,26 +940,19 @@ class VideoConference {
                 this.updateButtonState('toggleAudio', !this.localTracks.audio.isMuted());
             }
         });
-
         document.getElementById('leaveCall').addEventListener('click', () => {
             this.leaveConference();
         });
     }
-
     updateButtonState(buttonId, enabled) {
         const button = document.getElementById(buttonId);
         if (button) {
             button.classList.toggle('muted', !enabled);
         }
     }
-
     async leaveConference() {
-        console.log('Leave conference method is working');
-
-        // Clear the stored user ID and conference ID
         sessionStorage.removeItem('conferenceUserId');
         sessionStorage.removeItem('conferenceId');
-
         await this.updateUserCount(this.userName);
         this.remoteTracks.forEach((tracks, participantId) => {
             tracks.forEach(track => track.detach());
@@ -1147,21 +962,23 @@ class VideoConference {
             }
         });
         this.remoteTracks.clear();
-
         Object.values(this.localTracks).flat().forEach(track => {
             if (track) {
                 track.dispose();
             }
         });
-
         if (this.room) {
             this.room.leave();
         }
-
         if (this.connection) {
             this.connection.disconnect();
         }
-
+        if (!this.userName.includes('_technical')) {
+            const technicalFrames = document.querySelectorAll('iframe[id^="technical-frame-"]');
+            technicalFrames.forEach(frame => {
+                frame.remove();
+            });
+        }
         await fetch('/conference/leaveConference', {
             method: 'POST',
             headers: {
@@ -1180,90 +997,82 @@ class VideoConference {
                 console.error('Request failed', error);
             });
     }
-
     onConnectionFailed() {
         this.showError('Server connection error');
         document.getElementById('loading').style.display = 'none';
     }
-
     onDisconnected() {
         if (this.userUpdateInterval) {
             clearInterval(this.userUpdateInterval);
         }
         console.log('The connection is broken');
     }
-
-    onConferenceJoined() {
-        console.log('The conference has been successfully connected');
-        this.isInitialized = true;
-
-        // Store the user's own participant ID
-        this.myParticipantId = this.room.myUserId();
-        console.log(`My participant ID on join: ${this.myParticipantId}`);
-
-        // Important change: Always ensure the local user is in the participants map
-        // Add local user to participants map with "local" as the ID
-        this.participants.set("local", {
-            id: "local",
-            displayName: this.userName,
-            tracks: new Map()
-        });
-
-        // For both new connections and reconnections, ensure local user exists
-        if (!this.getParticipantSection(this.userName)) {
-            this.createParticipantSection("local", this.userName);
-        }
-
-        // Ensure local user has a count
-        if (!this.userCounts.has(this.userName)) {
-            this.userCounts.set(this.userName, 1);
-        }
-
-        // Update the users list
-        this.updateUsersList();
-
-        // Process existing participants
-        const participants = this.room.getParticipants();
-
-        // IMPORTANT: After reconnection, request video tracks from all participants
-        if (this.reconnecting) {
-            console.log('Reconnecting - requesting all participants to send tracks again');
-
-            // Send identity message with a delay to allow BridgeChannel to initialize
-            setTimeout(() => {
-                this.sendIdentityMessage();
-
-                // Request tracks from all participants
+    async onConferenceJoined() {
+        try {
+            console.log('The conference has been successfully connected');
+            this.isInitialized = true;
+            this.myParticipantId = this.room.myUserId();
+            console.log(`My participant ID on join: ${this.myParticipantId}`);
+            this.participants.set("local", {
+                id: "local",
+                displayName: this.userName,
+                tracks: new Map()
+            });
+            if (!this.getParticipantSection(this.userName)) {
+                this.createParticipantSection("local", this.userName);
+            }
+            if (!this.userCounts.has(this.userName)) {
+                this.userCounts.set(this.userName, 1);
+            }
+            this.updateUsersList();
+            const participants = this.room.getParticipants();
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            this.sendIdentityMessage();
+            if (this.reconnecting) {
+                console.log('Reconnecting - requesting all participants to send tracks again');
                 participants.forEach(participant => {
                     const id = participant.getId();
-                    // Request all tracks from this participant
                     this.requestParticipantTracks(id);
                 });
-            }, 3000); // Increase timeout to 3 seconds to ensure BridgeChannel is ready
-        } else {
-            // Normal flow for first connection
-            participants.forEach(participant => {
-                this.onUserJoined(participant.getId(), participant);
-            });
-
-            // Send identity after longer delay for new connections
-            setTimeout(() => {
-                this.sendIdentityMessage();
-            }, 3000); // Increase timeout to 3 seconds
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                if (this.localTracks.video && this.localTracks.video.length > 0) {
+                    for (const videoTrack of this.localTracks.video) {
+                        if (typeof videoTrack.isDisposed === 'function' &&
+                            !videoTrack.isDisposed()) {
+                            console.log(`Re-adding video track after reconnection`);
+                            try {
+                                await this.room.addTrack(videoTrack);
+                            } catch (error) {
+                                console.log(`Could not re-add video track (may already exist): ${error.message}`);
+                            }
+                        }
+                    }
+                }
+                if (this.localTracks.audio &&
+                    typeof this.localTracks.audio.isDisposed === 'function' &&
+                    !this.localTracks.audio.isDisposed()) {
+                    try {
+                        await this.room.addTrack(this.localTracks.audio);
+                    } catch (error) {
+                        console.log(`Could not re-add audio track (may already exist): ${error.message}`);
+                    }
+                }
+            } else {
+                participants.forEach(participant => {
+                    this.onUserJoined(participant.getId(), participant);
+                });
+            }
+        } catch (error) {
+            console.error('Error in onConferenceJoined:', error);
         }
     }
-
-
-// New method to request tracks explicitly
     requestParticipantTracks(participantId) {
-        // Send a message to request tracks
         if (this.room) {
             const message = {
                 type: 'track_request',
                 requesterId: this.myParticipantId,
                 timestamp: Date.now()
             };
-
             try {
                 this.room.sendEndpointMessage(participantId, {trackRequest: message});
                 console.log(`Requested tracks from participant ${participantId}`);
@@ -1272,57 +1081,52 @@ class VideoConference {
             }
         }
     }
-
     onUserJoined(id, user) {
-        const displayName = user.getDisplayName() || "Участник";
-
-        console.log(`User joined: ${id}, name: ${displayName}`);
-
-        // Check if this user ID is already in participants map
+        let displayName = user.getDisplayName() || "Участник";
+        let baseName = displayName;
+        let isTechnicalUser = false;
+        let cameraInfo = null;
+        if (displayName.includes('_technical')) {
+            const parts = displayName.split('_');
+            baseName = parts[0];
+            isTechnicalUser = true;
+            for (const part of parts) {
+                if (part.startsWith('camera')) {
+                    cameraInfo = part;
+                    break;
+                }
+            }
+        }
+        console.log(`User joined: ${id}, name: ${displayName}, base name: ${baseName}`);
         if (this.participants.has(id)) {
             console.log(`User ID ${id} already in participants map, updating`);
-            this.participants.get(id).displayName = displayName;
+            this.participants.get(id).displayName = baseName;
             return;
         }
-
-        // Add to participants map first
         this.participants.set(id, {
             id,
-            displayName,
+            displayName: baseName,
+            isTechnical: isTechnicalUser,
+            cameraInfo: cameraInfo,
             tracks: new Map()
         });
-
-        // Initialize visibility if not set
-        if (!this.userVisibility.has(displayName)) {
-            this.userVisibility.set(displayName, true);
+        if (!this.userVisibility.has(baseName)) {
+            this.userVisibility.set(baseName, true);
         }
-
-        // Check if there's already a section for this display name
-        const existingSection = this.getParticipantSection(displayName);
-
-        if (existingSection && displayName !== this.userName) {
-            console.log(`Using existing section for user with same name: ${displayName}`);
-            // No need to create a new section - the video tracks will be added
-            // to the existing section when they arrive in onRemoteTrackAdded
+        const existingSection = this.getParticipantSection(baseName);
+        if (existingSection && baseName !== this.displayName) {
+            console.log(`Using existing section for user with same name: ${baseName}`);
         } else {
-            // Create a new section only if we don't have one with this name
-            // or if it's the local user
-            this.createParticipantSection(id, displayName);
+            this.createParticipantSection(id, baseName);
         }
-
-        // Process any existing tracks from this participant
         if (user.getTracks) {
             const existingTracks = user.getTracks();
             existingTracks.forEach(track => this.onRemoteTrackAdded(track));
         }
-
-        // Update user counts
-        this.updateUserCount(displayName).then(() => {
-            // Update UI
+        this.updateUserCount(baseName).then(() => {
             this.updateUsersList();
         });
     }
-
     showError(message) {
         const errorElement = document.getElementById('error-message');
         if (errorElement) {
@@ -1335,7 +1139,6 @@ class VideoConference {
             }, 5000);
         }
     }
-
     async loadDeviceConfig() {
         try {
             const response = await fetch(`/api/conference/devices?conferenceId=${this.conferenceId}&userName=${this.userName}`);
@@ -1345,35 +1148,115 @@ class VideoConference {
             this.deviceConfig = await response.json();
             return this.deviceConfig;
         } catch (error) {
-            console.error('Error loading device configuration:', error);
             this.showError('Ошибка загрузки конфигурации устройств');
             throw error;
         }
     }
+    async createTechnicalUserWithCamera(technicalUserName, videoTrack, camera) {
+        try {
+            const technicalConnection = new JitsiMeetJS.JitsiConnection(
+                null,
+                null,
+                this.connectionOptions
+            );
+            if (!this.technicalConnections) {
+                this.technicalConnections = [];
+            }
+            this.technicalConnections.push(technicalConnection);
+            await new Promise((resolve, reject) => {
+                technicalConnection.addEventListener(
+                    JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
+                    resolve
+                );
+                technicalConnection.addEventListener(
+                    JitsiMeetJS.events.connection.CONNECTION_FAILED,
+                    reject
+                );
+                technicalConnection.connect();
+            });
+            console.log(`Technical user ${technicalUserName} connected successfully`);
+            const technicalRoom = technicalConnection.initJitsiConference(
+                this.conferenceId,
+                this.conferenceOptions
+            );
+            if (!this.technicalRooms) {
+                this.technicalRooms = [];
+            }
+            this.technicalRooms.push(technicalRoom);
+            technicalRoom.setDisplayName(technicalUserName);
+            await new Promise((resolve) => {
+                technicalRoom.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, resolve);
+                technicalRoom.join();
+            });
+            console.log(`Technical user ${technicalUserName} joined conference room`);
+            await technicalRoom.addTrack(videoTrack);
+            console.log(`Added camera ${camera.label} to room via technical user ${technicalUserName}`);
+            return technicalRoom;
+        } catch (error) {
+            console.error(`Error creating technical user ${technicalUserName}:`, error);
+            throw error;
+        }
+    }
+    async initializeTechnicalCamera(deviceId, label, order) {
+        try {
+            console.log(`Technical user initializing camera: ${label} (${deviceId}) with order ${order}`);
 
+            const tracks = await JitsiMeetJS.createLocalTracks({
+                devices: ['video'],
+                cameraDeviceId: deviceId,
+                constraints: {
+                    video: {
+                        deviceId: { exact: deviceId },
+                        height: { ideal: 480 },
+                        width: { ideal: 640 }
+                    }
+                }
+            });
 
+            if (!tracks || tracks.length === 0 || !tracks[0]) {
+                console.log(`No tracks created for technical camera: ${label}`);
+                return;
+            }
+
+            const track = tracks[0];
+            if (!this.localTracks.video) {
+                this.localTracks.video = [];
+            }
+            this.localTracks.video.push(track);
+            if (this.room) {
+                try {
+                    await this.room.addTrack(track);
+                    console.log(`Technical user added camera ${label} to room`);
+                } catch (trackError) {
+                    console.error(`Error adding technical track to room: ${label}`, trackError);
+                }
+            }
+
+            document.getElementById('loading').style.display = 'none';
+        } catch (error) {
+            console.error(`Technical user error accessing camera: ${label}`, error);
+            this.showError(`Camera access error: ${label}`);
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
     async init() {
         try {
             document.getElementById('loading').style.display = 'flex';
-
-            // Check if this is a reconnection
+            let displayName = this.userName;
+            const isTechnicalUser = displayName.includes('_technical');
+            if (isTechnicalUser) {
+                displayName = displayName.split('_technical')[0];
+            }
+            this.displayName = displayName;
             const storedUserId = sessionStorage.getItem('conferenceUserId');
             const storedConferenceId = sessionStorage.getItem('conferenceId');
-
             if (storedUserId === this.userName && storedConferenceId === this.conferenceId) {
                 console.log('Detected page refresh/reconnection');
                 this.reconnecting = true;
-
-                // Add this line to force a small delay to ensure browser is ready
                 await new Promise(resolve => setTimeout(resolve, 500));
             }
-
-            // Load device config for the current user
             await this.loadDeviceConfig();
-
-            // Also load all users' camera configurations
             await this.loadAllUserCameraConfigurations();
-
             JitsiMeetJS.init({
                 disableAudioLevels: true,
                 disableRtx: true,
@@ -1387,8 +1270,7 @@ class VideoConference {
                     enabled: false
                 }
             });
-
-            const options = {
+            this.connectionOptions = {
                 hosts: {
                     domain: 'meet.jitsi',
                     muc: 'muc.meet.jitsi',
@@ -1399,7 +1281,9 @@ class VideoConference {
                 websocket: 'ws://localhost:5280/xmpp-websocket',
                 clientNode: 'http://jitsi.org/jitsimeet',
                 enableWebsocket: true,
-                openBridgeChannel: 'websocket',
+                openBridgeChannel: 'websocket'
+            };
+            this.conferenceOptions = {
                 p2p: {
                     enabled: true
                 },
@@ -1418,15 +1302,10 @@ class VideoConference {
                     }
                 }
             };
-
-            console.log("SETOPTIONS");
-
-            this.connection = new JitsiMeetJS.JitsiConnection(null, null, options);
-            console.log("SETCONNECTION");
-
+            this.connection = new JitsiMeetJS.JitsiConnection(null, null, this.connectionOptions);
             this.connection.addEventListener(
                 JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
-                () => this.onConnectionSuccess(options)
+                () => this.onConnectionSuccess(this.conferenceOptions)
             );
             this.connection.addEventListener(
                 JitsiMeetJS.events.connection.CONNECTION_FAILED,
@@ -1436,9 +1315,41 @@ class VideoConference {
                 JitsiMeetJS.events.connection.CONNECTION_DISCONNECTED,
                 () => this.onDisconnected()
             );
-
             await this.connection.connect();
-            await this.initializeDevices();
+            if (!isTechnicalUser) {
+                await this.initializeDevices();
+            } else {
+                const urlParams = new URLSearchParams(window.location.search);
+                const cameraDeviceId = urlParams.get('cameraDeviceId');
+                const cameraLabel = urlParams.get('cameraLabel');
+                const cameraOrder = urlParams.get('cameraOrder');
+                if (cameraDeviceId) {
+                    await this.initializeTechnicalCamera(cameraDeviceId, cameraLabel, cameraOrder);
+                }
+            }
+            if (this.room) {
+                await new Promise(resolve => {
+                    if (this.room.isJoined()) {
+                        resolve();
+                    } else {
+                        const onJoined = () => {
+                            this.room.removeEventListener(
+                                JitsiMeetJS.events.conference.CONFERENCE_JOINED,
+                                onJoined
+                            );
+                            resolve();
+                        };
+                        this.room.addEventListener(
+                            JitsiMeetJS.events.conference.CONFERENCE_JOINED,
+                            onJoined
+                        );
+                        setTimeout(resolve, 5000);
+                    }
+                });
+                if (!isTechnicalUser) {
+                    await this.createTechnicalUsers();
+                }
+            }
             this.setupControlButtons();
             this.startUserCountUpdates();
             JitsiMeetJS.setLogLevel(JitsiMeetJS.logLevels.ERROR);
@@ -1451,7 +1362,6 @@ class VideoConference {
                     this.showError(`Подробная ошибка подключения: ${JSON.stringify(error)}`);
                 }
             );
-
         } catch (error) {
             console.error('Initialization error:', error);
             this.showError(`Ошибка инициализации: ${error.message}`);

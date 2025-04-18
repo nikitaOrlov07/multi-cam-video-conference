@@ -7,7 +7,7 @@
     <script src="http://localhost:8080/libs/lib-jitsi-meet.min.js"></script>
     <script th:src="@{/js/videoConferenceLogic.js}"></script>
     <link href="/css/conferencePage.css" rel="stylesheet">
-    <script th:src="@{/js/conferenceChatLogic.js}"></script>
+<!--    <script th:src="@{/js/conferenceChatLogic.js}"></script>-->
     <script th:src="@{/js/commonFunctions.js}"></script>
 </head>
 <body>
@@ -146,15 +146,15 @@
         // Pass necessary initial data from server-side rendering
         const conferenceId = /*[[${conferenceId}]]*/ 'default-conf-id';
         const userName = /*[[${userName}]]*/ 'default-username';
-        const chatId  = /*[[${chatId}]]*/ 'default-username';
+        // const chatId  = /*[[${chatId}]]*/ 'default-username';
 
         // Initialize conference and chat
         const conference = new VideoConference(conferenceId, userName);
-        const chat = new ChatManager(conferenceId, userName , chatId);
+        // const chat = new ChatManager(conferenceId, userName , chatId);
 
         try {
             await conference.init();
-            chat.init();
+            // await chat.init();
         } catch (error) {
             console.error('Initialization error:', error);
             conference.showError('Ошибка инициализации');
