@@ -23,6 +23,8 @@ class VideoConference {
     async onConnectionSuccess(options) {
         try {
             console.log('Connection established successfully=====================');
+
+            // Update user count immediately when connecting
             await ConferenceUtils.updateUserCount(
                 this.conferenceId,
                 this.userName,
@@ -78,6 +80,16 @@ class VideoConference {
                 this.onUserJoined(participant.getId(), participant);
             });
 
+            // Broadcast user join to notify all participants to update their user counts
+            if (this.room && this.room.getBridgeChannel && this.room.getBridgeChannel()) {
+                const message = {
+                    type: 'user_joined',
+                    userName: this.userName,
+                    timestamp: Date.now()
+                };
+                this.room.sendEndpointMessage('', {userStatus: message});
+            }
+
             document.getElementById('loading').style.display = 'none';
         } catch (error) {
             console.error('Conference connection error:', error);
@@ -122,6 +134,22 @@ class VideoConference {
                         nameDiv.textContent = userName;
                     }
                 }
+            }
+        }
+        if (message && message.userStatus) {
+            const statusMessage = message.userStatus;
+            if (statusMessage.type === 'user_joined' || statusMessage.type === 'user_left') {
+                console.log(`Received user status update: ${statusMessage.type} for ${statusMessage.userName}`);
+                this.userCounts.forEach((_, userName) => {
+                    ConferenceUtils.updateUserCount(
+                        this.conferenceId,
+                        userName,
+                        this.userCounts,
+                        this.displayName,
+                        false,
+                        () => ConferenceUtils.updateUsersList()
+                    );
+                });
             }
         }
         if (message && message.trackRequest && message.trackRequest.type === 'track_request') {
@@ -190,7 +218,24 @@ class VideoConference {
                 this.userCounts.delete(displayName);
             }
 
-            ConferenceUtils.updateUsersList();
+            ConferenceUtils.updateUserCount(
+                this.conferenceId,
+                displayName,
+                this.userCounts,
+                this.displayName,
+                false,
+                () => ConferenceUtils.updateUsersList()
+            ).then(() => {
+                ConferenceUtils.updateUsersList();
+                if (this.room && this.room.getBridgeChannel && this.room.getBridgeChannel()) {
+                    const message = {
+                        type: 'user_left',
+                        userName: displayName,
+                        timestamp: Date.now()
+                    };
+                    this.room.sendEndpointMessage('', {userStatus: message});
+                }
+            });
             this.participants.delete(id);
             const remainingParticipants = Array.from(this.participants.values())
                 .filter(p => p.displayName === displayName);
@@ -457,39 +502,15 @@ class VideoConference {
         const cameraLabel = document.createElement('div');
         cameraLabel.className = 'camera-label';
         if (cameraOrder !== null) {
-            cameraLabel.textContent = `${label || 'Камера'} ${cameraOrder}`;
+            cameraLabel.textContent = `${label || 'Camera'} ${cameraOrder}`;
         } else {
-            cameraLabel.textContent = `${label || 'Камера'} ${index + 1}`;
+            cameraLabel.textContent = `${label || 'Camera'} ${index + 1}`;
         }
         wrapper.appendChild(video);
         wrapper.appendChild(cameraLabel);
         camerasContainer.appendChild(wrapper);
         this.updateSectionLayout(section);
         console.log(`Added camera ${label} to container. Total cameras: ${camerasContainer.querySelectorAll('.video-wrapper').length}`);
-    }
-    isValidVideoTrack(track) {
-        if (!track || track.getType() !== 'video') {
-            console.log("Track is not a video track");
-            return false;
-        }
-        const stream = track.getOriginalStream();
-        if (!stream || stream.getVideoTracks().length === 0) {
-            console.log("Track has no video tracks in stream");
-            return false;
-        }
-        const videoTracks = stream.getVideoTracks();
-        if (videoTracks.length > 0 && !videoTracks[0].enabled) {
-            console.log("Video track is disabled");
-            return false;
-        }
-        const deviceName = (typeof track.getDeviceName === 'function')
-            ? track.getDeviceName()
-            : '';
-        if (deviceName.includes('Камера')) {
-            console.log(`Skipping camera with generic name: ${deviceName}`);
-            return false;
-        }
-        return true;
     }
     onRemoteTrackAdded(track) {
         if (track.isLocal()) {
@@ -538,7 +559,7 @@ class VideoConference {
             return;
         }
         console.log(`Processing video track: ${trackId} from participant ${participantId}`);
-        const isValid = this.isValidVideoTrack(track);
+        const isValid = ConferenceUtils.isValidVideoTrack(track);
         console.log(`Video track validity check: ${isValid}`);
         if (!isValid) {
             console.log(`Skipping invalid video track from participant ${participantId}`);
@@ -651,7 +672,6 @@ class VideoConference {
         try {
             const storedUserId = sessionStorage.getItem('conferenceUserId');
             const storedConferenceId = sessionStorage.getItem('conferenceId');
-
             if (storedUserId === this.userName && storedConferenceId === this.conferenceId) {
                 this.reconnecting = true;
                 console.log('Detected reconnection, handling accordingly');
@@ -664,10 +684,8 @@ class VideoConference {
                 });
                 this.remoteTracks.clear();
             }
-
             sessionStorage.setItem('conferenceUserId', this.userName);
             sessionStorage.setItem('conferenceId', this.conferenceId);
-
             let displayName = this.userName;
             if (displayName.includes('_technical')) {
                 displayName = displayName.split('_technical')[0];
@@ -771,7 +789,7 @@ class VideoConference {
                 }
                 ConferenceUtils.updateUserCount(
                     this.conferenceId,
-                    username,
+                    this.userName,
                     this.userCounts,
                     this.displayName,
                     this.reconnecting,
@@ -879,7 +897,7 @@ class VideoConference {
             }
             ConferenceUtils.updateUserCount(
                 this.conferenceId,
-                baseName,
+                this.userName,
                 this.userCounts,
                 this.displayName,
                 this.reconnecting,
@@ -897,16 +915,26 @@ class VideoConference {
     async leaveConference() {
         sessionStorage.removeItem('conferenceUserId');
         sessionStorage.removeItem('conferenceId');
-        ConferenceUtils.updateUserCount(
-            this.conferenceId,
-            this.userName,
-            this.userCounts,
-            this.displayName,
-            this.reconnecting,
-            () => ConferenceUtils.updateUsersList()
-        ).then(() => {
-            ConferenceUtils.updateUsersList();
-        });
+        try {
+            const count = await ConferenceUtils.updateUserCount(
+                this.conferenceId,
+                this.userName,
+                this.userCounts,
+                this.displayName,
+                false, // Not reconnecting, actively leaving
+                () => ConferenceUtils.updateUsersList()
+            );
+            if (this.room && this.room.getBridgeChannel && this.room.getBridgeChannel()) {
+                const message = {
+                    type: 'user_left',
+                    userName: this.userName,
+                    timestamp: Date.now()
+                };
+                this.room.sendEndpointMessage('', {userStatus: message});
+            }
+        } catch (error) {
+            console.error('Error updating user count during leave:', error);
+        }
         this.remoteTracks.forEach((tracks, participantId) => {
             tracks.forEach(track => track.detach());
             const container = document.querySelector(`[data-participant-id="${participantId}"]`);
@@ -962,8 +990,6 @@ class VideoConference {
     }
     async onConferenceJoined() {
         try {
-            console.log('The conference has been successfully connected');
-            this.isInitialized = true;
             this.myParticipantId = this.room.myUserId();
             console.log(`My participant ID on join: ${this.myParticipantId}`);
             this.participants.set("local", {
@@ -1113,7 +1139,7 @@ class VideoConference {
         }
     }
     onUserJoined(id, user) {
-        let displayName = user.getDisplayName() || "Участник";
+        let displayName = user.getDisplayName() || "User";
         let baseName = displayName;
         let isTechnicalUser = false;
         let cameraInfo = null;
@@ -1285,6 +1311,7 @@ class VideoConference {
         try {
             document.getElementById('loading').style.display = 'flex';
             ConferenceUtils.setGlobalConference(this);
+            MoveSectionLogic.initializeResizableAndDraggableSections();
             let displayName = this.userName;
             const isTechnicalUser = displayName.includes('_technical');
             if (isTechnicalUser) {

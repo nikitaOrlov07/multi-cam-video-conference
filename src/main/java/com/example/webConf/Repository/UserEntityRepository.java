@@ -31,4 +31,5 @@ public interface UserEntityRepository extends JpaRepository<UserEntity, Long> {
     List<UserEntity> searchByNameOrSurname(@Param("query") String query);
 
     Optional<UserEntity> findFirstByUserNameIgnoreCase(String username);
+    Optional<UserEntity> findFirstByUserNameIgnoreCaseAndAccountType(String username , UserEntity.AccountType accountType);
 }

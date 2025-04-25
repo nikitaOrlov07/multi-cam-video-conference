@@ -162,8 +162,7 @@ public class ConferenceDeviceApiController {
         }
 
         log.info("Found {} device configurations for conference: {}", resultDevices.size(), conferenceId);
-        return resultDevices;
-    }
+        return resultDevices;}
 
     private String extractActualUsername(String technicalUsername) {
         // If username has format "actualName_technical1", extract the actual name

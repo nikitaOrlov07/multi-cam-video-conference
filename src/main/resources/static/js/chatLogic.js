@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', function () {
         participants = chatContainer.dataset.participants;
         console.log("Chat info:", {chatId, username, userEmail, participants});
 
+        console.log("Username" , username)
         // Check if user have already logged in to this chat room for the first time (i store variable into localStorage, because every time the page refreshes, it'll be gone. )
         isFirstJoin = !localStorage.getItem(`hasJoined_${chatId}`);
         console.log("Is first join:", isFirstJoin);

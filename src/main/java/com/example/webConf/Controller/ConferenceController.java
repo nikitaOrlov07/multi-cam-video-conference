@@ -157,7 +157,7 @@ public class ConferenceController {
         /// Find in Permanent Accounts
         if (parts.length > 1) {
             log.info("Searching Permanent Account for user with name: |{}| and surname: |{}|", parts[0], parts[1]);
-            optionalUser = userEntityRepository.findFirstByAccountTypeAndNameAndSurname(UserEntity.AccountType.PERMANENT, parts[0].toLowerCase(), parts[1].toLowerCase());
+            optionalUser = userEntityRepository.findFirstByUserNameIgnoreCaseAndAccountType(decodedUsername, UserEntity.AccountType.PERMANENT);
 
             if (optionalUser.isEmpty()) {
                 throw new ConferenceException("User not found in Permanent Accounts with name: |" + parts[0] + "| and surname: |" + parts[1] + "|");
@@ -172,7 +172,7 @@ public class ConferenceController {
             log.info("Finding user with userName |{}| in Temporary Accounts", parts[0]);
 
             /// Find in Temporary Accounts
-            optionalUser = userEntityRepository.findFirstByAccountTypeAndNameAndSurname(UserEntity.AccountType.TEMPORARY, decodedUsername.toLowerCase(), null);
+            optionalUser = userEntityRepository.findFirstByUserNameIgnoreCaseAndAccountType(username, UserEntity.AccountType.TEMPORARY);
 
             // Find Coference Joib Object
             if (userService.findUserConferenceJoin(optionalUser.get(), conference.get()).isPresent()) {
