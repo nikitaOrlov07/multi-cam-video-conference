@@ -1,3 +1,4 @@
+/* Modal styling */
 .modal {
     display: none;
     position: fixed;
@@ -94,4 +95,22 @@
 .test-controls {
     display: flex;
     gap: 0.5rem;
+}
+
+/* Adding additional style for audio-only mode */
+.audio-only-mode .grid-selector,
+.audio-only-mode .col-md-6:first-child {
+    display: none !important;
+}
+.audio-only-toggle {
+    margin-bottom: 1rem;
+}
+
+.audio-only-toggle .form-check {
+    display: inline-block;
+    margin-right: 1.5rem;
+}
+
+.hidden-section {
+    display: none !important;
 }

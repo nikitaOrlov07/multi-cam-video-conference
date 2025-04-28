@@ -1,3 +1,89 @@
+/// Logic to make initial setting configuration without cameras
+function setupWithoutVideoToggle() {
+    const withoutCamerasToggle = document.getElementById('withoutCamerasToggle');
+
+    if (!withoutCamerasToggle) {
+        console.error("Audio only toggle checkbox not found!");
+        return;
+    }
+    // More precise selectors
+    const gridSelector = document.querySelector('.grid-selector');
+    // Fixed camera column selector - using the correct parent-child relationship
+    const camerasColumn = document.querySelector('.row > .col-md-6:first-child');
+    const gridRowsInput = document.getElementById('gridRows');
+    const gridColsInput = document.getElementById('gridCols');
+
+    // Store original values to restore them later
+    let originalRows = gridRowsInput.value;
+    let originalCols = gridColsInput.value;
+
+    withoutCamerasToggle.addEventListener('change', function() {
+        if (this.checked) {
+            // Store current grid values before setting to 0
+            originalRows = gridRowsInput.value;
+            originalCols = gridColsInput.value;
+
+            gridRowsInput.value = 0;
+            gridColsInput.value = 0;
+
+            // Hide camera selection section and grid selector
+            if (camerasColumn) camerasColumn.style.display = 'none';
+            if (gridSelector) gridSelector.style.display = 'none';
+
+            // Uncheck all camera checkboxes
+            document.querySelectorAll('input[type="checkbox"][id^="camera-"]').forEach(checkbox => {
+                checkbox.checked = false;
+            });
+
+        } else {
+            // Restore original grid values
+            gridRowsInput.value = originalRows;
+            gridColsInput.value = originalCols;
+            // Show camera selection section and grid selector
+            if (camerasColumn) camerasColumn.style.display = 'block';
+            if (gridSelector) gridSelector.style.display = 'block';
+        }
+    });
+
+    // Check if the toggle is already checked when page loads
+    if (withoutCamerasToggle.checked) {
+        if (camerasColumn) camerasColumn.style.display = 'none';
+        if (gridSelector) gridSelector.style.display = 'none';
+        gridRowsInput.value = 0;
+        gridColsInput.value = 0;
+    }
+}
+/// Logic to make initial device configuration without microphone
+function setupWithoutAudioToggle() {
+    const withoutAudioToggle = document.getElementById('withoutAudioToggle');
+
+    if (!withoutAudioToggle) {
+        console.error("Without audio toggle checkbox not found!");
+        return;
+    }
+    // Select the microphones column
+    const audiosColumn = document.querySelector('.row > .col-md-6:last-child');
+
+    withoutAudioToggle.addEventListener('change', function() {
+        if (this.checked) {
+            // Hide microphone selection section
+            if (audiosColumn) audiosColumn.style.display = 'none';
+
+            // Uncheck all microphone radio buttons
+            document.querySelectorAll('input[type="radio"][name="microphone"]').forEach(radio => {
+                radio.checked = false;
+            });
+
+        } else {
+            if (audiosColumn) audiosColumn.style.display = 'block';
+        }
+    });
+
+    // Check if the toggle is already checked when page loads
+    if (withoutAudioToggle.checked) {
+        if (audiosColumn) audiosColumn.style.display = 'none';
+    }
+}
 async function getDevices() {
     try {
         // Stop any existing streams
@@ -316,6 +402,10 @@ async function openPreviewModal() {
 
     // Check if previous configuration is selected
     const selectedConfig = document.querySelector('input[name="previousConfiguration"]:checked');
+    // Check if checkbox "without cameras"  is checked
+    const isWithoutCameras = document.getElementById('withoutCamerasToggle').checked;
+    // Check if checkBox "without microphone" is checked
+    const isWithoutAudio = document.getElementById('withoutCamerasToggle').checked;
     if (selectedConfig) {
         try {
             console.log("SELECTED CONFIG")
@@ -433,7 +523,7 @@ async function openPreviewModal() {
     // If no previous configuration is selected, proceed with normal flow
     const rows = parseInt(document.getElementById('gridRows').value);
     const cols = parseInt(document.getElementById('gridCols').value);
-    const requiredCameras = rows * cols;
+    const requiredCameras = isWithoutCameras ? 0 : rows * cols;
 
     const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'));
 
@@ -442,13 +532,14 @@ async function openPreviewModal() {
         return;
     }
 
-    // Check for selected microphone
-    const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
-    if (!selectedAudio) {
-        alert('Please select at least one microphone');
-        return;
+    // Check for selected microphone if "isWithoutMicrophone" is not checked
+    if(!isWithoutAudio) {
+        const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
+        if (!selectedAudio) {
+            alert('Please select at least one microphone');
+            return;
+        }
     }
-
     const previewGrid = document.getElementById('previewGrid');
     const selectedAudioLabel = document.getElementById('selectedAudioLabel');
 
@@ -812,7 +903,6 @@ function togglePreviousConfig(radio) {
         radio.checked = false;
         radio.setAttribute('data-was-checked', 'false');
     } else {
-        // Сначала сбросим атрибут у всех радиокнопок
         document.querySelectorAll('.previous-config-radio').forEach(r => {
             r.setAttribute('data-was-checked', 'false');
         });
