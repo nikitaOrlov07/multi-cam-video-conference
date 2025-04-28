@@ -49,5 +49,5 @@ public class Conference {
     @JoinColumn(name = "chat_id", referencedColumnName = "id")
     private Chat chat;
 
-    private String password; // TODO -> apply logic with password
+    private String password;
 }

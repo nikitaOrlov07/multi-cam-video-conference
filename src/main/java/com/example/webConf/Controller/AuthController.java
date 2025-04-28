@@ -35,8 +35,7 @@ public class AuthController {
     @GetMapping("/register")
     public String getRegisterForm(Model model) {
         RegistrationDto user = new RegistrationDto();
-        model.addAttribute("user", user); // we add empty object into a View ,
-        // but if we don`t do it --> we will get an error
+        model.addAttribute("user", user);
         return "register";
     }
 
