@@ -187,6 +187,16 @@ const ConferenceUtils = {
             return false;
         }
         return true;
+    },
+    onConnectionFailed() {
+        ConferenceUtils.showError('Server connection error');
+        document.getElementById('loading').style.display = 'none';
+    },
+    onDisconnected() {
+        if (this.userUpdateInterval) {
+            clearInterval(this.userUpdateInterval);
+        }
+        console.log('The connection is broken');
     }
 }
 ConferenceUtils.setupControlButtons = function(conferenceInstance) {

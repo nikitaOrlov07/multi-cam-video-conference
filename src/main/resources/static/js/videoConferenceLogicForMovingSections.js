@@ -4,61 +4,263 @@ const MoveSectionLogic = {
 MoveSectionLogic.makeVideosDraggableWithinSection = function() {
     const videoWrappers = document.querySelectorAll('.video-wrapper');
     videoWrappers.forEach(wrapper => {
-        this.makeVideoDraggable(wrapper);
+        this.makeVideoFreeDraggable(wrapper);
     });
 };
 
-MoveSectionLogic.makeVideoDraggable = function(videoWrapper) {
+MoveSectionLogic.makeVideoFreeDraggable = function(videoWrapper) {
     if (videoWrapper.classList.contains('video-draggable-initialized')) {
         return;
     }
 
     videoWrapper.classList.add('video-draggable-initialized');
-    videoWrapper.setAttribute('draggable', 'true');
+
+    videoWrapper.style.position = 'absolute';
+    videoWrapper.style.zIndex = '10';
+
+    const camerasContainer = videoWrapper.closest('.cameras-container');
+    if (camerasContainer) {
+        camerasContainer.style.position = 'relative';
+        camerasContainer.style.display = 'block';
+        camerasContainer.style.height = '100%';
+
+        const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+        if (placeholder) {
+            placeholder.style.display = 'none';
+        }
+    }
+
+    const cameraOrder = videoWrapper.getAttribute('data-camera-order');
+
+    if (!videoWrapper.style.top && !videoWrapper.style.left) {
+        const index = parseInt(cameraOrder) || 0;
+        const row = Math.floor(index / 2);
+        const col = index % 2;
+
+        videoWrapper.style.top = `${row * 50}%`;
+        videoWrapper.style.left = `${col * 50}%`;
+        videoWrapper.style.width = '50%';
+        videoWrapper.style.height = '50%';
+    }
 
     const dragHandle = document.createElement('div');
     dragHandle.className = 'video-drag-handle';
     dragHandle.innerHTML = '⋮⋮';
-    dragHandle.title = 'Drag to rearrange';
+    dragHandle.title = 'Drag to move';
     dragHandle.style.cssText = `
         position: absolute;
         top: 5px;
         left: 5px;
-        background: rgba(0, 0, 0, 0.5);
+        background: rgba(0, 0, 0, 0.7);
         color: white;
-        padding: 2px 5px;
+        padding: 3px 6px;
         border-radius: 3px;
         cursor: move;
         z-index: 101;
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transition: opacity 0.2s ease;
     `;
     videoWrapper.appendChild(dragHandle);
 
     videoWrapper.addEventListener('mouseenter', () => {
         dragHandle.style.opacity = '1';
     });
-
     videoWrapper.addEventListener('mouseleave', () => {
-        dragHandle.style.opacity = '0';
+        if (!isDragging) {
+            dragHandle.style.opacity = '0';
+        }
     });
+    let isDragging = false;
+    let startX, startY, startLeft, startTop;
+    const startDrag = (e) => {
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        const containerRect = videoWrapper.closest('.cameras-container').getBoundingClientRect();
+        const wrapperRect = videoWrapper.getBoundingClientRect();
+        startLeft = (wrapperRect.left - containerRect.left);
+        startTop = (wrapperRect.top - containerRect.top);
+        videoWrapper.style.opacity = '0.7';
+        videoWrapper.style.boxShadow = '0 0 10px rgba(0, 120, 255, 0.7)';
+        videoWrapper.classList.add('dragging');
 
-    videoWrapper.addEventListener('dragstart', (e) => {
-        e.dataTransfer.setData('text/plain', videoWrapper.getAttribute('data-camera-order'));
-        e.dataTransfer.setData('application/video-wrapper-id', videoWrapper.getAttribute('data-track-id'));
-        videoWrapper.style.opacity = '0.4';
-    });
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', stopDrag);
 
-    videoWrapper.addEventListener('dragend', () => {
+        e.preventDefault();
+    };
+
+    const drag = (e) => {
+        if (!isDragging) return;
+
+        requestAnimationFrame(() => {
+            const containerRect = videoWrapper.closest('.cameras-container').getBoundingClientRect();
+            const newLeft = ((e.clientX - startX + startLeft) / containerRect.width) * 100;
+            const newTop = ((e.clientY - startY + startTop) / containerRect.height) * 100;
+            const maxLeft = 100 - (parseFloat(videoWrapper.style.width) || 50);
+            const maxTop = 100 - (parseFloat(videoWrapper.style.height) || 50);
+            const boundedLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            const boundedTop = Math.max(0, Math.min(newTop, maxTop));
+            videoWrapper.style.left = `${boundedLeft}%`;
+            videoWrapper.style.top = `${boundedTop}%`;
+        });
+    };
+
+    const stopDrag = () => {
+        isDragging = false;
         videoWrapper.style.opacity = '1';
-    });
+        videoWrapper.style.boxShadow = '';
+        videoWrapper.classList.remove('dragging');
 
-    const camerasContainer = videoWrapper.closest('.cameras-container');
-    if (camerasContainer && !camerasContainer.classList.contains('drop-initialized')) {
-        this.setupDropZone(camerasContainer);
-    }
+        document.removeEventListener('mousemove', drag);
+        document.removeEventListener('mouseup', stopDrag);
+
+        MoveSectionLogic.saveCameraPositionConfig(videoWrapper);
+    };
+
+    const resizeHandle = document.createElement('div');
+    resizeHandle.className = 'video-resize-handle';
+    resizeHandle.innerHTML = '↘';
+    resizeHandle.title = 'Resize';
+    resizeHandle.style.cssText = `
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        cursor: se-resize;
+        z-index: 101;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    `;
+    videoWrapper.appendChild(resizeHandle);
+    videoWrapper.addEventListener('mouseenter', () => {
+        resizeHandle.style.opacity = '1';
+    });
+    videoWrapper.addEventListener('mouseleave', () => {
+        if (!isResizing) {
+            resizeHandle.style.opacity = '0';
+        }
+    });
+    let isResizing = false;
+    let resizeStartX, resizeStartY, startWidth, startHeight;
+    const startResize = (e) => {
+        isResizing = true;
+        resizeStartX = e.clientX;
+        resizeStartY = e.clientY;
+
+        const style = window.getComputedStyle(videoWrapper);
+        startWidth = parseFloat(style.width);
+        startHeight = parseFloat(style.height);
+
+        videoWrapper.style.opacity = '0.7';
+        videoWrapper.style.boxShadow = '0 0 10px rgba(0, 120, 255, 0.7)';
+
+        document.addEventListener('mousemove', resize);
+        document.addEventListener('mouseup', stopResize);
+
+        e.preventDefault();
+    };
+
+    const resize = (e) => {
+        if (!isResizing) return;
+
+        requestAnimationFrame(() => {
+            const deltaX = e.clientX - resizeStartX;
+            const deltaY = e.clientY - resizeStartY;
+
+            const container = videoWrapper.closest('.cameras-container');
+            const containerRect = container.getBoundingClientRect();
+
+            const newWidthPx = startWidth + deltaX;
+            const newHeightPx = startHeight + deltaY;
+
+            const newWidth = (newWidthPx / containerRect.width) * 100;
+            const newHeight = (newHeightPx / containerRect.height) * 100;
+
+            const minWidthPct = (100 / containerRect.width) * 100;
+            const minHeightPct = (100 / containerRect.height) * 100;
+
+            videoWrapper.style.width = `${Math.max(minWidthPct, newWidth)}%`;
+            videoWrapper.style.height = `${Math.max(minHeightPct, newHeight)}%`;
+
+            const video = videoWrapper.querySelector('video');
+            if (video) {
+                MoveSectionLogic.adjustVideoAspectRatio(video);
+            }
+        });
+    };
+
+    const stopResize = () => {
+        isResizing = false;
+        videoWrapper.style.opacity = '1';
+        videoWrapper.style.boxShadow = '';
+        document.removeEventListener('mousemove', resize);
+        document.removeEventListener('mouseup', stopResize);
+        MoveSectionLogic.saveCameraPositionConfig(videoWrapper);
+    };
+    dragHandle.addEventListener('mousedown', startDrag);
+    resizeHandle.addEventListener('mousedown', startResize);
+    this.loadCameraPositionConfig(videoWrapper);
 };
 
+MoveSectionLogic.saveCameraPositionConfig = function(videoWrapper) {
+    if (!window.conference || !window.conference.userName) return;
+    const section = videoWrapper.closest('.participant-section');
+    if (!section) return;
+    const displayName = section.querySelector('.participant-name')?.textContent;
+    if (!displayName) return;
+
+    const trackId = videoWrapper.getAttribute('data-track-id');
+    if (!trackId) return;
+
+    const positionData = {
+        top: videoWrapper.style.top,
+        left: videoWrapper.style.left,
+        width: videoWrapper.style.width,
+        height: videoWrapper.style.height,
+        zIndex: videoWrapper.style.zIndex
+    };
+
+    try {
+        const conferenceId = window.conference.conferenceId;
+        const key = `camera-position-${conferenceId}-${displayName}-${trackId}`;
+        localStorage.setItem(key, JSON.stringify(positionData));
+    } catch (e) {
+        console.error('Error saving camera position configuration:', e);
+    }
+};
+MoveSectionLogic.loadCameraPositionConfig = function(videoWrapper) {
+    if (!window.conference) return;
+
+    const section = videoWrapper.closest('.participant-section');
+    if (!section) return;
+
+    const displayName = section.querySelector('.participant-name')?.textContent;
+    if (!displayName) return;
+
+    const trackId = videoWrapper.getAttribute('data-track-id');
+    if (!trackId) return;
+
+    try {
+        const conferenceId = window.conference.conferenceId;
+        const key = `camera-position-${conferenceId}-${displayName}-${trackId}`;
+        const positionData = localStorage.getItem(key);
+
+        if (positionData) {
+            const position = JSON.parse(positionData);
+            videoWrapper.style.top = position.top || '0%';
+            videoWrapper.style.left = position.left || '0%';
+            videoWrapper.style.width = position.width || '50%';
+            videoWrapper.style.height = position.height || '50%';
+            videoWrapper.style.zIndex = position.zIndex || '10';
+        }
+    } catch (e) {
+        console.error('Error loading camera position configuration:', e);
+    }
+};
 MoveSectionLogic.setupDropZone = function(camerasContainer) {
     camerasContainer.classList.add('drop-initialized');
 
@@ -251,26 +453,21 @@ MoveSectionLogic.makeResizable = function(element) {
         if (height > 100) {
             element.style.height = height + 'px';
         }
-
         MoveSectionLogic.saveSectionPosition(element);
-
         const video = element.querySelector('video');
         if (video) {
             MoveSectionLogic.adjustVideoAspectRatio(video);
         }
     };
-
     const stopResize = function() {
         document.removeEventListener('mousemove', resize);
         document.removeEventListener('mouseup', stopResize);
     };
-
     resizer.addEventListener('mousedown', startResize);
 };
 MoveSectionLogic.makeDraggable = function(element) {
     const header = element.querySelector('.participant-header') ||
         element.querySelector('.participant-name');
-
     if (!header) {
         const newHeader = document.createElement('div');
         newHeader.className = 'participant-header';
@@ -280,53 +477,48 @@ MoveSectionLogic.makeDraggable = function(element) {
             cursor: move;
             user-select: none;
         `;
-
         const nameElement = element.querySelector('.participant-name');
         if (nameElement) {
             newHeader.appendChild(nameElement);
         } else {
             newHeader.innerHTML = '<span class="participant-name">Участник</span>';
         }
-
         element.insertBefore(newHeader, element.firstChild);
         header = newHeader;
     } else {
         header.style.cursor = 'move';
     }
-
     element.style.position = 'absolute';
-
     this.loadSectionPosition(element);
-
-    let posX = 0, posY = 0, posInitX = 0, posInitY = 0;
-
+    let isDragging = false;
+    let startX, startY, startLeft, startTop;
     const dragMouseDown = function(e) {
-        e.preventDefault();
-
-        posInitX = e.clientX;
-        posInitY = e.clientY;
-
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        startLeft = element.offsetLeft;
+        startTop = element.offsetTop;
+        element.style.zIndex = '1000';
         document.addEventListener('mousemove', elementDrag);
         document.addEventListener('mouseup', closeDragElement);
+        e.preventDefault();
     };
 
     const elementDrag = function(e) {
-        e.preventDefault();
-
-        posX = posInitX - e.clientX;
-        posY = posInitY - e.clientY;
-        posInitX = e.clientX;
-        posInitY = e.clientY;
-
-        element.style.top = (element.offsetTop - posY) + "px";
-        element.style.left = (element.offsetLeft - posX) + "px";
-
-        MoveSectionLogic.saveSectionPosition(element);
+        if (!isDragging) return;
+        requestAnimationFrame(() => {
+            const newLeft = startLeft + (e.clientX - startX);
+            const newTop = startTop + (e.clientY - startY);
+            element.style.left = newLeft + "px";
+            element.style.top = newTop + "px";
+        });
     };
-
     const closeDragElement = function() {
+        isDragging = false;
+        element.style.zIndex = '100';
         document.removeEventListener('mousemove', elementDrag);
         document.removeEventListener('mouseup', closeDragElement);
+        MoveSectionLogic.saveSectionPosition(element);
     };
 
     header.addEventListener('mousedown', dragMouseDown);
@@ -547,7 +739,7 @@ MoveSectionLogic.initializeNewParticipantSection = function(section) {
 
     const videoWrappers = section.querySelectorAll('.video-wrapper');
     videoWrappers.forEach(wrapper => {
-        this.makeVideoDraggable(wrapper);
+        this.makeVideoFreeDraggable(wrapper);
     });
 
     const camerasContainer = section.querySelector('.cameras-container');
@@ -557,7 +749,7 @@ MoveSectionLogic.initializeNewParticipantSection = function(section) {
                 if (mutation.type === 'childList') {
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType === 1 && node.classList.contains('video-wrapper')) {
-                            this.makeVideoDraggable(node);
+                            this.makeVideoFreeDraggable(node);
                         }
                     });
                 }
@@ -573,6 +765,7 @@ MoveSectionLogic.initializeNewParticipantSection = function(section) {
         this.videoObservers.set(section, observer);
     }
 };
+
 
 const originalGetParticipantSection = ConferenceUtils.getParticipantSection;
 MoveSectionLogic.getParticipantSection = function(displayName, conference) {
@@ -638,57 +831,135 @@ MoveSectionLogic.addSectionStyles = function() {
     styleElement.id = 'resizable-draggable-styles';
     styleElement.innerHTML = `
         .participant-section {
-            transition: box-shadow 0.3s ease;
+            transition: box-shadow 0.2s ease;
             box-sizing: border-box;
             min-width: 100px;
             min-height: 100px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
         }
         .participant-section:hover {
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
         }
         .participant-section .resizer {
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s ease;
+            background-color: #4285f4;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
         }
         .participant-section:hover .resizer {
             opacity: 1;
         }
         .participant-section .section-controls {
             opacity: 0;
-            transition: opacity 0.3s ease;
+            transition: opacity 0.2s ease;
+            display: flex;
+            gap: 8px;
         }
         .participant-section:hover .section-controls {
             opacity: 1;
         }
         .participant-header {
-            padding: 5px;
+            padding: 8px;
             background-color: #f1f1f1;
             border-bottom: 1px solid #ddd;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .control-button {
+            background: rgba(0,0,0,0.5) !important;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: background 0.2s ease;
         }
         .control-button:hover {
             background: rgba(0,0,0,0.7) !important;
         }
         .video-wrapper {
-            position: relative;
-            transition: opacity 0.3s ease;
+            position: absolute;
+            transition: opacity 0.3s ease, box-shadow 0.3s ease;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .video-wrapper:hover {
+            border: 1px solid rgba(66, 133, 244, 0.5);
         }
         .video-wrapper.dragging {
-            opacity: 0.5;
+            opacity: 0.7;
             border: 2px dashed #4285f4;
-        }
-        .video-wrapper.drag-over {
-            box-shadow: inset 0 0 0 2px #4285f4;
+            z-index: 1000;
         }
         .cameras-container {
             position: relative;
+            height: 100%;
+            overflow: hidden;
         }
-        .video-drag-handle:hover {
+        .video-drag-handle, .video-resize-handle {
             background: rgba(0,0,0,0.7) !important;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            cursor: pointer;
+            z-index: 101;
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        .video-drag-handle:hover, .video-resize-handle:hover {
+            background: rgba(0,0,0,0.9) !important;
+        }
+        .camera-label {
+            z-index: 102;
+            position: absolute;
+            bottom: 5px;
+            left: 5px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 12px;
         }
     `;
     document.head.appendChild(styleElement);
 };
 
+MoveSectionLogic.drag = function(e) {
+    if (!isDragging) return;
+    requestAnimationFrame(() => {
+        const containerRect = videoWrapper.closest('.cameras-container').getBoundingClientRect();
+        const newLeft = ((e.clientX - startX + startLeft) / containerRect.width) * 100;
+        const newTop = ((e.clientY - startY + startTop) / containerRect.height) * 100;
+        const maxLeft = 100 - (parseFloat(videoWrapper.style.width) || 50);
+        const maxTop = 100 - (parseFloat(videoWrapper.style.height) || 50);
+        const boundedLeft = Math.max(0, Math.min(newLeft, maxLeft));
+        const boundedTop = Math.max(0, Math.min(newTop, maxTop));
+        videoWrapper.style.left = `${boundedLeft}%`;
+        videoWrapper.style.top = `${boundedTop}%`;
+        MoveSectionLogic.saveCameraPositionConfig(videoWrapper);
+    });
+};
+MoveSectionLogic.startDrag = function(e) {
+    isDragging = true;
+    startX = e.clientX;
+    startY = e.clientY;
+    const containerRect = videoWrapper.closest('.cameras-container').getBoundingClientRect();
+    const wrapperRect = videoWrapper.getBoundingClientRect();
+    startLeft = (wrapperRect.left - containerRect.left);
+    startTop = (wrapperRect.top - containerRect.top);
+    videoWrapper.style.opacity = '0.7';
+    videoWrapper.style.boxShadow = '0 0 10px rgba(0, 120, 255, 0.7)';
+    videoWrapper.classList.add('dragging');
+    document.addEventListener('mousemove', drag);
+    document.addEventListener('mouseup', stopDrag);
+    e.preventDefault();
+};
 MoveSectionLogic.initializeResizableAndDraggableSections = function() {
     this.addSectionStyles();
 
