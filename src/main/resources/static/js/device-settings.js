@@ -531,17 +531,18 @@ async function openPreviewModal() {
         alert(`Please select exactly ${requiredCameras} cameras (${rows}×${cols} grid)`);
         return;
     }
-
+    let selectedAudio = null
     // Check for selected microphone if "isWithoutMicrophone" is not checked
     if(!isWithoutAudio) {
-        const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
+        console.log("Is without audio", isWithoutAudio)
+       selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
         if (!selectedAudio) {
             alert('Please select at least one microphone');
             return;
         }
     }
     const previewGrid = document.getElementById('previewGrid');
-    const selectedAudioLabel = document.getElementById('selectedAudioLabel');
+    const selectedAudioLabel =  isWithoutAudio ? "No audio device" : document.getElementById('selectedAudioLabel') ;
 
     // Clear previous previews and streams
     previewGrid.innerHTML = '';
@@ -605,11 +606,14 @@ async function openPreviewModal() {
         }
     }
 
-    // Update selected audio device
-    selectedAudioLabel.textContent = selectedAudio ?
-        selectedAudio.dataset.label :
-        'No audio device selected';
 
+    // Update selected audio device
+    selectedAudioLabel.textContent = isWithoutAudio ?
+        'No audio device selected' :
+        selectedAudio.dataset.label;
+
+    console.log("Selected Audio before preview modal" , selectedAudio)
+    console.log("Is without audio" , isWithoutAudio)
     // Show modal using Bootstrap
     previewModal.show();
 
