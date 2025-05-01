@@ -148,7 +148,9 @@ function sendJoinMessage() {
         console.error("Cannot send join message: stompClient is not connected");
     }
 }
-
+function confirmAction(message){
+    return confirm(message)
+}
 function showMessage(message) {
     if (!message.text || message.text.trim() === '') {
         console.log('Received empty message:', message);
@@ -171,36 +173,59 @@ function showMessage(message) {
         messageDiv.style.margin = '10px 0';
         messageDiv.style.fontStyle = 'italic';
         messageDiv.style.color = '#4a4a4a';
-    } else {
+    }
+    else if(message.type === 'INVITATION'){
+        messageDiv.className = "invitation-message";
+        messageDiv.style.textAlign = 'center';
+        messageDiv.style.backgroundColor = '#e6f3ff';
+        messageDiv.style.padding = '15px';
+        messageDiv.style.borderRadius = '10px';
+        messageDiv.style.margin = '10px 0';
+        messageDiv.style.boxShadow = '0 2px 5px rgba(0,0,0,0.1)';
+        messageDiv.style.border = '1px solid #b8daff';
+        messageDiv.style.width = 'fit';
+        messageDiv.style.height = 'fit';
+
+        const inviteTitle = document.createElement('h4');
+        inviteTitle.textContent = `${message.author} invites to join conference`
+        inviteTitle.style.margin = '0 0 15px 0';
+        inviteTitle.style.color = '#002352';
+
+        const connectButton = document.createElement('button');
+        connectButton.className = 'btn btn-primary';
+        connectButton.textContent = 'Connect';
+        connectButton.style.padding = '8px 20px';
+        connectButton.style.fontWeight = 'bold';
+        connectButton.style.cursor = 'pointer';
+        connectButton.onclick = () => {
+            window.location.href = `/setDevices?userName=${username}&conferenceId=${message.text}`;
+        };
+
+        messageDiv.appendChild(inviteTitle);
+        messageDiv.appendChild(connectButton);
+    }
+    else {
         const messageContent = document.createElement('div');
         const authorParagraph = document.createElement('p');
         const textParagraph = document.createElement('p');
         const dateParagraph = document.createElement('p');
-
         authorParagraph.className = 'message-author';
         textParagraph.className = 'message-text';
         dateParagraph.className = 'message-text';
-
         if (message.author === username || message.author === userEmail) {
             messageDiv.className = 'message message-right';
             authorParagraph.textContent = 'You:';
-
             const deleteButton = document.createElement('button');
-            deleteButton.className = 'btn btn-primary';
-            deleteButton.textContent = 'Delete';
-            deleteButton.style.width = 'auto';
-            deleteButton.style.height = 'auto';
-            deleteButton.style.position = 'absolute';
-            deleteButton.style.right = '20px';
-            deleteButton.style.top = '3px';
-            deleteButton.type = 'button';
-            deleteButton.onclick = function (event) {
+            deleteButton.className = 'delete-message-btn';
+            deleteButton.textContent = '✕';
+            deleteButton.title = 'Delete message';
+            deleteButton.onclick = function(event) {
                 event.preventDefault();
                 event.stopPropagation();
-                console.log("Delete button clicked for message:", message.id);
-                deleteMessage(message.id);
+                if (confirmAction('Delete this message?')) {
+                    deleteMessage(message.id);
+                }
             };
-
             messageDiv.appendChild(deleteButton);
         } else {
             messageDiv.className = 'message message-left';

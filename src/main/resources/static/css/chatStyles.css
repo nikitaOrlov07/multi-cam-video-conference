@@ -1,202 +1,321 @@
-/* Keep your existing styles */
-.chat-participants {
-    margin-top: 10px; /* This might be overridden later, kept for now */
-    font-size: 14px;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
-.participants-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 5px; /* This might be overridden later, kept for now */
-}
-.participant-name {
-    background: #007bff;
-    color: #fff;
-    padding: 3px 8px;
-    border-radius: 12px;
-    font-size: 12px;
-}
-.message {
-    border: 1px solid #ccc;
-    padding: 10px;
-    margin-bottom: 20px;
-    border-radius: 5px;
-    background-color: #b0b0b0;
-    width: calc(100% - 1500px); /* Note: This width calculation seems unusual */
-    display: flex;
-    flex-direction: column;
-}
-.message-left {
-    margin-right: auto;
-}
-.message-right {
-    margin-left: auto;
-}
-.message-author {
-    font-size: 1.2em;
-    font-weight: bold;
-    color: #000742;
-}
-.message-text {
-    font-size: 1.2em;
-    line-height: 1.5;
-    color: #000000;
-    width: 80%;
-    word-break: break-word;
-    overflow-wrap: break-word;
-}
-.btn-danger {
-    background-color: #dc3545;
-    border-color: #dc3545;
-}
-.btn-danger:hover {
-    background-color: #c82333;
-    border-color: #bd2130;
-}
-.user-status {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background-color: #ccc;
-    margin-right: 5px;
-}
-.user-status.online {
-    background-color: #2ecc71;
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-image: url("/assets/mainPageBackground.jpg");
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    line-height: 1.6;
+    color: #333;
 }
 .container {
-    max-width: 10000px; /* Note: Very large max-width */
-    display: flex;
-    margin-top: 15px;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 15px;
 }
 .projects-container {
     width: 100%;
-    height: 980px;
-    border: 1px solid #0016a6;
-    padding: 10px;
+    height: 70vh;
+    border: 1px solid #0056b3;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.9);
+    overflow: hidden;
 }
 .projects-list {
     overflow-y: auto;
     overflow-x: hidden;
-    max-height: 100%;
+    height: 100%;
+    padding: 15px;
+    scroll-behavior: smooth;
 }
+.message {
+    padding: 12px 15px;
+    margin-bottom: 15px;
+    border-radius: 12px;
+    max-width: 75%;
+    position: relative;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.message-left {
+    margin-right: auto;
+    background-color: #f0f0f0;
+    border-bottom-left-radius: 4px;
+}
+
+.message-right {
+    margin-left: auto;
+    background-color: #e3f2fd;
+    border-bottom-right-radius: 4px;
+}
+
+.message-author {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #0056b3;
+    margin-bottom: 5px;
+}
+
+.message-text {
+    font-size: 1rem;
+    color: #333;
+    word-break: break-word;
+    overflow-wrap: break-word;
+}
+
+.message p:last-child {
+    margin-bottom: 0;
+    font-size: 0.75rem;
+    color: #666;
+    text-align: right;
+    margin-top: 5px;
+}
+.join-message {
+    text-align: center;
+    background-color: #e6f3ff;
+    padding: 8px 12px;
+    border-radius: 20px;
+    margin: 10px auto;
+    max-width: 90%;
+    font-style: italic;
+    color: #4a4a4a;
+    font-size: 0.9rem;
+}
+.invitation-message {
+    text-align: center;
+    background-color: #e6f3ff;
+    padding: 15px;
+    border-radius: 10px;
+    margin: 15px auto;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    border: 1px solid #b8daff;
+    max-width: 90%;
+}
+
+.invitation-message h4 {
+    margin: 0 0 15px 0;
+    color: #002352;
+    font-size: 1rem;
+}
+
+.controls-container {
+    margin-top: 20px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-controls {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 15px;
+}
+
+.message-input-container {
+    width: 100%;
+    position: relative;
+}
+
+#messageForm {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+#commentText {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    resize: none;
+    font-size: 0.95rem;
+    background-color: rgba(255, 255, 255, 0.95);
+    transition: border-color 0.3s;
+}
+
+#commentText:focus {
+    outline: none;
+    border-color: #007bff;
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.char-count {
+    margin: 5px 0;
+    text-align: right;
+    font-size: 0.8rem;
+    color: #666;
+}
+
 .btn {
     display: inline-block;
-    font-weight: 400;
-    color: #ffffff;
+    font-weight: 500;
+    color: #fff;
     text-align: center;
     vertical-align: middle;
     cursor: pointer;
-    background-color: #021d44; /* Default button color */
-    border: 1px solid transparent;
-    padding: .375rem .75rem;
-    font-size: 1rem;
-    line-height: 1.5;
-    border-radius: .25rem;
-    transition: color .15s ease-in-out,background-color .15s ease-in-out,border-color .15s ease-in-out,box-shadow .15s ease-in-out;
-    margin-top: 20px; /* Default margin, might be overridden */
-}
-
-/* Specific style for btn-primary used in the chat link */
-.btn-primary {
-    color: #fff;
     background-color: #007bff;
-    border-color: #007bff;
+    border: none;
+    padding: 10px 15px;
+    font-size: 0.95rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-top: 10px;
 }
 
 .btn:hover {
-    color: #ffffff;
-    background-color: #5d5d5d; /* Generic hover, maybe add specific for btn-primary */
-    border-color: #bbb4b4;
-}
-
-.btn-primary:hover {
-    color: #fff;
     background-color: #0056b3;
-    border-color: #004085;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-
-body {
-    background-image: url("/assets/mainPageBackground.jpg");
-    /* Add background properties if needed, like size, repeat */
-    background-size: cover; /* Example */
-    background-repeat: no-repeat; /* Example */
-    background-attachment: fixed; /* Example */
+.btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 3px rgba(0, 0, 0, 0.1);
 }
 
-/* --- CORE CHANGES START HERE --- */
-
-/* Container for the whole section (Title + List) */
-.chats-section {
-    /* Removed flex display here, let it be block or add column flex if needed */
-    width: 100%;
-    padding: 10px;
-    /* Removed display: flex; flex-direction: row; gap: 10px; */
+.btn-danger {
+    background-color: #dc3545;
 }
 
-/* NEW: Container specifically for the list of chat items */
-.chat-list-container {
-    display: flex;       /* Arrange children (chat-item) in a row */
-    flex-direction: row; /* Default, explicit for clarity */
-    flex-wrap: wrap;     /* Allow items to wrap to the next line */
-    gap: 15px;           /* Space between chat items horizontally and vertically when wrapped */
-    margin-top: 15px;    /* Space below the "Your Chats" title */
+.btn-danger:hover {
+    background-color: #c82333;
 }
 
-/* Individual chat item styling */
-.chat-item {
-    display: flex;             /* Internal layout: details and button */
-    flex-direction: column;    /* Stack details and button vertically within the item */
-    /* Removed justify-content: space-between; */
-    /* Removed align-items: center; */ /* Align items to the start (top) */
-    align-items: flex-start;
-    border: 1px solid #ddd;
-    padding: 15px;
-    border-radius: 8px;
-    background: #f9f9f9;
-    /* Removed width: 100%; */ /* Let flexbox determine width based on content/flex properties */
-    /* Removed margin-bottom: 10px; */ /* Use gap in parent container instead */
-    min-width: 250px; /* Optional: give items a minimum width */
-    box-sizing: border-box; /* Include padding and border in the element's total width and height */
+.delete-btn {
+    margin-right: 10px;
 }
 
-/* Adjust the chat details container */
-.chat-details {
-    /* Removed display: flex; align-items: center; gap: 15px; */
-    text-align: left;
-    margin-bottom: 10px; /* Add space between details and button */
-    width: 100%; /* Ensure details take full width before button */
+.delete-message-btn {
+    position: absolute;
+    left: 10px;
+    bottom: 10px;
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    opacity: 0.8;
+    transition: opacity 0.2s;
 }
 
-/* Style for the participants section - make label and list stack */
-.chat-participants {
-    margin-top: 8px; /* Space below chat ID */
-    /* Removed display: flex; align-items: center; gap: 5px; */
-    font-size: 14px; /* Keep font size */
+.delete-message-btn:hover {
+    opacity: 1;
 }
 
-/* Participants list itself remains a flex row for the tags */
-.participants-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 5px;
-    margin-top: 5px; /* Space below "Participants:" label */
+@media (max-width: 992px) {
+    .projects-container {
+        height: 65vh;
+    }
+
+    .message {
+        max-width: 85%;
+    }
 }
 
-/* Adjust the positioning of the button */
-.btn-chat {
-    margin-top: auto; /* Pushes button to bottom if details vary in height */
-    /* Removed white-space: nowrap; */ /* Allow button text to wrap if needed */
-    align-self: flex-start; /* Align button to the left within the item */
+@media (max-width: 768px) {
+    .container {
+        padding: 10px;
+    }
+
+    .projects-container {
+        height: 60vh;
+    }
+
+    .admin-controls {
+        flex-wrap: wrap;
+    }
+
+    .delete-btn {
+        margin-bottom: 5px;
+    }
+
+    .message {
+        padding: 10px;
+        max-width: 90%;
+    }
+
+    #commentText {
+        padding: 10px;
+        font-size: 0.9rem;
+    }
 }
 
-/* --- CORE CHANGES END HERE --- */
+@media (max-width: 576px) {
+    .container {
+        padding: 5px;
+    }
 
-/* Ensure h3 styles are appropriate */
-.text-center {
+    .projects-container {
+        height: 55vh;
+    }
+
+    .message {
+        padding: 8px 10px;
+        margin-bottom: 10px;
+        max-width: 95%;
+    }
+
+    .message-author {
+        font-size: 0.8rem;
+    }
+
+    .message-text {
+        font-size: 0.9rem;
+    }
+
+    .btn {
+        padding: 8px 12px;
+        font-size: 0.85rem;
+    }
+
+    #commentText {
+        font-size: 0.85rem;
+        padding: 8px;
+    }
+}
+
+.chat-deleted-message,
+.chat-cleared-message {
     text-align: center;
+    padding: 15px;
+    background-color: #fff3cd;
+    border: 1px solid #ffeeba;
+    color: #856404;
+    border-radius: 8px;
+    margin: 20px auto;
+    max-width: 90%;
+    font-size: 1rem;
+    animation: fadeIn 0.5s ease;
 }
-.mb-4 {
-    margin-bottom: 1.5rem !important; /* Adjust spacing as needed */
+
+.projects-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.projects-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.projects-list::-webkit-scrollbar-thumb {
+    background: #bbb;
+    border-radius: 10px;
+}
+
+.projects-list::-webkit-scrollbar-thumb:hover {
+    background: #999;
 }

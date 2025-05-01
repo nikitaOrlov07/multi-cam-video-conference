@@ -10,7 +10,7 @@
     <script th:src="@{/js/videoConferenceLogicForMovingSections.js}"></script>
     <script th:src="@{/js/videoConferenceLogic.js}"></script>
     <link href="/css/conferencePage.css" rel="stylesheet">
-    <!--    <script th:src="@{/js/conferenceChatLogic.js}"></script>-->
+    <script th:src="@{/js/conferenceChatLogic.js}"></script>
     <script th:src="@{/js/commonFunctions.js}"></script>
 </head>
 <body>
@@ -66,9 +66,27 @@
             </button>
 
             <button id="editPasswordBtn" class="edit-btn">Edit</button>
+            <button id="inviteUserBtn" class="invite-btn">Invite</button>
             <input type="text" id="passwordInput" class="password-input" placeholder="Enter new password">
             <button id="savePasswordBtn" class="save-btn" style="display:none;">Save</button>
             <button id="cancelPasswordBtn" class="cancel-btn" style="display:none;">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<!-- Invite Modal -->
+<div id="inviteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Invite Users to Conference</h2>
+            <span class="close" id="closeInviteModal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <input type="text" id="userSearchInput" placeholder="Search users..." />
+            <div id="usersList">
+                <!-- User list will be populated here -->
+            </div>
+            <div id="loadingUsers" class="loading-indicator">Loading users...</div>
         </div>
     </div>
 </div>
@@ -150,6 +168,9 @@
         const conferenceId = /*[[${conferenceId}]]*/ 'default-conf-id';
         const userName = /*[[${userName}]]*/ 'default-username';
         // const chatId  = /*[[${chatId}]]*/ 'default-username';
+        const allUsers = /*[[${allUsers}]]*/ [];
+
+        initInviteFunctionality(conferenceId, allUsers);
 
         // Initialize conference and chat
         const conference = new VideoConference(conferenceId, userName);
@@ -172,6 +193,7 @@
         $('#editPasswordBtn').click(function() {
             $('#passwordDisplay').hide();
             $('#editPasswordBtn').hide();
+            $('#inviteUserBtn').hide();
 
             $('#passwordInput')
                 .val($('#passwordDisplay').text() === 'disabled' ? '' : $('#passwordDisplay').text())
@@ -195,7 +217,6 @@
                     userName: userName
                 },
                 success: function(response) {
-                    // Update display with new password or 'disabled'
                     $('#passwordDisplay').text(newPassword || 'disabled');
                     resetPasswordView();
                 },
@@ -208,10 +229,119 @@
         function resetPasswordView() {
             $('#passwordDisplay').show();
             $('#editPasswordBtn').show();
+            $('#inviteUserBtn').show();
             $('#passwordInput').removeClass('active');
             $('#savePasswordBtn, #cancelPasswordBtn').hide();
         }
     });
+
+
+    function initInviteFunctionality(conferenceId, preloadedUsers) {
+        const inviteModal = document.getElementById('inviteModal');
+        const inviteUserBtn = document.getElementById('inviteUserBtn');
+        const closeInviteModal = document.getElementById('closeInviteModal');
+        const userSearchInput = document.getElementById('userSearchInput');
+        const usersList = document.getElementById('usersList');
+
+        let users = preloadedUsers || [];
+        let filteredUsers = [...users];
+        let searchTimeout;
+
+        // Open the modal when the invite button is clicked
+        inviteUserBtn.addEventListener('click', function () {
+            inviteModal.style.display = 'block';
+            // Render the users that were passed from the model
+            renderUsers(filteredUsers);
+        });
+
+        // Close modal when X is clicked
+        closeInviteModal.addEventListener('click', function () {
+            inviteModal.style.display = 'none';
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', function (event) {
+            if (event.target === inviteModal) {
+                inviteModal.style.display = 'none';
+            }
+        });
+
+        // Filter users as the user types
+        userSearchInput.addEventListener('input', function () {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => {
+                const searchValue = this.value.toLowerCase();
+                filterUsers(searchValue);
+            }, 300);
+        });
+
+        function filterUsers(searchTerm) {
+            if (!searchTerm) {
+                filteredUsers = users;
+            } else {
+                filteredUsers = users.filter(user =>
+                    user.name.toLowerCase().includes(searchTerm) ||
+                    user.surname.toLowerCase().includes(searchTerm)
+                );
+            }
+            renderUsers(filteredUsers);
+        }
+
+        function renderUsers(users) {
+            usersList.innerHTML = '';
+
+            if (!users || users.length === 0) {
+                usersList.innerHTML = '<p style="text-align: center;">No users found</p>';
+                return;
+            }
+
+            users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.classList.add('user-item');
+
+                // Format the date if it exists
+                let formattedDate = '';
+                if (user.creatingDate) {
+                    const createdDate = new Date(user.creatingDate);
+                    formattedDate = createdDate.toLocaleDateString();
+                }
+
+                userItem.innerHTML = `
+                    <div class="user-info">
+                        <strong>${user.name} ${user.surname}</strong>
+                        ${formattedDate ? `<div>Registered: ${formattedDate}</div>` : ''}
+                    </div>
+                    <button class="invite-btn" data-user-id="${user.id}">Invite</button>
+                `;
+
+                usersList.appendChild(userItem);
+            });
+
+            // Add click handlers to all invite buttons
+            document.querySelectorAll('.invite-btn').forEach(button => {
+                button.addEventListener('click', function () {
+                    const userId = this.getAttribute('data-user-id');
+                    sendInvitation(userId, conferenceId);
+                });
+            });
+        }
+
+        function sendInvitation(userId, conferenceId) {
+            $.ajax({
+                url: `/chat/${userId}/${conferenceId}`,
+                method: 'POST',
+                success: function () {
+                    alert('Invitation sent successfully!');
+                    document.querySelector(`.invite-btn[data-user-id="${userId}"]`).disabled = true;
+                    document.querySelector(`.invite-btn[data-user-id="${userId}"]`).textContent = 'Invited';
+                },
+                error: function (xhr) {
+                    console.error('Failed to send invitation:', xhr);
+                    alert('Failed to send invitation. Please try again.');
+                }
+            });
+        }
+    }
 </script>
 </body>
 </html>

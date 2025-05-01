@@ -2,6 +2,7 @@ package com.example.webConf.config.message;
 
 public enum MessageType {
     CHAT,
+    INVITATION,
     JOIN,
     LEAVE,
     DELETE,

@@ -19,9 +19,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -32,6 +34,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
@@ -48,14 +51,16 @@ public class ChatController {
     private final ChatService chatService;
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
+    private final SimpMessagingTemplate messagingTemplate;
 
     @Autowired
-    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper) {
+    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper, SimpMessagingTemplate messagingTemplate) {
         this.conferenceService = conferenceService;
         this.userService = userService;
         this.messageService = messageService;
         this.chatService = chatService;
         this.objectMapper = objectMapper;
+        this.messagingTemplate = messagingTemplate;
     }
 
     // find existing chat or create new beetween two people for "home-page"
@@ -111,6 +116,37 @@ public class ChatController {
         messageService.saveMessage(message, chatId, user);
 
         return message;
+    }
+    @PostMapping("/chat/{userId}/{conferenceId}")
+    public ResponseEntity sendInvitationToConference(@PathVariable Long userId, @PathVariable String conferenceId) {
+        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail())
+                .orElseThrow(() -> new AuthException("User not found"));
+        UserEntity sendToUser = userService.findById(userId)
+                .orElseThrow(() -> new AuthException("User not found"));
+
+        logger.info("Sending invitation to user {} from user {} to conference {}",
+                sendToUser.getId(), currentUser.getId(), conferenceId);
+
+        Chat chat = chatService.findOrCreateChat(currentUser, sendToUser);
+
+        Message message = Message.builder()
+                .text(conferenceId.toString())
+                .author(currentUser.getName() + " " + currentUser.getSurname())
+                .user(currentUser)
+                .type(MessageType.INVITATION)
+                .pubDate(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .chat(chat)
+                .build();
+
+        messageService.saveMessage(message, chat.getId(), currentUser);
+
+        // Send the message through WebSocket
+        messagingTemplate.convertAndSendToUser(
+                sendToUser.getEmail(),
+                "/topic/chat/" + chat.getId(),
+                message);
+
+        return ResponseEntity.ok().build();
     }
 
     @MessageMapping("/chat/{chatId}/addUser")

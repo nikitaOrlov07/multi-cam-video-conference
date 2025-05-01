@@ -144,7 +144,13 @@ class ChatManager {
             messageDiv.style.margin = '10px 0';
             messageDiv.style.fontStyle = 'italic';
             messageDiv.style.color = '#4a4a4a';
-        } else {
+        }
+        else if(message.type === 'INVITATION')
+        {
+            messageDiv.className = "invitation-message";
+            messageText
+        }
+        else {
             const messageContent = document.createElement('div');
             const authorParagraph = document.createElement('p');
             const textParagraph = document.createElement('p');
