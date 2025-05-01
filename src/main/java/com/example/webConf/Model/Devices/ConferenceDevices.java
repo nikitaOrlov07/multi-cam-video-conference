@@ -36,9 +36,6 @@ public class ConferenceDevices {
     @Column(columnDefinition = "TEXT")
     private String cameraConfiguration;
 
-    // Grid configuration
-    private Integer gridRows;
-    private Integer gridCols;
     // Username
     private String userName;
     @Transient // Не сохраняется в БД

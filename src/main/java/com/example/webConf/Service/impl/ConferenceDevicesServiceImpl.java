@@ -2,7 +2,6 @@ package com.example.webConf.service.impl;
 
 import com.example.webConf.dto.Devices.CameraDTO;
 import com.example.webConf.dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.dto.Devices.GridSizeDTO;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.repository.ConferenceDeviceRepository;
 import com.example.webConf.service.ConferenceDevicesService;
@@ -44,10 +43,6 @@ public class ConferenceDevicesServiceImpl implements ConferenceDevicesService {
 
         return DeviceSelectionDTO.builder()
                 .cameras(cameras)
-                .gridSize(new GridSizeDTO(
-                        deviceConfig.getGridRows(),
-                        deviceConfig.getGridCols()
-                ))
                 .conferenceId(conferenceId)
                 .userName(userName)
                 .build();
@@ -59,11 +54,9 @@ public class ConferenceDevicesServiceImpl implements ConferenceDevicesService {
 
         return devices.stream()
                 .collect(Collectors.toMap(
-                        device -> String.format("%s_%s_%d_%d",
+                        device -> String.format("%s_%s",
                                 device.getMicrophoneDeviceId(),
-                                device.getMicrophoneLabel(),
-                                device.getGridRows(),
-                                device.getGridCols()),
+                                device.getMicrophoneLabel()),
                         Function.identity(),
                         (existing, replacement) -> {
                             List<ConferenceDevices.Camera> existingCameras = existing.getCameras();

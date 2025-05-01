@@ -6,53 +6,31 @@ function setupWithoutVideoToggle() {
         console.error("Audio only toggle checkbox not found!");
         return;
     }
-    // More precise selectors
-    const gridSelector = document.querySelector('.grid-selector');
-    // Fixed camera column selector - using the correct parent-child relationship
-    const camerasColumn = document.querySelector('.row > .col-md-6:first-child');
-    const gridRowsInput = document.getElementById('gridRows');
-    const gridColsInput = document.getElementById('gridCols');
 
-    // Store original values to restore them later
-    let originalRows = gridRowsInput.value;
-    let originalCols = gridColsInput.value;
+    // Camera column selector
+    const camerasColumn = document.querySelector('.row > .col-md-6:first-child');
 
     withoutCamerasToggle.addEventListener('change', function() {
         if (this.checked) {
-            // Store current grid values before setting to 0
-            originalRows = gridRowsInput.value;
-            originalCols = gridColsInput.value;
-
-            gridRowsInput.value = 0;
-            gridColsInput.value = 0;
-
-            // Hide camera selection section and grid selector
+            // Hide camera selection section
             if (camerasColumn) camerasColumn.style.display = 'none';
-            if (gridSelector) gridSelector.style.display = 'none';
 
             // Uncheck all camera checkboxes
             document.querySelectorAll('input[type="checkbox"][id^="camera-"]').forEach(checkbox => {
                 checkbox.checked = false;
             });
-
         } else {
-            // Restore original grid values
-            gridRowsInput.value = originalRows;
-            gridColsInput.value = originalCols;
-            // Show camera selection section and grid selector
+            // Show camera selection section
             if (camerasColumn) camerasColumn.style.display = 'block';
-            if (gridSelector) gridSelector.style.display = 'block';
         }
     });
 
     // Check if the toggle is already checked when page loads
     if (withoutCamerasToggle.checked) {
         if (camerasColumn) camerasColumn.style.display = 'none';
-        if (gridSelector) gridSelector.style.display = 'none';
-        gridRowsInput.value = 0;
-        gridColsInput.value = 0;
     }
 }
+
 /// Logic to make initial device configuration without microphone
 function setupWithoutAudioToggle() {
     const withoutAudioToggle = document.getElementById('withoutAudioToggle');
@@ -394,7 +372,7 @@ async function tryGetVideoStream(deviceId, videoElement) {
 }
 
 async function openPreviewModal() {
-    console.log("open Preview model");
+    console.log("open Preview modal");
 
     // Check if conferenceId is available in the model
     const conferenceIdElement = document.getElementById('conferenceIdInput');
@@ -402,13 +380,14 @@ async function openPreviewModal() {
 
     // Check if previous configuration is selected
     const selectedConfig = document.querySelector('input[name="previousConfiguration"]:checked');
-    // Check if checkbox "without cameras"  is checked
+    // Check if checkbox "without cameras" is checked
     const isWithoutCameras = document.getElementById('withoutCamerasToggle').checked;
-    // Check if checkBox "without microphone" is checked
-    const isWithoutAudio = document.getElementById('withoutCamerasToggle').checked;
+    // Check if checkbox "without microphone" is checked
+    const isWithoutAudio = document.getElementById('withoutAudioToggle').checked;
+
     if (selectedConfig) {
         try {
-            console.log("SELECTED CONFIG")
+            console.log("SELECTED CONFIG");
             // Fetch the configuration details
             const response = await fetch(`/api/conference/devices/${selectedConfig.value}`);
             if (!response.ok) {
@@ -422,11 +401,6 @@ async function openPreviewModal() {
             // Clear previous previews and streams
             previewGrid.innerHTML = '';
             stopAllStreams();
-
-            // Set grid layout
-            previewGrid.style.display = 'grid';
-            previewGrid.style.gridTemplateColumns = `repeat(${config.gridCols}, 1fr)`;
-            previewGrid.style.gridTemplateRows = `repeat(${config.gridRows}, 1fr)`;
 
             // Sort cameras by order
             const sortedCameras = [...config.cameras].sort((a, b) => a.order - b.order);
@@ -478,7 +452,7 @@ async function openPreviewModal() {
                 const modalElement = document.getElementById('previewModal');
 
                 if (!modalElement) {
-                    console.error("Could not find modal window element with ID “previewModal”!");
+                    console.error("Could not find modal window element with ID 'previewModal'!");
                     return;
                 }
 
@@ -486,7 +460,6 @@ async function openPreviewModal() {
                 const createBtn = modalElement.querySelector('.btn-success');
                 const cancelBtn = modalElement.querySelector('.btn-secondary');
                 const joinBtn = modalElement.querySelector('.btn-primary');
-
 
                 if (createBtn) {
                     createBtn.style.display = 'none';
@@ -521,37 +494,30 @@ async function openPreviewModal() {
     }
 
     // If no previous configuration is selected, proceed with normal flow
-    const rows = parseInt(document.getElementById('gridRows').value);
-    const cols = parseInt(document.getElementById('gridCols').value);
-    const requiredCameras = isWithoutCameras ? 0 : rows * cols;
-
     const selectedCameras = Array.from(document.querySelectorAll('input[type="checkbox"][id^="camera-"]:checked'));
 
-    if (selectedCameras.length !== requiredCameras) {
-        alert(`Please select exactly ${requiredCameras} cameras (${rows}×${cols} grid)`);
+    if (!isWithoutCameras && selectedCameras.length === 0) {
+        alert('Please select at least one camera');
         return;
     }
-    let selectedAudio = null
-    // Check for selected microphone if "isWithoutMicrophone" is not checked
-    if(!isWithoutAudio) {
-        console.log("Is without audio", isWithoutAudio)
-       selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
+
+    let selectedAudio = null;
+    // Check for selected microphone if "isWithoutAudio" is not checked
+    if (!isWithoutAudio) {
+        console.log("Is without audio", isWithoutAudio);
+        selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
         if (!selectedAudio) {
             alert('Please select at least one microphone');
             return;
         }
     }
+
     const previewGrid = document.getElementById('previewGrid');
-    const selectedAudioLabel =  isWithoutAudio ? "No audio device" : document.getElementById('selectedAudioLabel') ;
+    const selectedAudioLabel = document.getElementById('selectedAudioLabel');
 
     // Clear previous previews and streams
     previewGrid.innerHTML = '';
     stopAllStreams();
-
-    // Set grid layout
-    previewGrid.style.display = 'grid';
-    previewGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
-    previewGrid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
 
     // Sort cameras by order
     const sortedCameras = selectedCameras
@@ -606,24 +572,20 @@ async function openPreviewModal() {
         }
     }
 
-
     // Update selected audio device
     selectedAudioLabel.textContent = isWithoutAudio ?
         'No audio device selected' :
         selectedAudio.dataset.label;
 
-    console.log("Selected Audio before preview modal" , selectedAudio)
-    console.log("Is without audio" , isWithoutAudio)
     // Show modal using Bootstrap
     previewModal.show();
 
     // If conferenceId is preset, modify the modal buttons
     if (hasPresetConferenceId) {
-
         const modalElement = document.getElementById('previewModal');
 
         if (!modalElement) {
-            console.error("Could not find modal window element with ID “previewModal”!");
+            console.error("Could not find modal window element with ID 'previewModal'!");
             return;
         }
 
@@ -632,7 +594,6 @@ async function openPreviewModal() {
         const cancelBtn = modalElement.querySelector('.btn-secondary');
         const joinBtn = modalElement.querySelector('.btn-primary');
 
-
         if (createBtn) {
             createBtn.style.display = 'none';
         } else {
@@ -640,7 +601,7 @@ async function openPreviewModal() {
         }
 
         if (cancelBtn) {
-             cancelBtn.style.display = 'inline-block';
+            cancelBtn.style.display = 'inline-block';
         } else {
             console.error("The .btn-secondary button is not found OUTSIDE the modal window!");
         }
@@ -690,17 +651,11 @@ function joinPresetConference(conferenceId) {
             label: selectedAudio.dataset.label
         }] : [];
 
-        const gridSize = {
-            rows: parseInt(document.getElementById('gridRows').value),
-            cols: parseInt(document.getElementById('gridCols').value)
-        };
-
         const userName = document.getElementById('userNameInput').value;
 
         const requestBody = {
             cameras: selectedCameras,
             audio: audioDevice,
-            gridSize: gridSize,
             userName: userName
         };
 
@@ -708,13 +663,6 @@ function joinPresetConference(conferenceId) {
     }
 }
 
-function closePreviewModal() {
-    stopAllStreams();
-    if (document.getElementById('joinConferenceModal').style.display === 'block') {
-        return; // Не закрываем preview модальное окно, если открыто join модальное окно
-    }
-    previewModal.hide();
-}
 
 function stopAllStreams() {
     activeStreams.forEach(stream => {
@@ -755,18 +703,12 @@ function createNewConference() {
             label: selectedAudio.dataset.label
         }] : [];
 
-        const gridSize = {
-            rows: parseInt(document.getElementById('gridRows').value),
-            cols: parseInt(document.getElementById('gridCols').value)
-        };
-
         // Get userName from hidden input
         const userName = document.getElementById('userNameInput').value;
 
         const requestBody = {
             cameras: selectedCameras,
             audio: audioDevice,
-            gridSize: gridSize,
             userName: userName
         };
 
@@ -840,17 +782,11 @@ function joinConference() {
             label: selectedAudio.dataset.label
         }] : [];
 
-        const gridSize = {
-            rows: parseInt(document.getElementById('gridRows').value),
-            cols: parseInt(document.getElementById('gridCols').value)
-        };
-
         const userName = document.getElementById('userNameInput').value;
 
         const requestBody = {
             cameras: selectedCameras,
             audio: audioDevice,
-            gridSize: gridSize,
             userName: userName
         };
 
@@ -859,10 +795,8 @@ function joinConference() {
 }
 
 function sendDeviceData(requestBody, identifier = null, configurationId = null) {
-    // Add userName to URL parameters
     const userName = encodeURIComponent(requestBody.userName);
 
-    // Build URL with all parameters
     let url = '/connect-devices';
     const params = [];
 
@@ -885,7 +819,6 @@ function sendDeviceData(requestBody, identifier = null, configurationId = null) 
             if (response.ok) {
                 return response.text().then(conferenceId => {
                     stopAllStreams();
-                    // Include userName in redirect URL
                     window.location.href = `/conference/join?conferenceId=${conferenceId}&userName=${userName}`;
                 });
             } else {
@@ -902,6 +835,7 @@ function sendDeviceData(requestBody, identifier = null, configurationId = null) 
             console.error('Error during fetch request:', error);
         });
 }
+
 function togglePreviousConfig(radio) {
     if (radio.getAttribute('data-was-checked') === 'true') {
         radio.checked = false;

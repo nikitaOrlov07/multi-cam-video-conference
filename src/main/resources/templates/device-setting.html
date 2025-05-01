@@ -16,20 +16,6 @@
     <input type="hidden" id="userNameInput" th:value="${userName}">
     <input type="hidden" id="conferenceIdInput" th:if="${conferenceId != null}" th:value="${conferenceId}">
     <h1 class="text-center mb-4" th:text="'Hello ' + ${userName} + ' please select videos and cameras'"></h1>
-
-    <div class="grid-selector">
-        <h3>Select Grid Size</h3>
-        <div class="row">
-            <div class="col-md-3">
-                <label for="gridRows">Number of Rows (n):</label>
-                <input type="number" id="gridRows" class="form-control" min="1" value="1">
-            </div>
-            <div class="col-md-3">
-                <label for="gridCols">Number of Columns (k):</label>
-                <input type="number" id="gridCols" class="form-control" min="1" value="1">
-            </div>
-        </div>
-    </div>
     <div class="d-flex flex-row align-items-center">
         <div class="audio-only-toggle mt-3 mb-3 me-4">
             <div class="form-check">
@@ -87,8 +73,6 @@
                             </div>
                             <div class="flex-grow-1">
                                 <strong>Microphone:</strong> <span th:text="${device.microphoneLabel}"></span><br>
-                                <strong>Grid:</strong> <span
-                                    th:text="${device.gridRows} + ' x ' + ${device.gridCols}"></span><br>
                                 <strong>Cameras:</strong>
                                 <ul>
                                     <li th:each="camera : ${device.getCameras()}" class="mb-1">

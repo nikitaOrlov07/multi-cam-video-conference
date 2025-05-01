@@ -37,14 +37,6 @@
     z-index: 1040;
 }
 
-/* Additional styles for preview grid and other elements */
-.preview-grid {
-    display: grid;
-    gap: 1rem;
-    width: 100%;
-    max-width: 1200px;
-}
-
 .preview-item {
     position: relative;
     aspect-ratio: 16/9;
@@ -98,7 +90,7 @@
 }
 
 /* Adding additional style for audio-only mode */
-.audio-only-mode .grid-selector,
+.audio-only-mode,
 .audio-only-mode .col-md-6:first-child {
     display: none !important;
 }

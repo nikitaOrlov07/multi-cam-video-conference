@@ -447,7 +447,7 @@ class VideoConference {
         section.setAttribute('data-size', '1');
         const nameDiv = document.createElement('div');
         nameDiv.className = 'participant-name';
-        nameDiv.textContent = displayName;
+        nameDiv.textContent = isLocalUser ? "You" : displayName;
         const camerasContainer = document.createElement('div');
         camerasContainer.className = 'cameras-container';
         let gridRows = 2;
@@ -1369,7 +1369,6 @@ class VideoConference {
             }
             this.deviceConfig = await ConferenceUtils.loadDeviceConfig(this.conferenceId , this.userName);
             console.debug("Setting Device COnfig" , this.deviceConfig)
-            await ConferenceUtils.loadAllUserCameraConfigurations(this.conferenceId);
             JitsiMeetJS.init({
                 disableAudioLevels: true,
                 disableRtx: true,

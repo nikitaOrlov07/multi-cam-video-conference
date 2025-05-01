@@ -146,13 +146,13 @@ public class ConferenceSettingsController {
                 devices = ConferenceDevices.builder()
                         .conference(conference)
                         .userName(deviceSelection.getUserName())
-                        .microphoneDeviceId(deviceSelection.getAudio().get(0).getDeviceId())
-                        .microphoneLabel(deviceSelection.getAudio().get(0).getLabel())
                         .cameraConfiguration(objectMapper.writeValueAsString(deviceSelection.getCameras()))
-                        .gridRows(deviceSelection.getGridSize().getRows())
-                        .gridCols(deviceSelection.getGridSize().getCols())
                         .build();
 
+                if(deviceSelection.getAudio() != null && !deviceSelection.getAudio().isEmpty() && deviceSelection.getAudio().get(0) != null && deviceSelection.getAudio().get(0).getLabel() != null) {
+                    devices.setMicrophoneDeviceId(deviceSelection.getAudio().get(0).getDeviceId());
+                    devices.setMicrophoneLabel(deviceSelection.getAudio().get(0).getLabel());
+                }
             } else { // use already defined configuration
                 ConferenceDevices existedConfiguration = conferenceDevicesService.findById(configurationId).orElseThrow(() -> new ConferenceException("Device Configuration not found"));
                 devices = ConferenceDevices.builder()
@@ -161,9 +161,12 @@ public class ConferenceSettingsController {
                         .microphoneDeviceId(existedConfiguration.getMicrophoneDeviceId())
                         .microphoneLabel(existedConfiguration.getMicrophoneLabel())
                         .cameraConfiguration(objectMapper.writeValueAsString(deviceSelection.getCameras()))
-                        .gridRows(existedConfiguration.getGridRows())
-                        .gridCols(existedConfiguration.getGridCols())
                         .build();
+
+                if(existedConfiguration.getMicrophoneDeviceId() != null && existedConfiguration.getMicrophoneLabel() != null) {
+                    devices.setMicrophoneDeviceId(existedConfiguration.getMicrophoneDeviceId());
+                    devices.setMicrophoneLabel(existedConfiguration.getMicrophoneLabel());
+                }
 
                 log.info("Found configuration with id: {}", conferenceId);
             }

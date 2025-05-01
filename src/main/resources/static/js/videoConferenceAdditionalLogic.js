@@ -38,12 +38,12 @@ const ConferenceUtils = {
                 })
                 .catch(error => {
                     console.error('Error updating user count:', error);
-                    ConferenceUtils.showError('Ошибка обновления количества пользователей');
+                    ConferenceUtils.showError('Error while updating users count');
                     return null;
                 });
         } catch (error) {
             console.error('Error updating user count:', error);
-            ConferenceUtils.showError('Ошибка обновления количества пользователей');
+            ConferenceUtils.showError('Error while updating users count');
             return Promise.resolve(null);
         }
     },
@@ -92,50 +92,10 @@ const ConferenceUtils = {
             if (!response.ok) {
                 throw new Error('Failed to load device configuration');
             }
-            const deviceConfig = await response.json();
-            return deviceConfig;
+            return await response.json();
         } catch (error) {
-            this.showError('Ошибка загрузки конфигурации устройств');
+            this.showError(`Error while loading users ${userName} configuration`);
             throw error;
-        }
-    },
-    async loadAllUserCameraConfigurations(conferenceId) {
-        try {
-            const response = await fetch(`/api/conference/devices/configuration/${conferenceId}`);
-            if (!response.ok) {
-                throw new Error('Failed to load all camera configurations');
-            }
-            const deviceConfigs = await response.json();
-            deviceConfigs.forEach(config => {
-                const userName = config.userName;
-                const gridRows = config.gridRows || 2;
-                const gridCols = config.gridCols || 2;
-                if (config.cameraConfiguration) {
-                    try {
-                        const cameras = JSON.parse(config.cameraConfiguration);
-                        cameras.forEach(camera => {
-                            const key = `${userName}_${camera.deviceId}`;
-                            this.cameraOrderMap.set(key, {
-                                order: camera.order,
-                                gridRows: gridRows,
-                                gridCols: gridCols
-                            });
-                        });
-                        this.cameraOrderMap.set(`${userName}_gridConfig`, {
-                            gridRows: gridRows,
-                            gridCols: gridCols
-                        });
-                    } catch (e) {
-                        console.error(`Error parsing camera config for ${userName}:`, e);
-                    }
-                }
-            });
-            console.log('Loaded camera configurations for all users:', this.cameraOrderMap);
-            return true;
-        } catch (error) {
-            console.error('Error loading all camera configurations:', error);
-            this.showError('Ошибка загрузки конфигураций камер всех пользователей');
-            return false;
         }
     },
     startUserCountUpdates() {

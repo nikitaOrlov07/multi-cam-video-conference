@@ -14,7 +14,6 @@ import java.util.List;
 public class DeviceSelectionDTO {
     private List<CameraDTO> cameras;
     private List<AudioDeviceDTO> audio;
-    private GridSizeDTO gridSize;
     private String conferenceId;
     private AudioDeviceDTO microphone;
     private String userName;

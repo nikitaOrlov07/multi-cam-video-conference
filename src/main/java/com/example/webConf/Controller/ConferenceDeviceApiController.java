@@ -3,7 +3,6 @@ package com.example.webConf.controller;
 import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.dto.Devices.AudioDeviceDTO;
 import com.example.webConf.dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.dto.Devices.GridSizeDTO;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.repository.ConferenceDeviceRepository;
@@ -12,7 +11,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import com.example.webConf.dto.Devices.CameraDTO;
 
@@ -45,7 +43,6 @@ public class ConferenceDeviceApiController {
 
         return DeviceSelectionDTO.builder()
                 .cameras(cameras)
-                .gridSize(new GridSizeDTO(devices.getGridRows(), devices.getGridCols()))
                 .conferenceId(conferenceId)
                 .userName(userName)
                 .build();
@@ -71,7 +68,6 @@ public class ConferenceDeviceApiController {
         return DeviceSelectionDTO.builder()
                 .cameras(cameras)
                 .audio(List.of(audioDeviceDTO))      // TODO -> maybe i need to change it
-                .gridSize(new GridSizeDTO(devices.getGridRows(), devices.getGridCols()))
                 .conferenceId(null)
                 .userName(devices.getUserName())
                 .build();
@@ -109,9 +105,6 @@ public class ConferenceDeviceApiController {
                 mergedConfig.setUserName(actualUserName);
                 mergedConfig.setConference(userDevices.get(0).getConference());
 
-                // Set grid configuration from the first device (assuming they're all the same)
-                mergedConfig.setGridRows(userDevices.get(0).getGridRows());
-                mergedConfig.setGridCols(userDevices.get(0).getGridCols());
 
                 // Merge camera configurations
                 List<Map<String, Object>> allCameras = new ArrayList<>();
