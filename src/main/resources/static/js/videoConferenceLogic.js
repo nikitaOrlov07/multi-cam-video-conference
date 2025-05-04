@@ -281,81 +281,6 @@ class VideoConference {
             }
         });
     }
-    updateSectionLayout(section) {
-        if (!section) return;
-
-        const camerasContainer = section.querySelector('.cameras-container');
-        if (!camerasContainer) return;
-
-        const videoWrappers = Array.from(camerasContainer.querySelectorAll('.video-wrapper'));
-        if (videoWrappers.length === 0) return;
-
-        // Get the display name from the section
-        const nameDiv = section.querySelector('.participant-name');
-        if (!nameDiv) return;
-
-        const displayName = nameDiv.textContent;
-
-        // Get grid configuration for this user
-        const gridConfigKey = `${displayName}_gridConfig`;
-        let gridRows = 2;
-        let gridCols = 2;
-
-        if (this.cameraOrderMap.has(gridConfigKey)) {
-            const config = this.cameraOrderMap.get(gridConfigKey);
-            gridRows = config.gridRows || gridRows;
-            gridCols = config.gridCols || gridCols;
-        }
-
-        // Apply grid configuration to container
-        camerasContainer.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
-        camerasContainer.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
-
-        // Remove any no-camera placeholder
-        const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
-        if (placeholder) {
-            placeholder.style.display = 'none';
-        }
-
-        // Sort video wrappers by camera order
-        videoWrappers.sort((a, b) => {
-            const orderA = parseInt(a.getAttribute('data-camera-order') || '999', 10);
-            const orderB = parseInt(b.getAttribute('data-camera-order') || '999', 10);
-            return orderA - orderB;
-        });
-
-        // Remove all video wrappers from the container
-        videoWrappers.forEach(wrapper => wrapper.remove());
-
-        // Add them back in sorted order with correct grid positions
-        videoWrappers.forEach((wrapper, index) => {
-            const order = parseInt(wrapper.getAttribute('data-camera-order') || (index + 1).toString(), 10);
-
-            // Calculate grid position (1-based)
-            // For example, with a 2x2 grid:
-            // order 1 -> row 1, col 1
-            // order 2 -> row 1, col 2
-            // order 3 -> row 2, col 1
-            // order 4 -> row 2, col 2
-            const row = Math.ceil(order / gridCols);
-            const col = ((order - 1) % gridCols) + 1;
-
-            // Set grid position
-            wrapper.style.gridRow = row;
-            wrapper.style.gridColumn = col;
-
-            // Update camera label
-            const label = wrapper.querySelector('.camera-label');
-            if (label) {
-                label.textContent = `Camera ${order}`;
-            }
-
-            camerasContainer.appendChild(wrapper);
-        });
-
-        // Update section size attribute
-        section.setAttribute('data-size', videoWrappers.length.toString());
-    }
 
     onRemoteTrackRemoved(track) {
         if (track.isLocal()) {
@@ -376,7 +301,6 @@ class VideoConference {
             wrapper.remove();
 
             if (section) {
-                this.updateSectionLayout(section);
                 const camerasContainer = section.querySelector('.cameras-container');
                 if (camerasContainer) {
                     const videoWrappers = camerasContainer.querySelectorAll('.video-wrapper');
@@ -392,7 +316,7 @@ class VideoConference {
                                 <path d="M18 7c0-1.1-.9-2-2-2H6L0 11v4h4v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2h4v-4l-4-4z"/>
                                 <line x1="1" y1="1" x2="23" y2="23" stroke="red"/>
                             </svg>
-                        </div>
+                       </div>
                         <p>No camera available</p>
                     `;
                             placeholder.style.display = 'flex';
@@ -429,6 +353,7 @@ class VideoConference {
     }
 
     createParticipantSection(participantId, displayName) {
+        console.log("CREATING PARTCIPANT SECTION")
         let section = ConferenceUtils.getParticipantSection(displayName, this);
         if (section) {
             console.log(`Using existing section for ${displayName}`);
@@ -447,7 +372,7 @@ class VideoConference {
         section.setAttribute('data-size', '1');
         const nameDiv = document.createElement('div');
         nameDiv.className = 'participant-name';
-        nameDiv.textContent = isLocalUser ? "You" : displayName;
+        nameDiv.textContent = displayName;
         const camerasContainer = document.createElement('div');
         camerasContainer.className = 'cameras-container';
         let gridRows = 2;
@@ -502,7 +427,6 @@ class VideoConference {
     }
     createVideoPreview(track, label, index) {
         let section = document.querySelector(`[data-participant-id="local"]`);
-
         if (!section) {
             section = this.createParticipantSection('local', this.userName);
             if (!section) {
@@ -554,10 +478,6 @@ class VideoConference {
         wrapper.appendChild(video);
         wrapper.appendChild(cameraLabel);
         camerasContainer.appendChild(wrapper);
-
-        // Apply grid positioning
-        this.updateSectionLayout(section);
-
         console.log(`Added camera ${label} to container. Total cameras: ${camerasContainer.querySelectorAll('.video-wrapper').length}`);
     }
 
@@ -702,16 +622,12 @@ class VideoConference {
         wrapper.appendChild(video);
         wrapper.appendChild(label);
         camerasContainer.appendChild(wrapper);
-
-        this.updateSectionLayout(section);
-
         video.play().catch(error => {
             console.error('Video playback error:', error);
             video.muted = true;
             video.play().catch(e => {
                 console.error('Second video playback attempt failed:', e);
                 wrapper.remove();
-                this.updateSectionLayout(section);
                 if (camerasContainer.querySelectorAll('.video-wrapper').length === 0 && placeholder) {
                     placeholder.style.display = 'flex';
                 }
@@ -850,21 +766,6 @@ class VideoConference {
                 document.getElementById('loading').style.display = 'none';
                 return;
             }
-            if (this.reconnecting &&
-                this.localTracks.video &&
-                this.localTracks.video.length === validCameras.length &&
-                this.localTracks.video.every(track => typeof track.isDisposed === 'function' && !track.isDisposed())) {
-                console.log('Keeping existing camera tracks during reconnection');
-                for (const track of this.localTracks.video) {
-                    if (this.room) {
-                        try {
-                            await this.room.addTrack(track);
-                        } catch (e) {
-                            console.log(`Note: Could not add video track (may already exist): ${e.message}`);
-                        }
-                    }
-                }
-            } else {
                 if (!this.localTracks.video) {
                     this.localTracks.video = [];
                 } else {
@@ -933,6 +834,7 @@ class VideoConference {
                             if (additionalTracks && additionalTracks.length > 0 && additionalTracks[0]) {
                                 const additionalTrack = additionalTracks[0];
                                 this.localTracks.video.push(additionalTrack);
+                                if(this.reconnecting)
                                 this.createVideoPreview(additionalTrack, camera.label, i);
 
                                 await this.createTechnicalUserWithCamera(technicalUserName, additionalTrack, camera);
@@ -940,11 +842,10 @@ class VideoConference {
                             }
                         } catch (e) {
                             console.error(`Error setting up technical user for camera: ${camera.label}`, e);
-                           ConferenceUtils.showError(`Camera access error for additional camera: ${camera.label}`);
+                            ConferenceUtils.showError(`Camera access error for additional camera: ${camera.label}`);
                         }
                     }
                 }
-            }
             ConferenceUtils.updateUserCount(
                 this.conferenceId,
                 this.userName,
@@ -961,6 +862,7 @@ class VideoConference {
         }
         document.getElementById('loading').style.display = 'none';
     }
+
 
     async leaveConference() {
         sessionStorage.removeItem('conferenceUserId');
@@ -1111,7 +1013,6 @@ class VideoConference {
                 wrapper.remove();
                 const section = wrapper.closest('.participant-section');
                 if (section) {
-                    this.updateSectionLayout(section);
                     const camerasContainer = section.querySelector('.cameras-container');
                     if (camerasContainer && camerasContainer.querySelectorAll('.video-wrapper').length === 0) {
                         let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
@@ -1305,7 +1206,6 @@ class VideoConference {
                 this.remoteTracks.delete(user.id);
             }
         }
-        this.processedParticipants = new Set();
         await new Promise(resolve => setTimeout(resolve, 800));
     }
     async initializeTechnicalCamera(deviceId, label, order) {
@@ -1497,9 +1397,11 @@ class VideoConference {
             }
         } catch (error) {
             console.error('Initialization error:', error);
-            ConferenceUtils.showError(`Ошибка инициализации: ${error.message}`);
+            ConferenceUtils.showError(`Initialization Error: ${error.message}`);
             document.getElementById('loading').style.display = 'none';
         }
         console.log("InitializedFinished");
     }
 }
+
+document.dispatchEvent(new CustomEvent('videoConferenceReady'));

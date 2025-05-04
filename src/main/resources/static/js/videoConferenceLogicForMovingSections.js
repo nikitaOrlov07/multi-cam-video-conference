@@ -340,11 +340,6 @@ MoveSectionLogic.setupDropZone = function(camerasContainer) {
             }
 
             this.saveCameraOrderConfig(sourceWrapper, closestWrapper);
-
-            const section = camerasContainer.closest('.participant-section');
-            if (section && window.conference) {
-                window.conference.updateSectionLayout(section);
-            }
         }
     });
 };

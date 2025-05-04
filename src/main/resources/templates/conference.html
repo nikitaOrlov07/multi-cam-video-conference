@@ -9,6 +9,7 @@
     <script th:src="@{/js/videoConferenceAdditionalLogic.js}"></script>
     <script th:src="@{/js/videoConferenceLogicForMovingSections.js}"></script>
     <script th:src="@{/js/videoConferenceLogic.js}"></script>
+    <script th:src="@{/js/addCameraFunctionality.js}"></script>
     <link href="/css/conferencePage.css" rel="stylesheet">
     <script th:src="@{/js/conferenceChatLogic.js}"></script>
     <script th:src="@{/js/commonFunctions.js}"></script>
@@ -91,6 +92,31 @@
     </div>
 </div>
 
+<!-- Camera selection modal -->
+<div id="camera-modal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2>Add Camera</h2>
+            <span class="close-modal">&times;</span>
+        </div>
+        <div class="modal-body">
+            <div class="select-container">
+                <label for="camera-select">Select Camera:</label>
+                <select id="camera-select">
+                    <option value="">Loading cameras...</option>
+                </select>
+            </div>
+            <div id="camera-preview-container">
+                <video id="camera-preview" autoplay playsinline muted></video>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button id="add-selected-camera" class="btn">Add Camera</button>
+            <button id="cancel-add-camera" class="btn btn-secondary">Cancel</button>
+        </div>
+    </div>
+</div>
+
 <div class="users-list-container">
     <div class="users-list-title">Conference Members</div>
     <div id="users-list" class="users-list"></div>
@@ -118,7 +144,7 @@
             <line x1="21" y1="12" x2="9" y2="12"/>
         </svg>
     </button>
-    <button class="control-button" id="toggleChat" title="Открыть чат">
+    <button class="control-button" id="toggleChat" title="Open Chat">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
