@@ -120,6 +120,8 @@ class VideoConference {
     }
 
     onEndpointMessageReceived(participant, message) {
+        console.log("message" , message)
+        console.log("participant")
         if (message && message.identity && message.identity.type === 'identity') {
             const participantId = participant.getId();
             const userName = message.identity.userName;
@@ -196,13 +198,160 @@ class VideoConference {
             console.log(`Received track availability notification from ${participant.getId()}`);
             this.requestParticipantTracks(participant.getId());
         }
+        if (message && message.trackRemoval && message.trackRemoval.type === 'track_removed') {
+            const removalMsg = message.trackRemoval;
+            const trackId = removalMsg.trackId;
+            const senderId = removalMsg.senderId;
+            const senderName = removalMsg.userName;
+            console.log(`Received track removal notification for track: ${trackId} from ${senderName}`);
+            this.handleRemoteTrackRemovalMessage(trackId, senderId);
+        }
+    }
+    handleRemoteTrackRemovalMessage(trackId, senderId) {
+        console.log("handleRemoteTrackRemovalMessage is called with", trackId, senderId);
+        try {
+            let foundTrack = false;
+            if (trackId !== null && senderId !== null) {
+                console.log("First if passed");
+                const tracks = this.remoteTracks.get(senderId);
+
+                if (tracks && typeof tracks.has === 'function') {
+                    console.log("Got tracks for senderId:", senderId, tracks);
+                    console.log("Available track IDs:", Array.from(tracks.keys()));
+
+                    // First try direct match
+                    if (tracks.has(trackId)) {
+                        console.log("Found track with exact ID match:", trackId);
+                        foundTrack = true;
+                        // Handle the track removal...
+                        const track = tracks.get(trackId);
+                        this.removeTrack(track, trackId, tracks, senderId);
+                    } else {
+                        // If direct match fails, try to find tracks that might be related
+                        // Look for tracks that might be related to the sender
+                        console.log("Track ID format mismatch, looking for matching tracks by sender prefix");
+                        const trackKeys = Array.from(tracks.keys());
+
+                        // Check if we have any tracks that start with the senderId
+                        // This handles the case where stored tracks have format: senderId-mediaType-0-index
+                        const matchingTracks = trackKeys.filter(key => key.startsWith(senderId));
+
+                        if (matchingTracks.length > 0) {
+                            console.log("Found tracks with matching sender prefix:", matchingTracks);
+
+                            // If the trackId contains media type indicators, use them
+                            const isVideoTrack = trackId.includes('video');
+                            const isAudioTrack = trackId.includes('audio');
+
+                            for (const matchingTrackId of matchingTracks) {
+                                // If we know it's a video track, only remove video tracks
+                                if ((isVideoTrack && matchingTrackId.includes('video')) ||
+                                    (isAudioTrack && matchingTrackId.includes('audio')) ||
+                                    (!isVideoTrack && !isAudioTrack)) {
+
+                                    console.log("Removing related track:", matchingTrackId);
+                                    const track = tracks.get(matchingTrackId);
+                                    this.removeTrack(track, matchingTrackId, tracks, senderId);
+                                    foundTrack = true;
+                                }
+                            }
+                        } else {
+                            console.warn(`No matching tracks found for sender ${senderId} and track ${trackId}`);
+                        }
+                    }
+                } else {
+                    console.warn(`No valid tracks Map found for sender ${senderId}`);
+                    console.log("remoteTracks structure:", this.remoteTracks);
+                }
+            } else {
+                console.error("Track id or Sender id is NULL");
+                return;
+            }
+
+            // Even if we don't have the track in our tracking, try to remove the DOM element
+            this.removeTrackDOM(trackId);
+
+            return foundTrack;
+        } catch (error) {
+            console.error(`Error handling remote track removal for ${trackId}:`, error);
+            return false;
+        }
     }
 
+// Helper method to remove track DOM element
+    removeTrackDOM(trackId) {
+        const videoWrapper = document.querySelector(`.video-wrapper[data-track-id="${trackId}"]`);
+        if (videoWrapper) {
+            const section = videoWrapper.closest('.participant-section');
+            videoWrapper.remove();
+            console.log(`Removed video wrapper for remotely removed track: ${trackId}`);
+
+            // Check if we need to show the placeholder
+            if (section) {
+                const camerasContainer = section.querySelector('.cameras-container');
+                if (camerasContainer && camerasContainer.querySelectorAll('.video-wrapper').length === 0) {
+                    let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+                    if (placeholder) {
+                        placeholder.style.display = 'flex';
+                    } else {
+                        // Create placeholder
+                        placeholder = document.createElement('div');
+                        placeholder.className = 'no-camera-placeholder';
+                        placeholder.innerHTML = `
+                <div class="camera-icon">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M18 7c0-1.1-.9-2-2-2H6L0 11v4h4v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2h4v-4l-4-4z"/>
+                        <line x1="1" y1="1" x2="23" y2="23" stroke="red"/>
+                    </svg>
+                </div>
+                <p>No camera available</p>
+            `;
+                        placeholder.style.display = 'flex';
+                        placeholder.style.flexDirection = 'column';
+                        placeholder.style.alignItems = 'center';
+                        placeholder.style.justifyContent = 'center';
+                        placeholder.style.height = '100%';
+                        placeholder.style.color = '#999';
+                        placeholder.style.fontSize = '14px';
+                        placeholder.style.backgroundColor = '#2a2a2a';
+                        placeholder.style.borderRadius = '8px';
+                        placeholder.style.padding = '20px';
+                        camerasContainer.appendChild(placeholder);
+                    }
+                }
+            }
+        }
+    }
+
+
+    removeTrack(track, trackId, tracks, senderId) {
+        if (track) {
+            try {
+                console.log(`before track ${trackId} is detached`);
+                track.detach();
+                console.log("After track is detached", trackId);
+            } catch (e) {
+                console.warn(`Error detaching track ${trackId}:`, e);
+            }
+
+            if (typeof track.dispose === 'function') {
+                track.dispose();
+            }
+        } else {
+            console.warn("Track was found in Map but is null/undefined");
+        }
+
+        // Remove from our tracking
+        tracks.delete(trackId);
+        if (tracks.size === 0) {
+            this.remoteTracks.delete(senderId);
+        }
+    }
     onUserLeft(id) {
         console.log('User left:', id);
         const participant = this.participants.get(id);
 
-        // Skip processing if this is ourselves (can happen during page refresh)
+        // Skip prчocessing if this is ourselves (can happen during page refresh)
         if (participant && participant.displayName === this.userName) {
             console.log('Ignoring user left event for local user');
             return;
@@ -283,6 +432,7 @@ class VideoConference {
     }
 
     onRemoteTrackRemoved(track) {
+        console.log("onRemoteTrackRemoved is called")
         if (track.isLocal()) {
             return;
         }
@@ -290,59 +440,29 @@ class VideoConference {
         const trackId = track.getId();
         console.log(`Remote track removed: ${trackId} from participant: ${participantId}`);
         try {
+            const elements = track.containers || [];
+            elements.forEach(element => {
+                try {
+                    track.detach(element);
+                } catch (e) {
+                    console.warn(`Error detaching track ${trackId} from element:`, e);
+                }
+            });
             track.detach();
         } catch (e) {
-            console.error(`Error detaching track ${trackId}:`, e);
+            console.warn(`Error detaching track ${trackId}:`, e);
         }
-        const wrapper = document.querySelector(`[data-track-id="${trackId}"]`);
-        let section = null;
-        if (wrapper) {
-            section = wrapper.closest('.participant-section');
-            wrapper.remove();
-
-            if (section) {
-                const camerasContainer = section.querySelector('.cameras-container');
-                if (camerasContainer) {
-                    const videoWrappers = camerasContainer.querySelectorAll('.video-wrapper');
-                    if (videoWrappers.length === 0) {
-                        let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
-
-                        if (!placeholder) {
-                            placeholder = document.createElement('div');
-                            placeholder.className = 'no-camera-placeholder';
-                            placeholder.innerHTML = `
-                        <div class="camera-icon">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 7c0-1.1-.9-2-2-2H6L0 11v4h4v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2h4v-4l-4-4z"/>
-                                <line x1="1" y1="1" x2="23" y2="23" stroke="red"/>
-                            </svg>
-                       </div>
-                        <p>No camera available</p>
-                    `;
-                            placeholder.style.display = 'flex';
-                            placeholder.style.flexDirection = 'column';
-                            placeholder.style.alignItems = 'center';
-                            placeholder.style.justifyContent = 'center';
-                            placeholder.style.height = '100%';
-                            placeholder.style.color = '#999';
-                            placeholder.style.fontSize = '14px';
-                            placeholder.style.backgroundColor = '#2a2a2a';
-                            placeholder.style.borderRadius = '8px';
-                            placeholder.style.padding = '20px';
-                            camerasContainer.appendChild(placeholder);
-                        } else {
-                            placeholder.style.display = 'flex';
-                        }
-                    }
-                }
-            }
-        }
+        this.removeVideoElementsByTrackId(trackId);
         if (this.remoteTracks.has(participantId)) {
             const tracks = this.remoteTracks.get(participantId);
             if (tracks.has(trackId)) {
                 const removeTrack = tracks.get(trackId);
                 if (removeTrack && typeof removeTrack.dispose === 'function') {
-                    removeTrack.dispose();
+                    try {
+                        removeTrack.dispose();
+                    } catch (e) {
+                        console.warn(`Error disposing track ${trackId}:`, e);
+                    }
                 }
                 tracks.delete(trackId);
             }
@@ -351,7 +471,51 @@ class VideoConference {
             }
         }
     }
-
+    removeVideoElementsByTrackId(trackId) {
+        const videoWrappers = document.querySelectorAll(`.video-wrapper[data-track-id="${trackId}"]`);
+        if (videoWrappers.length === 0) {
+            console.log(`No video elements found for track: ${trackId}`);
+            return;
+        }
+        videoWrappers.forEach(wrapper => {
+            const section = wrapper.closest('.participant-section');
+            wrapper.remove();
+            console.log(`Removed video wrapper for track: ${trackId}`);
+            if (section) {
+                const camerasContainer = section.querySelector('.cameras-container');
+                if (camerasContainer && camerasContainer.querySelectorAll('.video-wrapper').length === 0) {
+                    let placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+                    if (placeholder) {
+                        placeholder.style.display = 'flex';
+                    } else {
+                        // Create placeholder if it doesn't exist
+                        placeholder = document.createElement('div');
+                        placeholder.className = 'no-camera-placeholder';
+                        placeholder.innerHTML = `
+                        <div class="camera-icon">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M18 7c0-1.1-.9-2-2-2H6L0 11v4h4v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2h4v-4l-4-4z"/>
+                                <line x1="1" y1="1" x2="23" y2="23" stroke="red"/>
+                            </svg>
+                        </div>
+                        <p>No camera available</p>
+                    `;
+                        placeholder.style.display = 'flex';
+                        placeholder.style.flexDirection = 'column';
+                        placeholder.style.alignItems = 'center';
+                        placeholder.style.justifyContent = 'center';
+                        placeholder.style.height = '100%';
+                        placeholder.style.color = '#999';
+                        placeholder.style.fontSize = '14px';
+                        placeholder.style.backgroundColor = '#2a2a2a';
+                        placeholder.style.borderRadius = '8px';
+                        placeholder.style.padding = '20px';
+                        camerasContainer.appendChild(placeholder);
+                    }
+                }
+            }
+        });
+    }
     createParticipantSection(participantId, displayName) {
         console.log("CREATING PARTCIPANT SECTION")
         let section = ConferenceUtils.getParticipantSection(displayName, this);
