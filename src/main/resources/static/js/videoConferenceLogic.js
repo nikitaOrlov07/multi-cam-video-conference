@@ -517,7 +517,6 @@ class VideoConference {
         });
     }
     createParticipantSection(participantId, displayName) {
-        console.log("CREATING PARTCIPANT SECTION")
         let section = ConferenceUtils.getParticipantSection(displayName, this);
         if (section) {
             console.log(`Using existing section for ${displayName}`);
