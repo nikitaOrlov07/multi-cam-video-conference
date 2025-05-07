@@ -33,4 +33,7 @@ build/
 .vscode/
 
 #Jitsi generating files
-.jitsi-meet-cfg/
+.jitsi-meet-cfg/jicofo/
+.jitsi-meet-cfg/jvb/
+.jitsi-meet-cfg/prosody/
+.jitsi-meet-cfg/web/
