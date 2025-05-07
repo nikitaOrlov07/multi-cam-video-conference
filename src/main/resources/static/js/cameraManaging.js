@@ -8,6 +8,7 @@ const AddCameraLogic = {
         }
     },
 
+    /// Extending VideoConference class with new methods
     extendVideoConference: function() {
         VideoConference.prototype.addCamera = this.addCamera;
         VideoConference.prototype.removeCamera = this.removeCamera;
@@ -29,6 +30,7 @@ const AddCameraLogic = {
         console.log('VideoConference class extended with camera controls');
     },
 
+    /// Add new camera
     async addCamera(deviceId, label) {
         try {
             const hasCameras = this.localTracks.video && this.localTracks.video.length > 0;
@@ -119,8 +121,9 @@ const AddCameraLogic = {
             console.error(`Error adding camera: ${label}`, error);
             ConferenceUtils.showError(`Camera access error: ${label}`);
         }
-    }, // working corectly
+    },
 
+    /// Delete camera
     removeCamera: async function(deviceId, label) {
         try {
             console.log(`Removing camera: ${label} (${deviceId})`);
@@ -488,6 +491,7 @@ const AddCameraLogic = {
     },
 
 
+    /// For displaying camera items
     populateCameraList: async function() {
         const cameraList = document.getElementById('camera-list');
         if (!cameraList) {
@@ -535,14 +539,14 @@ const AddCameraLogic = {
 
             if (camera.inUse) {
                 actionBtn.textContent = 'Remove';
-                actionBtn.style.backgroundColor = '#f44336'; // Красный цвет для кнопки удаления
+                actionBtn.style.backgroundColor = '#f44336';
                 actionBtn.onclick = () => {
                     document.getElementById('camera-selector').style.display = 'none';
                     self.removeCamera(camera.deviceId, camera.label);
                 };
             } else {
                 actionBtn.textContent = 'Add';
-                actionBtn.style.backgroundColor = '#4285f4'; // Синий цвет для кнопки добавления
+                actionBtn.style.backgroundColor = '#4285f4';
                 actionBtn.onclick = () => {
                     document.getElementById('camera-selector').style.display = 'none';
                     self.addCamera(camera.deviceId, camera.label);
