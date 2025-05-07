@@ -62,12 +62,38 @@ MoveSectionLogic.makeVideoFreeDraggable = function(videoWrapper) {
     `;
     videoWrapper.appendChild(dragHandle);
 
+    // Hide button
+    const hideButton = document.createElement('div');
+    hideButton.className = 'video-hide-button';
+    hideButton.innerHTML = '−';
+    hideButton.title = 'Hide video';
+    hideButton.style.cssText = `
+        position: absolute;
+        top: 5px;
+        left: 35px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        z-index: 101;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    `;
+    videoWrapper.appendChild(hideButton);
+    videoWrapper.dataset.hidden = 'false';
+    hideButton.addEventListener('click', () => {
+        this.toggleVideoVisibility(videoWrapper);
+    });
+
     videoWrapper.addEventListener('mouseenter', () => {
         dragHandle.style.opacity = '1';
+        hideButton.style.opacity = '1';
     });
     videoWrapper.addEventListener('mouseleave', () => {
         if (!isDragging) {
             dragHandle.style.opacity = '0';
+            hideButton.style.opacity = '0';
         }
     });
     let isDragging = false;
@@ -137,7 +163,7 @@ MoveSectionLogic.makeVideoFreeDraggable = function(videoWrapper) {
     `;
     videoWrapper.appendChild(resizeHandle);
     videoWrapper.addEventListener('mouseenter', () => {
-        resizeHandle.style.opacity = '1';
+        resizeHandle.style.opacity = videoWrapper.dataset.hidden === 'true' ? '0' : '1';
     });
     videoWrapper.addEventListener('mouseleave', () => {
         if (!isResizing) {
@@ -147,6 +173,7 @@ MoveSectionLogic.makeVideoFreeDraggable = function(videoWrapper) {
     let isResizing = false;
     let resizeStartX, resizeStartY, startWidth, startHeight;
     const startResize = (e) => {
+        if (videoWrapper.dataset.hidden === 'true') return;
         isResizing = true;
         resizeStartX = e.clientX;
         resizeStartY = e.clientY;
@@ -205,7 +232,53 @@ MoveSectionLogic.makeVideoFreeDraggable = function(videoWrapper) {
     resizeHandle.addEventListener('mousedown', startResize);
     this.loadCameraPositionConfig(videoWrapper);
 };
+MoveSectionLogic.toggleVideoVisibility = function(videoWrapper) {
+    const isHidden = videoWrapper.dataset.hidden === 'true';
+    const hideButton = videoWrapper.querySelector('.video-hide-button');
+    const resizeHandle = videoWrapper.querySelector('.video-resize-handle');
+    const video = videoWrapper.querySelector('video');
+    const cameraLabel = videoWrapper.querySelector('.camera-label');
 
+    if (isHidden) {
+        videoWrapper.dataset.hidden = 'false';
+        if (videoWrapper.dataset.originalHeight) {
+            videoWrapper.style.height = videoWrapper.dataset.originalHeight;
+        } else {
+            videoWrapper.style.height = '50%';
+        }
+        if (video) video.style.display = 'block';
+        if (resizeHandle) resizeHandle.style.display = 'block';
+        if (hideButton) {
+            hideButton.innerHTML = '−';
+            hideButton.title = 'Hide video';
+        }
+        if (cameraLabel) {
+            cameraLabel.style.position = 'absolute';
+            cameraLabel.style.bottom = '5px';
+            cameraLabel.style.left = '5px';
+            cameraLabel.style.top = 'auto';
+            cameraLabel.style.textAlign = 'left';
+        }
+    } else {
+        videoWrapper.dataset.hidden = 'true';
+        videoWrapper.dataset.originalHeight = videoWrapper.style.height;
+        videoWrapper.style.height = '30px';
+        if (video) video.style.display = 'none';
+        if (resizeHandle) resizeHandle.style.display = 'none';
+        if (hideButton) {
+            hideButton.innerHTML = '+';
+            hideButton.title = 'Show video';
+        }
+        if (cameraLabel) {
+            cameraLabel.style.position = 'absolute';
+            cameraLabel.style.bottom = 'auto';
+            cameraLabel.style.top = '5px';
+            cameraLabel.style.left = '45px';
+            cameraLabel.style.textAlign = 'left';
+        }
+    }
+    this.saveCameraPositionConfig(videoWrapper);
+};
 MoveSectionLogic.saveCameraPositionConfig = function(videoWrapper) {
     if (!window.conference || !window.conference.userName) return;
     const section = videoWrapper.closest('.participant-section');
@@ -221,7 +294,9 @@ MoveSectionLogic.saveCameraPositionConfig = function(videoWrapper) {
         left: videoWrapper.style.left,
         width: videoWrapper.style.width,
         height: videoWrapper.style.height,
-        zIndex: videoWrapper.style.zIndex
+        zIndex: videoWrapper.style.zIndex,
+        hidden: videoWrapper.dataset.hidden || 'false',
+        originalHeight: videoWrapper.dataset.originalHeight || ''
     };
 
     try {
@@ -256,11 +331,20 @@ MoveSectionLogic.loadCameraPositionConfig = function(videoWrapper) {
             videoWrapper.style.width = position.width || '50%';
             videoWrapper.style.height = position.height || '50%';
             videoWrapper.style.zIndex = position.zIndex || '10';
+
+            if (position.hidden === 'true') {
+                videoWrapper.dataset.hidden = 'true';
+                videoWrapper.dataset.originalHeight = position.originalHeight || '';
+                setTimeout(() => {
+                    this.toggleVideoVisibility(videoWrapper);
+                }, 100);
+            }
         }
     } catch (e) {
         console.error('Error loading camera position configuration:', e);
     }
 };
+
 MoveSectionLogic.setupDropZone = function(camerasContainer) {
     camerasContainer.classList.add('drop-initialized');
 
@@ -461,7 +545,7 @@ MoveSectionLogic.makeResizable = function(element) {
     resizer.addEventListener('mousedown', startResize);
 };
 MoveSectionLogic.makeDraggable = function(element) {
-    const header = element.querySelector('.participant-header') ||
+    let header = element.querySelector('.participant-header') ||
         element.querySelector('.participant-name');
     if (!header) {
         const newHeader = document.createElement('div');
@@ -879,7 +963,7 @@ MoveSectionLogic.addSectionStyles = function() {
         }
         .video-wrapper {
             position: absolute;
-            transition: opacity 0.3s ease, box-shadow 0.3s ease;
+            transition: opacity 0.3s ease, box-shadow 0.3s ease, height 0.3s ease;
             border: 1px solid transparent;
             border-radius: 4px;
             overflow: hidden;
@@ -892,12 +976,17 @@ MoveSectionLogic.addSectionStyles = function() {
             border: 2px dashed #4285f4;
             z-index: 1000;
         }
+        .video-wrapper[data-hidden="true"] {
+            background: rgba(0, 0, 0, 0.5);
+            height: 30px !important;
+            overflow: visible;
+        }
         .cameras-container {
             position: relative;
             height: 100%;
             overflow: hidden;
         }
-        .video-drag-handle, .video-resize-handle {
+        .video-drag-handle, .video-resize-handle, .video-hide-button {
             background: rgba(0,0,0,0.7) !important;
             color: white;
             padding: 3px 6px;
@@ -907,7 +996,7 @@ MoveSectionLogic.addSectionStyles = function() {
             opacity: 0;
             transition: opacity 0.2s ease;
         }
-        .video-drag-handle:hover, .video-resize-handle:hover {
+        .video-drag-handle:hover, .video-resize-handle:hover, .video-hide-button:hover {
             background: rgba(0,0,0,0.9) !important;
         }
         .camera-label {
@@ -920,6 +1009,12 @@ MoveSectionLogic.addSectionStyles = function() {
             padding: 3px 6px;
             border-radius: 3px;
             font-size: 12px;
+            transition: all 0.3s ease;
+        }
+        .video-wrapper[data-hidden="true"] .camera-label {
+            top: 5px;
+            left: 45px;
+            bottom: auto;
         }
     `;
     document.head.appendChild(styleElement);
@@ -957,13 +1052,9 @@ MoveSectionLogic.startDrag = function(e) {
 };
 MoveSectionLogic.initializeResizableAndDraggableSections = function() {
     this.addSectionStyles();
-
     this.makeParticipantSectionsResizableAndDraggable();
     this.makeVideosDraggableWithinSection();
-
     this.setupSectionObserver();
-
     console.log('Resizable and draggable sections initialized');
-
     return true;
 };
