@@ -1,5 +1,6 @@
 const AddCameraLogic = {
     initialize: function() {
+
         if (typeof VideoConference !== 'undefined') {
             this.extendVideoConference();
         } else {
@@ -8,7 +9,6 @@ const AddCameraLogic = {
         }
     },
 
-    /// Extending VideoConference class with new methods
     extendVideoConference: function() {
         VideoConference.prototype.addCamera = this.addCamera;
         VideoConference.prototype.removeCamera = this.removeCamera;
@@ -583,7 +583,6 @@ const AddCameraLogic = {
 
 document.addEventListener('DOMContentLoaded', () => {
     AddCameraLogic.initialize();
-
     if (typeof VideoConference !== 'undefined') {
         AddCameraLogic.extendVideoConference();
     }

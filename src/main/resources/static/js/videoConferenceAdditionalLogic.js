@@ -1,5 +1,6 @@
 const ConferenceUtils = {
     cameraOrderMap: new Map(),
+    isMuted: false, // for mute audio logic
     async updateUserCount(conferenceId, userName, userCounts, displayName, reconnecting, callback) {
         try {
             let userDisplayName = userName;
@@ -47,6 +48,7 @@ const ConferenceUtils = {
             return Promise.resolve(null);
         }
     },
+
     getParticipantSection(displayName, conference) {
         if (!conference || !conference.displayNameToSectionMap) {
             const sections = document.querySelectorAll('.participant-section');
@@ -117,7 +119,8 @@ const ConferenceUtils = {
             });
         }, 300000);
     }
-    , updateButtonState(buttonId, enabled) {
+    ,
+    updateButtonState(buttonId, enabled) {
         const button = document.getElementById(buttonId);
         if (button) {
             button.classList.toggle('muted', !enabled);
@@ -157,6 +160,46 @@ const ConferenceUtils = {
             clearInterval(this.userUpdateInterval);
         }
         console.log('The connection is broken');
+    },
+    toggleMute() {
+        this.isMuted = !this.isMuted;
+        const audioElements = document.querySelectorAll('audio, video');
+        audioElements.forEach(element => {
+            element.muted = this.isMuted;
+        });
+        this.updateMuteButtonUI();
+        console.log(`Звук ${this.isMuted ? 'выключен' : 'включен'}`);
+    },
+
+    updateMuteButtonUI() {
+        const muteButton = document.getElementById('toggleMuteAudio');
+        if (!muteButton) return;
+        muteButton.title = this.isMuted ? "Включить звук" : "Выключить звук";
+        if (this.isMuted) {
+            muteButton.classList.add('muted');
+        } else {
+            muteButton.classList.remove('muted');
+        }
+    },
+
+    initAudioObserver() {
+        this.audioObserver = new MutationObserver(mutations => {
+                mutations.forEach(mutation => {
+                if (mutation.type === 'childList') {
+                    const newAudioElements = Array.from(mutation.addedNodes)
+                        .filter(node => node.nodeName === 'AUDIO' || node.nodeName === 'VIDEO');
+
+                    if (newAudioElements.length > 0) {
+                        newAudioElements.forEach(element => {
+                            element.muted = this.isMuted;
+                        });
+                    }
+                }
+            });
+        });
+
+        // Запускаем наблюдатель за изменениями в DOM
+        this.audioObserver.observe(document.body, { childList: true, subtree: true });
     }
 }
 ConferenceUtils.setupControlButtons = function(conferenceInstance) {
@@ -184,6 +227,10 @@ ConferenceUtils.setupControlButtons = function(conferenceInstance) {
         }
     });
 
+    document.getElementById('toggleMuteAudio').addEventListener('click', () =>{
+        console.log("Mute Click")
+        ConferenceUtils.toggleMute();
+    });
     document.getElementById('leaveCall').addEventListener('click', () => {
         conferenceInstance.leaveConference();
     });
@@ -256,6 +303,7 @@ ConferenceUtils.updateUsersList = function() {
 ConferenceUtils.setGlobalConference = function(conferenceInstance) {
     window.conference = conferenceInstance;
     console.log('Global conference instance set', window.conference);
+    ConferenceUtils.initAudioObserver(); // Initialized for audio monitoring
     return window.conference;
 };
 ConferenceUtils.getConferenceInstance = function() {

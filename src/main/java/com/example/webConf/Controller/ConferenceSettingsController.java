@@ -1,5 +1,6 @@
 package com.example.webConf.controller;
 
+import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.dto.Devices.DeviceSelectionDTO;
 import com.example.webConf.model.Chat.Chat;
@@ -87,7 +88,13 @@ public class ConferenceSettingsController {
                                       @RequestParam(value = "conferenceId", required = false) String conferenceId,
                                       Model model) {
         log.info("Initial device setting page is working");
+
+
         boolean isAuthorized = SecurityUtil.getSessionUserEmail() != null && !SecurityUtil.getSessionUserEmail().isEmpty();
+        /// Check userName for uniqueness
+        if(!isAuthorized && userService.findUserByUsername(userName).isPresent()) {
+            throw new AuthException("User with this userName already exists");
+        }
         model.addAttribute("isAuthorized", isAuthorized);
         if (userName != null && !userName.isEmpty() && (SecurityUtil.getSessionUserEmail() == null || SecurityUtil.getSessionUserEmail().isEmpty())) {
             model.addAttribute("userName", userName);

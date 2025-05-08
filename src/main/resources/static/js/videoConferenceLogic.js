@@ -1581,7 +1581,6 @@ class VideoConference {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             }
             this.deviceConfig = await ConferenceUtils.loadDeviceConfig(this.conferenceId , this.userName);
-            console.debug("Setting Device COnfig" , this.deviceConfig)
             JitsiMeetJS.init({
                 disableAudioLevels: true,
                 disableRtx: true,
