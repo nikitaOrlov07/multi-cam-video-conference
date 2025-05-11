@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (deleteChatForm) {
             deleteChatForm.addEventListener('submit', function (e) {
                 e.preventDefault();
-                if (confirmDelete()) {
+                if (confirmAction("Are you sure you want to delete this?")) {
                     deleteChat();
                 }
             });
@@ -38,7 +38,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         document.getElementById('clearChatForm').addEventListener('submit', function (e) {
             e.preventDefault();
-            if (confirmDelete()) {
+            if (confirmAction("Are you sure you want to clear chat?")) {
                 clearChat();
             }
         });
@@ -337,8 +337,4 @@ function updateCharCount() {
     const textarea = document.getElementById('commentText');
     const charCount = textarea.value.length;
     document.getElementById('charCount').textContent = charCount;
-}
-
-function confirmDelete() {
-    return confirm("Are you sure you want to delete this?");
 }

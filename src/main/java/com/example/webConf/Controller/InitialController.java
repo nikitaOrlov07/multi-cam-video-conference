@@ -3,7 +3,6 @@ package com.example.webConf.controller;
 import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.security.SecurityUtil;
@@ -20,15 +19,12 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Controller
 @Slf4j
 @RequiredArgsConstructor
-public class ConferenceSettingsController {
+public class InitialController {
 
     private final ConferenceService conferenceService;
     private final ObjectMapper objectMapper;
@@ -84,7 +80,7 @@ public class ConferenceSettingsController {
     }
 
     @GetMapping("/setDevices")
-    public String getAvailableCameras(@RequestParam(value = "userName", required = false) String userName,
+    public String getDeviceSettingPage(@RequestParam(value = "userName", required = false) String userName,
                                       @RequestParam(value = "conferenceId", required = false) String conferenceId,
                                       Model model) {
         log.info("Initial device setting page is working");

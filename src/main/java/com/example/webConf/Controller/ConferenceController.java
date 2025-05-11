@@ -155,31 +155,27 @@ public class ConferenceController {
         String decodedUsername = URLDecoder.decode(username, StandardCharsets.UTF_8);
         String[] parts = decodedUsername.split(" "); // parts[0] = name , parts[1] = surname
         Optional<UserEntity> optionalUser = Optional.empty();
+
         /// Find in Permanent Accounts
         if (parts.length > 1) {
             log.info("Searching Permanent Account for user with name: |{}| and surname: |{}|", parts[0], parts[1]);
             optionalUser = userEntityRepository.findFirstByUserNameIgnoreCaseAndAccountType(decodedUsername, UserEntity.AccountType.PERMANENT);
-
             if (optionalUser.isEmpty()) {
                 throw new ConferenceException("User not found in Permanent Accounts with name: |" + parts[0] + "| and surname: |" + parts[1] + "|");
             }
-
             log.info("Removing user ({}) from active conferense ({}) users", optionalUser.get().getId(), conference.get().getId());
             userService.removeUserConferenceJoin(optionalUser.get(), conference.get());
-
         }
+
         /// Find in Temporary Accounts
         if (parts.length <= 1) {
             log.info("Finding user with userName |{}| in Temporary Accounts", parts[0]);
-
             /// Find in Temporary Accounts
             optionalUser = userEntityRepository.findFirstByUserNameIgnoreCaseAndAccountType(username, UserEntity.AccountType.TEMPORARY);
-
             // Find Coference Joib Object
             if (userService.findUserConferenceJoin(optionalUser.get(), conference.get()).isPresent()) {
                 userService.removeUserConferenceJoin(optionalUser.get(), conference.get());
             }
-
             userEntityRepository.delete(optionalUser.get()); // delete temporary account
         }
 

@@ -391,26 +391,8 @@ async function openPreviewModal() {
 
     previewGrid.innerHTML = '';
     stopAllStreams();
-
-    const sortedCameras = selectedCameras
-        .map(camera => ({
-            element: camera,
-            order: parseInt(camera.parentElement.querySelector('.camera-order').value)
-        }))
-        .sort((a, b) => a.order - b.order)
-        .map(item => item.element);
-
-    const orders = sortedCameras.map(camera =>
-        parseInt(camera.parentElement.querySelector('.camera-order').value)
-    );
-    const hasDuplicates = new Set(orders).size !== orders.length;
-    if (hasDuplicates) {
-        alert('Please ensure each camera has a unique order number');
-        return;
-    }
-
-    for (let i = 0; i < sortedCameras.length; i++) {
-        const camera = sortedCameras[i];
+    for (let i = 0; i < selectedCameras.length; i++) {
+        const camera = selectedCameras[i];
         const previewItem = document.createElement('div');
         previewItem.className = 'preview-item';
 
@@ -491,7 +473,6 @@ function joinPresetConference(conferenceId) {
             .map(checkbox => ({
                 deviceId: checkbox.value,
                 label: checkbox.dataset.label,
-                order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
             }))
             .sort((a, b) => a.order - b.order);
 
@@ -536,9 +517,7 @@ function createNewConference() {
             .map(checkbox => ({
                 deviceId: checkbox.value,
                 label: checkbox.dataset.label,
-                order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
             }))
-            .sort((a, b) => a.order - b.order);
         const selectedAudio = document.querySelector('input[type="radio"][name="microphone"]:checked');
         const audioDevice = selectedAudio ? [{
             deviceId: selectedAudio.value,

@@ -88,7 +88,9 @@
     /* Start with 2 columns */
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
-}
+    max-height: 500px; /* Set an appropriate height */
+    overflow-y: auto; /* Only add scrollbar on vertical overflow */
+    overflow-x: hidden; /* Prevent horizontal scrolling */}
 
 .account-info-item {
     background-color: #f8f9fa;

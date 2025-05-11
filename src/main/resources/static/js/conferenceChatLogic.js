@@ -94,26 +94,6 @@ class ChatManager {
         });
     }
 
-    // Subscribe to a conference chat
-    subscribeToConferenceChat(conferenceId) {
-        console.log("Subscribing to conference chat for conference:", conferenceId);
-        // This will need to be implemented based on how your backend handles conference chats
-    }
-
-    // Send join message
-    sendJoinMessage() {
-        if (this.stompClient && this.stompClient.connected && this.chatId) {
-            const joinMessage = {
-                author: this.userName,
-                text: `${this.userName} has entered the chat`,
-                type: 'JOIN'
-            };
-            this.stompClient.send("/app/chat/" + this.chatId + "/sendMessage", {}, JSON.stringify(joinMessage));
-        } else {
-            console.error("Cannot send join message: stompClient is not connected or chatId is missing");
-        }
-    }
-
     // Show message in chat
     showMessage(message) {
         if (!message.text && !message.content) {
@@ -206,7 +186,6 @@ class ChatManager {
         chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
-    // Handle deleted message
     handleDeletedMessage(message) {
         const messageElement = document.querySelector(`[data-message-id="${message.messageId}"]`);
         if (messageElement) {
@@ -214,7 +193,6 @@ class ChatManager {
         }
     }
 
-    // Add user to chat
     addUser() {
         if (!this.chatId) {
             console.error("Cannot add user: chatId is undefined");
@@ -243,11 +221,6 @@ class ChatManager {
         const messageInput = document.getElementById('commentText');
         const messageContent = messageInput.value.trim();
         console.log("Attempting to send message: " + messageContent);
-
-        console.log('1' , messageContent)
-        console.log('2' , this.stompClient)
-        console.log('3' , this.chatId)
-
 
         if (messageContent && this.stompClient && this.chatId) {
             console.log("Sending")

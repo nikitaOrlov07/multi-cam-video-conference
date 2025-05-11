@@ -7,354 +7,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin Control Panel</title>
-    <style>
-        :root {
-            --primary-color: #3498db;
-            --secondary-color: #2980b9;
-            --success-color: #2ecc71;
-            --danger-color: #e74c3c;
-            --light-color: #f8f9fa;
-            --dark-color: #343a40;
-            --border-color: #dee2e6;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background-color: #f5f5f5;
-            color: #333;
-            line-height: 1.6;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-
-        .header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 20px;
-            border-radius: 8px 8px 0 0;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-            margin-bottom: 20px;
-        }
-
-        .header h1 {
-            font-size: 24px;
-            margin-bottom: 5px;
-        }
-
-        .card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-            margin-bottom: 30px;
-            overflow: hidden;
-        }
-
-        .card-header {
-            background-color: var(--dark-color);
-            color: white;
-            padding: 15px 20px;
-            font-weight: bold;
-            font-size: 18px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .card-body {
-            padding: 20px;
-        }
-
-        .filter-form {
-            background-color: var(--light-color);
-            padding: 15px;
-            border-radius: 5px;
-            margin-bottom: 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .form-group {
-            margin-right: 20px;
-            display: flex;
-            align-items: center;
-        }
-
-        .form-group label {
-            margin-right: 10px;
-            font-weight: 500;
-        }
-
-        .btn {
-            padding: 8px 16px;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-weight: 500;
-            transition: background-color 0.3s;
-        }
-
-        .btn-primary {
-            background-color: var(--primary-color);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--secondary-color);
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 10px;
-            border: 1px solid var(--border-color);
-        }
-
-        th, td {
-            padding: 12px 15px;
-            border-bottom: 1px solid var(--border-color);
-            text-align: left;
-        }
-
-        th {
-            background-color: var(--light-color);
-            font-weight: 600;
-            color: var(--dark-color);
-        }
-
-        tr:hover {
-            background-color: rgba(0, 0, 0, 0.02);
-        }
-
-        .badge {
-            padding: 4px 8px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            color: white;
-        }
-
-        .badge-success {
-            background-color: var(--success-color);
-        }
-
-        .badge-danger {
-            background-color: var(--danger-color);
-        }
-
-        .dropdown {
-            position: relative;
-            width: 100%;
-        }
-
-        .dropdown-select {
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            background-color: white;
-            cursor: pointer;
-        }
-
-        .dropdown-menu {
-            display: none;
-            position: absolute;
-            background-color: white;
-            width: 100%;
-            max-height: 200px;
-            overflow-y: auto;
-            border: 1px solid var(--border-color);
-            border-radius: 4px;
-            z-index: 10;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-
-        .dropdown-item {
-            padding: 8px 12px;
-            cursor: pointer;
-        }
-
-        .dropdown-item:hover {
-            background-color: var(--light-color);
-        }
-
-        .show {
-            display: block;
-        }
-
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 50px;
-            height: 24px;
-        }
-
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #ccc;
-            transition: .4s;
-            border-radius: 24px;
-        }
-
-        .toggle-slider:before {
-            position: absolute;
-            content: "";
-            height: 16px;
-            width: 16px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .toggle-slider {
-            background-color: var(--success-color);
-        }
-
-        input:checked + .toggle-slider:before {
-            transform: translateX(26px);
-        }
-
-        /* Modal Styles */
-        .modal-backdrop {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-
-        .modal-container {
-            background-color: white;
-            border-radius: 8px;
-            width: 90%;
-            max-width: 600px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-            animation: modalFadeIn 0.3s;
-        }
-
-        .modal-header {
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            color: white;
-            padding: 15px 20px;
-            border-radius: 8px 8px 0 0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .modal-header h2 {
-            margin: 0;
-            font-size: 20px;
-        }
-
-        .modal-close-btn {
-            background: none;
-            border: none;
-            color: white;
-            font-size: 24px;
-            cursor: pointer;
-        }
-
-        .modal-body {
-            padding: 20px;
-        }
-
-        .form-row {
-            display: flex;
-            margin-bottom: 15px;
-            gap: 15px;
-        }
-
-        .modal-col {
-            flex: 1;
-        }
-
-        .full-width {
-            width: 100%;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 8px 12px;
-            border-radius: 4px;
-            border: 1px solid var(--border-color);
-            font-size: 14px;
-        }
-
-        .form-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 10px;
-            margin-top: 20px;
-        }
-
-        .btn-secondary {
-            background-color: #6c757d;
-            color: white;
-        }
-
-        .btn-secondary:hover {
-            background-color: #5a6268;
-        }
-
-        .required {
-            color: var(--danger-color);
-        }
-
-        .error-message {
-            color: var(--danger-color);
-            font-size: 12px;
-            display: block;
-            margin-top: 5px;
-        }
-
-        @keyframes modalFadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        /* Responsive design */
-        @media (max-width: 768px) {
-            .form-row {
-                flex-direction: column;
-                gap: 10px;
-            }
-        }
-    </style>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link href="css/controlPage.css" rel="stylesheet" />
 </head>
 <body layout:fragment="body">
 <div class="container">
@@ -365,23 +19,7 @@
 
     <!-- Conferences Section -->
     <div class="card">
-        <div class="card-header">
-            <span>Conference Management</span>
-            <button class="btn btn-primary" id="addConferenceBtn">Add New Conference</button>
-        </div>
-        <div class="card-body">
-            <div class="filter-form">
-                <div class="form-group">
-                    <label for="conferenceStatus">Status:</label>
-                    <select id="conferenceStatus" class="dropdown-select">
-                        <option value="all">All</option>
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                    </select>
-                </div>
-                <button class="btn btn-primary" id="filterConferencesBtn">Apply Filter</button>
-            </div>
-
+        <div class="card-body" style="overflow-y: auto; max-height: 500px;">
             <table id="conferencesTable">
                 <thead>
                 <tr>
@@ -397,10 +35,10 @@
                     <td th:text="${conference.id}">CF-12345</td>
                     <td th:text="${conference.conferenceDate}">2025-02-27</td>
                     <td>
-                        <label class="toggle-switch">
-                            <input type="checkbox" class="status-toggle" checked>
-                            <span class="toggle-slider"></span>
-                        </label>
+                    <span class="badge" th:classappend="${activeConferences.contains(conference) ? 'badge-success' : 'badge-danger'}"
+                          th:text="${activeConferences.contains(conference) ? 'Active' : 'Inactive'}">
+                        Inactive
+                    </span>
                     </td>
                     <td>
                         <div class="dropdown">
@@ -412,8 +50,22 @@
                             </div>
                         </div>
                     </td>
-                    <td>
-                        <button class="btn btn-primary">Edit</button>
+                    <td class="action-buttons">
+                        <a class="btn btn-primary btn-sm"
+                           th:if="${!activeConferences.contains(conference)}"
+                           th:href="@{/conference/join(conferenceId=${conference.getId()}, userName=${userName},toDeviceSettings=true)}">
+                            <i class="fa fa-sign-in"></i> Join
+                        </a>
+                        <a class="btn btn-primary btn-sm"
+                           th:if="${activeConferences.contains(conference)}"
+                           th:href="@{/conference(conferenceId=${conferenceMap.get(conference.getId())}, userName=${encodedUserName})}">
+                            <i class="fa fa-plug"></i> Connect
+                        </a>
+                        <a class="btn btn-danger btn-sm"
+                           th:if="${!activeConferences.contains(conference) && conference.getUsers().contains(user)}"
+                           th:href="@{/conference/removeConference(conferenceId=${conference.getId()}, userName=${userName})}">
+                            <i class="fa fa-trash"></i> Remove
+                        </a>
                     </td>
                 </tr>
                 </tbody>
@@ -427,7 +79,7 @@
             <span>User Management</span>
             <button class="btn btn-primary" id="addUserBtn">Add New User</button>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="overflow-y: auto; max-height: 500px;">
             <table id="usersTable">
                 <thead>
                 <tr>
@@ -467,7 +119,7 @@
             </table>
         </div>
     </div>
-    <!-- Settings Section - добавить перед закрывающим тегом div.container -->
+    <!-- Settings Section -->
     <div class="card">
         <div class="card-header">
             <span>System Settings</span>
@@ -476,7 +128,7 @@
                 <button class="btn btn-primary" id="refreshSettingsBtn">Refresh Settings</button>
             </div>
         </div>
-        <div class="card-body">
+        <div class="card-body" style="overflow-y: auto; max-height: 500px;">
             <div id="settingsLoader" style="text-align: center; padding: 20px; display: none;">
                 <p>Loading settings...</p>
             </div>
@@ -1256,26 +908,6 @@
             });
         });
 
-        // Filter conferences
-        document.getElementById('filterConferencesBtn').addEventListener('click', function () {
-            const status = document.getElementById('conferenceStatus').value;
-            const table = document.getElementById('conferencesTable');
-            const rows = table.getElementsByTagName('tr');
-
-            for (let i = 1; i < rows.length; i++) {
-                const statusCell = rows[i].getElementsByTagName('td')[2];
-                const statusToggle = statusCell.querySelector('input[type="checkbox"]');
-                const isActive = statusToggle.checked;
-
-                if (status === 'all' ||
-                    (status === 'active' && isActive) ||
-                    (status === 'inactive' && !isActive)) {
-                    rows[i].style.display = '';
-                } else {
-                    rows[i].style.display = 'none';
-                }
-            }
-        });
 
         // Modal functionality
         const addUserBtn = document.getElementById('addUserBtn');

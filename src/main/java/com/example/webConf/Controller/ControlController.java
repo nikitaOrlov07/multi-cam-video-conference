@@ -21,9 +21,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 @Controller
 @RequestMapping("/control")
@@ -52,12 +50,29 @@ public class ControlController { // Controller for admin control page
 
         ///  Finding all conferences
         List<Conference> conferences = conferenceService.findAllConferences();
+        ///  Finding user conferences
+        List<Conference> userConferences = conferenceService.findUserConferences(user);
+        ///  Finding user Active Conferences
+        List<Conference> activeConferences = conferenceService.findUserActiveConferences(user.getId());
 
         ///  Finding all users
         List<UserEntity> users = userService.findAllUsers();
 
         model.addAttribute("conferences", conferences);
+        model.addAttribute("userConferences", userConferences);
+        model.addAttribute("activeConferences", activeConferences);
         model.addAttribute("users", users);
+        model.addAttribute("userName", user.getUserName());
+        model.addAttribute("user", user);
+
+        ///  Encoded information for userName
+        String encodedUserName = Base64.getUrlEncoder().encodeToString(user.getUserName().getBytes());
+        Map<String, String> conferenceMap = new HashMap<>();
+        conferences.forEach(conference -> {
+            conferenceMap.put(conference.getId(),Base64.getUrlEncoder().encodeToString(conference.getId().getBytes()));
+        });
+        model.addAttribute("encodedUserName", encodedUserName);
+        model.addAttribute("conferenceMap", conferenceMap);
 
         return "control-page";
     }
