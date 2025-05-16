@@ -8,6 +8,7 @@
     <script src="http://localhost:8080/libs/lib-jitsi-meet.min.js"></script>
     <script th:src="@{/js/videoConferenceAdditionalLogic.js}"></script>
     <script th:src="@{/js/movingSectionAndCameras.js}"></script>
+    <script th:src="@{/js/FixedTechnicalTrackManager.js}"></script>
     <script th:src="@{/js/videoConferenceLogic.js}"></script>
     <script th:src="@{/js/cameraManaging.js}"></script>
     <script th:src="@{/js/screenSharingLogic.js}"></script>
@@ -124,12 +125,6 @@
 </div>
 <div id="video-container"></div>
 <div class="controls">
-    <button class="control-button" id="toggleVideo" title="Enable/disable video">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 7l-7 5 7 5V7z"/>
-            <rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
-        </svg>
-    </button>
     <button class="control-button" id="toggleAudio" title="Enable/disable sound">
         <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
@@ -150,15 +145,6 @@
             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
         </svg>
     </button>
-    <button class="control-button" id="toggleMuteAudio" title="Mute/unmute conference">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M4 12a8 8 0 0 1 16 0" />
-            <rect x="2" y="12" width="4" height="8" rx="1" />
-            <rect x="18" y="12" width="4" height="8" rx="1" />
-            <line x1="4" y1="4" x2="20" y2="20" />
-        </svg>
-    </button>
-
 </div>
 <div id="error-message"></div>
 

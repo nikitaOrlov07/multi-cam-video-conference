@@ -1,8 +1,5 @@
 const ConferenceUtils = {
     cameraOrderMap: new Map(),
-    isMuted: false, // for mute audio logic
-    audioObserver: null, // Will store the MutationObserver instance
-
     async updateUserCount(conferenceId, userName, userCounts, displayName, reconnecting, callback) {
         try {
             let userDisplayName = userName;
@@ -78,7 +75,6 @@ const ConferenceUtils = {
         }
         return null;
     },
-
     showError(message) {
         const errorElement = document.getElementById('error-message');
         if (errorElement) {
@@ -91,7 +87,6 @@ const ConferenceUtils = {
             }, 5000);
         }
     },
-
     async loadDeviceConfig(conferenceId, userName) {
         try {
             const response = await fetch(`/api/conference/devices?conferenceId=${conferenceId}&userName=${userName}`);
@@ -104,7 +99,6 @@ const ConferenceUtils = {
             throw error;
         }
     },
-
     startUserCountUpdates() {
         if (this.userUpdateInterval) {
             clearInterval(this.userUpdateInterval);
@@ -124,14 +118,12 @@ const ConferenceUtils = {
             });
         }, 300000);
     },
-
     updateButtonState(buttonId, enabled) {
         const button = document.getElementById(buttonId);
         if (button) {
             button.classList.toggle('muted', !enabled);
         }
     },
-
     isValidVideoTrack(track) {
         if (!track || track.getType() !== 'video') {
             console.log("Track is not a video track");
@@ -156,131 +148,30 @@ const ConferenceUtils = {
         }
         return true;
     },
-
     onConnectionFailed() {
         ConferenceUtils.showError('Server connection error');
         document.getElementById('loading').style.display = 'none';
     },
-
     onDisconnected() {
         if (this.userUpdateInterval) {
             clearInterval(this.userUpdateInterval);
         }
         console.log('The connection is broken');
-
-        if (this.audioObserver) {
-            this.audioObserver.disconnect();
-            this.audioObserver = null;
-        }
-    },
-
-    toggleMute() {
-        console.log("Toggle mute is working");
-        this.isMuted = !this.isMuted;
-
-        this.applyMuteToAllElements();
-
-        this.updateMuteButtonUI();
-    },
-
-    applyMuteToAllElements() {
-        const audioElements = document.querySelectorAll('audio, video');
-        console.log(`Applying mute state (${this.isMuted}) to ${audioElements.length} elements`);
-
-        audioElements.forEach(element => {
-            element.muted = this.isMuted;
-
-            if (this.isMuted) {
-                element.setAttribute('muted', '');
-            } else {
-                element.removeAttribute('muted');
-            }
-
-            console.log(`${element.tagName} element muted state set to: ${element.muted}`);
-        });
-    },
-
-    updateMuteButtonUI() {
-        const muteButton = document.getElementById('toggleMuteAudio');
-        if (!muteButton) return;
-
-        muteButton.title = this.isMuted ? "Включить звук" : "Выключить звук";
-
-        if (this.isMuted) {
-            muteButton.classList.add('muted');
-        } else {
-            muteButton.classList.remove('muted');
-        }
-    },
-
-    initAudioObserver() {
-        if (this.audioObserver) {
-            this.audioObserver.disconnect();
-            this.audioObserver = null;
-        }
-
-        this.audioObserver = new MutationObserver((mutations) => {
-            let newAudioElementsFound = false;
-
-            mutations.forEach(mutation => {
-                if (mutation.type === 'childList') {
-                    const newAudioElements = Array.from(mutation.addedNodes)
-                        .filter(node => node.nodeName === 'AUDIO' || node.nodeName === 'VIDEO');
-
-                    if (newAudioElements.length > 0) {
-                        newAudioElementsFound = true;
-                        newAudioElements.forEach(element => {
-                            console.log(`New ${element.tagName} element found, applying mute state: ${this.isMuted}`);
-                            element.muted = this.isMuted;
-
-                            if (this.isMuted) {
-                                element.setAttribute('muted', '');
-                            } else {
-                                element.removeAttribute('muted');
-                            }
-                        });
-                    }
-                }
-            });
-
-            if (newAudioElementsFound) {
-                console.log(`Applied mute state to new audio/video elements. Current mute state: ${this.isMuted}`);
-            }
-        });
-
-        this.audioObserver.observe(document.body, { childList: true, subtree: true });
-        console.log("Audio observer initialized and watching for new audio/video elements");
     }
-};
+}
 
 ConferenceUtils.setupControlButtons = function(conferenceInstance) {
-    document.getElementById('toggleVideo').addEventListener('click', () => {
-        if (conferenceInstance.localTracks.video) {
-            conferenceInstance.localTracks.video.forEach(track => {
-                if (track.isMuted()) {
-                    track.unmute();
-                } else {
-                    track.mute();
-                }
-                conferenceInstance.updateButtonState('toggleVideo', !track.isMuted());
-            });
-        }
-    });
 
     document.getElementById('toggleAudio').addEventListener('click', () => {
         if (conferenceInstance.localTracks.audio) {
             if (conferenceInstance.localTracks.audio.isMuted()) {
                 conferenceInstance.localTracks.audio.unmute();
+                conferenceInstance.updateButtonState('toggleAudio', true);
             } else {
                 conferenceInstance.localTracks.audio.mute();
+                conferenceInstance.updateButtonState('toggleAudio', false);
             }
-            conferenceInstance.updateButtonState('toggleAudio', !conferenceInstance.localTracks.audio.isMuted());
         }
-    });
-
-    document.getElementById('toggleMuteAudio').addEventListener('click', () => {
-        console.log("Mute Click");
-        ConferenceUtils.toggleMute();
     });
 
     document.getElementById('leaveCall').addEventListener('click', () => {
@@ -346,7 +237,7 @@ ConferenceUtils.updateUsersList = function() {
         `;
 
         const checkbox = userItem.querySelector('input[type="checkbox"]');
-        checkbox.addEventListener('change', (e) => {
+        checkbox.addEventListener('change',   (e) => {
             videoConference.toggleUserVisibility(userName, e.target.checked);
         });
 
@@ -357,13 +248,6 @@ ConferenceUtils.updateUsersList = function() {
 ConferenceUtils.setGlobalConference = function(conferenceInstance) {
     window.conference = conferenceInstance;
     console.log('Global conference instance set', window.conference);
-
-    ConferenceUtils.initAudioObserver();
-
-    if (ConferenceUtils.isMuted) {
-        ConferenceUtils.applyMuteToAllElements();
-    }
-
     return window.conference;
 };
 

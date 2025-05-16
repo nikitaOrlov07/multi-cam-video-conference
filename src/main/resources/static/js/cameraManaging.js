@@ -84,7 +84,6 @@ const AddCameraLogic = {
             if (order > 1) {
                 const technicalUserName = `${this.userName}_technical${order-1}_camera${order}`;
                 console.log(`Creating technical user: ${technicalUserName} for camera: ${label} (${deviceId}) for adding new camera`);
-                this.createVideoPreview(videoTrack, label);
                 await this.createTechnicalUserWithCamera(technicalUserName, videoTrack, {
                     label: label,
                     deviceId: deviceId,
@@ -131,8 +130,80 @@ const AddCameraLogic = {
                 console.log("No video tracks to remove");
                 return;
             }
+
+            // First check if this camera belongs to a technical user
+            let technicalUserEntry = null;
+            let technicalUserName = null;
+
+            if (this.technicalUsers) {
+                // Find the technical user by deviceId
+                for (const [username, data] of this.technicalUsers.entries()) {
+                    if (data.deviceId === deviceId) {
+                        technicalUserEntry = data;
+                        technicalUserName = username;
+                        console.log(`Found technical user by deviceId: ${username} for camera ${label} (${deviceId})`);
+                        break;
+                    }
+                }
+            }
+
+            // If found in technical users, handle that case separately
+            if (technicalUserEntry && technicalUserName) {
+                try {
+                    // Use the stored trackId for notification
+                    const trackId = technicalUserEntry.trackId;
+                    console.log(`Removing technical user camera with trackId: ${trackId}`);
+
+                    // Disconnect the technical user
+                    if (technicalUserEntry.connection) {
+                        await technicalUserEntry.connection.disconnect();
+                        console.log(`Disconnected technical user: ${technicalUserName}`);
+                    }
+
+                    // Remove from our map
+                    this.technicalUsers.delete(technicalUserName);
+
+                    // Notify about track removal
+                    this.notifyTrackRemoval(trackId);
+
+                    // Remove the video element
+                    this.removeVideoElementByTrackId(trackId, deviceId);
+
+                    // Remove preview if it exists
+                    const previewContainer = document.querySelector(`[data-camera-id="${deviceId}"]`);
+                    if (previewContainer) {
+                        previewContainer.remove();
+                        console.log(`Removed preview for camera: ${label}`);
+                    }
+
+                    console.log(`Successfully removed technical user camera: ${label}`);
+
+                    // Update grid configuration
+                    if (this.localTracks.video.length > 0) {
+                        const gridConfigKey = `${this.userName}_gridConfig`;
+                        let gridRows = Math.ceil(Math.sqrt(this.localTracks.video.length));
+                        let gridCols = Math.ceil(this.localTracks.video.length / gridRows);
+                        this.cameraOrderMap.set(gridConfigKey, {
+                            gridRows: gridRows,
+                            gridCols: gridCols
+                        });
+                    }
+
+                    this.broadcastTracks();
+                    console.log(`Successfully removed camera: ${label}`);
+                    this.populateCameraList();
+                    return;
+                } catch (error) {
+                    console.error(`Error removing technical user camera: ${label}`, error);
+                    ConferenceUtils.showError(`Error removing camera: ${label}`);
+                    return;
+                }
+            }
+
+            // Standard track removal process for non-technical user cameras
             let trackIndex = -1;
             let trackToRemove = null;
+
             for (let i = 0; i < this.localTracks.video.length; i++) {
                 const track = this.localTracks.video[i];
                 if (typeof track.getDeviceId === 'function' && track.getDeviceId() === deviceId) {
@@ -141,12 +212,29 @@ const AddCameraLogic = {
                     break;
                 }
             }
+
             if (trackIndex === -1 || !trackToRemove) {
-                console.error(`Camera track with deviceId ${deviceId} not found`);
+                console.error(`Camera track with deviceId ${deviceId} not found in local tracks`);
+
+                // Try one more attempt: look for any preview element with this deviceId
+                const preview = document.querySelector(`[data-camera-id="${deviceId}"]`);
+                if (preview) {
+                    preview.remove();
+                    console.log(`Removed preview for camera: ${label} though track wasn't found`);
+                }
+
+                // Also try to remove any video element
+                this.removeVideoElementByTrackId(null, deviceId);
+
+                this.populateCameraList();
                 return;
             }
+
             const trackId = trackToRemove.getId();
+            console.log(`Found track to remove: ${trackId} for device: ${deviceId}`);
+
             const isPrimary = trackIndex === 0 && this.localTracks.video.length === 1;
+
             if (isPrimary) {
                 if (this.room) {
                     try {
@@ -160,17 +248,24 @@ const AddCameraLogic = {
             } else {
                 const order = trackIndex + 1;
                 const technicalUserName = `${this.userName}_technical${order-1}_camera${order}`;
+
                 if (this.technicalUsers && this.technicalUsers.has(technicalUserName)) {
-                    const techUser = this.technicalUsers.get(technicalUserName);
-                    if (techUser && techUser.connection) {
-                        try {
-                            await techUser.connection.disconnect();
-                            this.technicalUsers.delete(technicalUserName);
-                            console.log(`Disconnected technical user: ${technicalUserName}`);
-                            this.notifyTrackRemoval(trackId);
-                        } catch (error) {
-                            console.error(`Error disconnecting technical user: ${technicalUserName}`, error);
-                        }
+                    technicalUserEntry = this.technicalUsers.get(technicalUserName);
+                    try {
+                        // Use the stored trackId for notification if available
+                        const notifyTrackId = technicalUserEntry.trackId || trackId;
+
+                        await technicalUserEntry.connection.disconnect();
+                        this.technicalUsers.delete(technicalUserName);
+                        console.log(`Disconnected technical user: ${technicalUserName}`);
+
+                        // Make sure we're using the right trackId for notification
+                        this.notifyTrackRemoval(notifyTrackId);
+
+                        // Make sure video element is found and removed using the same ID
+                        this.removeVideoElementByTrackId(notifyTrackId, deviceId);
+                    } catch (error) {
+                        console.error(`Error disconnecting technical user: ${technicalUserName}`, error);
                     }
                 } else {
                     if (this.room) {
@@ -184,18 +279,24 @@ const AddCameraLogic = {
                     }
                 }
             }
+
             try {
                 await trackToRemove.dispose();
                 console.log(`Disposed track for camera: ${label}`);
             } catch (error) {
                 console.error(`Error disposing track: ${label}`, error);
             }
+
             this.localTracks.video.splice(trackIndex, 1);
+
             const orderKey = `${this.userName}_${deviceId}`;
             if (this.cameraOrderMap && this.cameraOrderMap.has(orderKey)) {
                 this.cameraOrderMap.delete(orderKey);
             }
-            this.removeVideoElementByTrackId(trackId);
+
+            // Remove video element by both track ID and device ID as a fallback
+            this.removeVideoElementByTrackId(trackId, deviceId);
+
             const previewContainer = document.querySelector(`[data-camera-id="${deviceId}"]`);
             if (previewContainer) {
                 previewContainer.remove();
@@ -212,6 +313,7 @@ const AddCameraLogic = {
                 });
             }
 
+            // Check if we need to show a placeholder
             const section = document.querySelector(`[data-participant-id="local"]`);
             if (section) {
                 const camerasContainer = section.querySelector('.cameras-container');
@@ -220,31 +322,11 @@ const AddCameraLogic = {
                     if (placeholder) {
                         placeholder.style.display = 'flex';
                     } else {
-                        placeholder = document.createElement('div');
-                        placeholder.className = 'no-camera-placeholder';
-                        placeholder.innerHTML = `
-                        <div class="camera-icon">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M18 7c0-1.1-.9-2-2-2H6L0 11v4h4v2c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2v-2h4v-4l-4-4z"/>
-                                <line x1="1" y1="1" x2="23" y2="23" stroke="red"/>
-                            </svg>
-                        </div>
-                        <p>No camera available</p>
-                    `;
-                        placeholder.style.display = 'flex';
-                        placeholder.style.flexDirection = 'column';
-                        placeholder.style.alignItems = 'center';
-                        placeholder.style.justifyContent = 'center';
-                        placeholder.style.height = '100%';
-                        placeholder.style.color = '#999';
-                        placeholder.style.fontSize = '14px';
-                        placeholder.style.backgroundColor = '#2a2a2a';
-                        placeholder.style.borderRadius = '8px';
-                        placeholder.style.padding = '20px';
-                        camerasContainer.appendChild(placeholder);
+                        this.createNoVideosPlaceholder(camerasContainer);
                     }
                 }
             }
+
             this.broadcastTracks();
             console.log(`Successfully removed camera: ${label}`);
             this.populateCameraList();
@@ -302,12 +384,29 @@ const AddCameraLogic = {
         }
     },
 
-    removeVideoElementByTrackId: function(trackId) {
-        const videoWrapper = document.querySelector(`.video-wrapper[data-track-id="${trackId}"]`);
+    removeVideoElementByTrackId: function(trackId, deviceId) {
+        console.log(`Trying to remove local video with track-id ${trackId}, device-id ${deviceId || 'not provided'}`);
+        let videoWrapper = document.querySelector(`.video-wrapper[data-track-id="${trackId}"]`);
+        if (!videoWrapper && deviceId) {
+            videoWrapper = document.querySelector(`.video-wrapper[data-device-id="${deviceId}"]`);
+            if (videoWrapper) {
+                console.log(`Found video wrapper by device ID instead of track ID`);
+            }
+        }
         if (videoWrapper) {
             const section = videoWrapper.closest('.participant-section');
             videoWrapper.remove();
             console.log(`Removed video wrapper for track: ${trackId}`);
+
+            const allWrappers = Array.from(document.querySelectorAll('.video-wrapper')).map(wrapper => {
+                return {
+                    element: wrapper,
+                    trackId: wrapper.getAttribute('data-track-id'),
+                    deviceId: wrapper.getAttribute('data-device-id')
+                };
+            });
+
+            console.error("All  video wrappers from local page:", allWrappers);
 
             if (section) {
                 const camerasContainer = section.querySelector('.cameras-container');
@@ -316,6 +415,40 @@ const AddCameraLogic = {
                     if (placeholder) {
                         placeholder.style.display = 'flex';
                     } else {
+                        this.createNoVideosPlaceholder(camerasContainer);
+                    }
+                }
+            }
+            else {
+                console.error("Section for trackId " + trackId + " was not found");
+            }
+        }
+        else {
+            const allWrappers = Array.from(document.querySelectorAll('.video-wrapper')).map(wrapper => {
+                return {
+                    element: wrapper,
+                    trackId: wrapper.getAttribute('data-track-id'),
+                    deviceId: wrapper.getAttribute('data-device-id')
+                };
+            });
+
+            console.error(`VideoWrapper for track: ${trackId} was not found`);
+            console.error("Existing video wrappers:", allWrappers);
+
+            // Try a more aggressive approach to find the element
+            const allVideos = document.querySelectorAll('.video-wrapper');
+            console.log(`Total video wrappers found: ${allVideos.length}`);
+
+            if (allVideos.length === 1 && this.localTracks.video.length === 0) {
+                // If this is the last video and we have no tracks, just remove it
+                const lastWrapper = allVideos[0];
+                console.log("Removing last remaining video wrapper as fallback");
+                const section = lastWrapper.closest('.participant-section');
+                lastWrapper.remove();
+
+                if (section) {
+                    const camerasContainer = section.querySelector('.cameras-container');
+                    if (camerasContainer) {
                         this.createNoVideosPlaceholder(camerasContainer);
                     }
                 }
@@ -364,12 +497,29 @@ const AddCameraLogic = {
             console.log("Found video devices:", videoDevices);
 
             const usedDeviceIds = new Set();
+
+            // Check main user's tracks
             if (this.localTracks && this.localTracks.video && this.localTracks.video.length > 0) {
                 this.localTracks.video.forEach(track => {
                     if (typeof track.getDeviceId === 'function') {
                         usedDeviceIds.add(track.getDeviceId());
                     }
                 });
+            }
+
+            // Also check technical users' tracks
+            if (this.technicalUsers && this.technicalUsers.size > 0) {
+                for (const [username, userData] of this.technicalUsers.entries()) {
+                    if (userData.deviceId) {
+                        usedDeviceIds.add(userData.deviceId);
+                        console.log(`Marked camera ${userData.deviceId} as in use by technical user ${username}`);
+                    }
+
+                    // Additional check for track deviceId if available
+                    if (userData.track && typeof userData.track.getDeviceId === 'function') {
+                        usedDeviceIds.add(userData.track.getDeviceId());
+                    }
+                }
             }
 
             return videoDevices.map(device => ({

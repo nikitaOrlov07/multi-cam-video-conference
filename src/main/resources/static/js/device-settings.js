@@ -581,7 +581,6 @@ function joinConference() {
             .map(checkbox => ({
                 deviceId: checkbox.value,
                 label: checkbox.dataset.label,
-                order: parseInt(checkbox.parentElement.querySelector('.camera-order').value)
             }))
             .sort((a, b) => a.order - b.order);
 

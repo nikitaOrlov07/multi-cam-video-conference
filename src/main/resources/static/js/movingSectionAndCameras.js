@@ -86,16 +86,42 @@ MoveSectionLogic.makeVideoFreeDraggable = function(videoWrapper) {
         this.toggleVideoVisibility(videoWrapper);
     });
 
+    // Delete button
+    const deleteButton = document.createElement('div');
+    deleteButton.className = 'video-delete-button';
+    deleteButton.innerHTML = '🗑️';
+    deleteButton.title = 'Delete camera';
+    deleteButton.style.cssText = `
+        position: absolute;
+        top: 5px;
+        left: 65px;
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 3px 6px;
+        border-radius: 3px;
+        cursor: pointer;
+        z-index: 101;
+        opacity: 0;
+        transition: opacity 0.2s ease;
+    `;
+    videoWrapper.appendChild(deleteButton);
+    deleteButton.addEventListener('click', () => {
+        this.confirmDeleteCamera(videoWrapper);
+    });
+
     videoWrapper.addEventListener('mouseenter', () => {
         dragHandle.style.opacity = '1';
         hideButton.style.opacity = '1';
+        deleteButton.style.opacity = '1';
     });
     videoWrapper.addEventListener('mouseleave', () => {
         if (!isDragging) {
             dragHandle.style.opacity = '0';
             hideButton.style.opacity = '0';
+            deleteButton.style.opacity = '0';
         }
     });
+
     let isDragging = false;
     let startX, startY, startLeft, startTop;
     const startDrag = (e) => {
@@ -232,6 +258,89 @@ MoveSectionLogic.makeVideoFreeDraggable = function(videoWrapper) {
     resizeHandle.addEventListener('mousedown', startResize);
     this.loadCameraPositionConfig(videoWrapper);
 };
+MoveSectionLogic.confirmDeleteCamera = function(videoWrapper) {
+    // Create and show confirmation dialog
+    const confirmDialog = document.createElement('div');
+    confirmDialog.className = 'camera-delete-confirmation';
+    confirmDialog.style.cssText = `
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.85);
+        color: white;
+        padding: 15px;
+        border-radius: 5px;
+        z-index: 1000;
+        text-align: center;
+        min-width: 250px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    `;
+
+    confirmDialog.innerHTML = `
+        <div style="margin-bottom: 15px;">Are you sure you want to delete this camera?</div>
+        <div style="margin-bottom: 10px;">This action cannot be undone.</div>
+        <div style="display: flex; justify-content: space-between;">
+            <button class="btn-cancel" style="padding: 5px 15px; background: #555; border: none; color: white; border-radius: 3px; cursor: pointer;">Cancel</button>
+            <button class="btn-confirm" style="padding: 5px 15px; background: #d32f2f; border: none; color: white; border-radius: 3px; cursor: pointer;">Delete</button>
+        </div>
+    `;
+
+    videoWrapper.appendChild(confirmDialog);
+
+    // Add event listeners to buttons
+    const cancelButton = confirmDialog.querySelector('.btn-cancel');
+    const confirmButton = confirmDialog.querySelector('.btn-confirm');
+
+    cancelButton.addEventListener('click', () => {
+        confirmDialog.remove();
+    });
+
+    confirmButton.addEventListener('click', () => {
+        this.deleteCamera(videoWrapper);
+        confirmDialog.remove();
+    });
+};
+
+MoveSectionLogic.deleteCamera = function(videoWrapper) {
+    const section = videoWrapper.closest('.participant-section');
+    if (!section) return;
+
+    const displayName = section.querySelector('.participant-name')?.textContent;
+    if (!displayName) return;
+
+    const trackId = videoWrapper.getAttribute('data-track-id');
+    if (!trackId) return;
+
+    try {
+        const conferenceId = window.conference?.conferenceId;
+        if (conferenceId) {
+            // Store that this camera should be deleted
+            const key = `camera-deleted-${conferenceId}-${displayName}-${trackId}`;
+            localStorage.setItem(key, 'true');
+
+            // Remove from DOM
+            videoWrapper.remove();
+
+            // Update any related UI if needed
+            const camerasContainer = section.querySelector('.cameras-container');
+            if (camerasContainer) {
+                const remainingVideos = camerasContainer.querySelectorAll('.video-wrapper');
+                if (remainingVideos.length === 0) {
+                    const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
+                    if (placeholder) {
+                        placeholder.style.display = 'block';
+                    }
+                }
+            }
+
+            console.log(`Camera ${trackId} for ${displayName} has been deleted`);
+        }
+    } catch (e) {
+        console.error('Error deleting camera:', e);
+    }
+};
+
 MoveSectionLogic.toggleVideoVisibility = function(videoWrapper) {
     const isHidden = videoWrapper.dataset.hidden === 'true';
     const hideButton = videoWrapper.querySelector('.video-hide-button');
@@ -818,6 +927,17 @@ MoveSectionLogic.initializeNewParticipantSection = function(section) {
 
     const videoWrappers = section.querySelectorAll('.video-wrapper');
     videoWrappers.forEach(wrapper => {
+        // Check if this camera should be hidden from view due to previous deletion
+        const displayName = section.querySelector('.participant-name')?.textContent;
+        const trackId = wrapper.getAttribute('data-track-id');
+        if (displayName && trackId && window.conference?.conferenceId) {
+            const key = `camera-deleted-${window.conference.conferenceId}-${displayName}-${trackId}`;
+            if (localStorage.getItem(key) === 'true') {
+                wrapper.remove();
+                return;
+            }
+        }
+
         this.makeVideoFreeDraggable(wrapper);
     });
 
@@ -828,6 +948,17 @@ MoveSectionLogic.initializeNewParticipantSection = function(section) {
                 if (mutation.type === 'childList') {
                     mutation.addedNodes.forEach((node) => {
                         if (node.nodeType === 1 && node.classList.contains('video-wrapper')) {
+                            // Check if this camera should be hidden from view
+                            const displayName = section.querySelector('.participant-name')?.textContent;
+                            const trackId = node.getAttribute('data-track-id');
+                            if (displayName && trackId && window.conference?.conferenceId) {
+                                const key = `camera-deleted-${window.conference.conferenceId}-${displayName}-${trackId}`;
+                                if (localStorage.getItem(key) === 'true') {
+                                    node.remove();
+                                    return;
+                                }
+                            }
+
                             this.makeVideoFreeDraggable(node);
                         }
                     });
@@ -986,7 +1117,7 @@ MoveSectionLogic.addSectionStyles = function() {
             height: 100%;
             overflow: hidden;
         }
-        .video-drag-handle, .video-resize-handle, .video-hide-button {
+        .video-drag-handle, .video-resize-handle, .video-hide-button, .video-delete-button {
             background: rgba(0,0,0,0.7) !important;
             color: white;
             padding: 3px 6px;
@@ -996,8 +1127,11 @@ MoveSectionLogic.addSectionStyles = function() {
             opacity: 0;
             transition: opacity 0.2s ease;
         }
-        .video-drag-handle:hover, .video-resize-handle:hover, .video-hide-button:hover {
+        .video-drag-handle:hover, .video-resize-handle:hover, .video-hide-button:hover, .video-delete-button:hover {
             background: rgba(0,0,0,0.9) !important;
+        }
+        .video-delete-button {
+            color: #ff6b6b;
         }
         .camera-label {
             z-index: 102;
@@ -1015,6 +1149,13 @@ MoveSectionLogic.addSectionStyles = function() {
             top: 5px;
             left: 45px;
             bottom: auto;
+        }
+        .camera-delete-confirmation {
+            animation: fadeIn 0.2s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translate(-50%, -60%); }
+            to { opacity: 1; transform: translate(-50%, -50%); }
         }
     `;
     document.head.appendChild(styleElement);
