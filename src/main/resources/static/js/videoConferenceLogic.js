@@ -219,7 +219,6 @@ class VideoConference {
                     const wrapperId = wrapper.getAttribute('data-track-id');
                     const wrapperParticipantId = wrapper.getAttribute('data-participant-id');
 
-                    // Check if either the track ID contains sender ID or if participant ID matches
                     if ((wrapperId && wrapperId.includes(senderId)) ||
                         (wrapperParticipantId && wrapperParticipantId === senderId)) {
                         console.log(`Found wrapper with matching sender ID: ${wrapperId}`);
@@ -266,7 +265,6 @@ class VideoConference {
             }
         }
 
-        // If we found a video wrapper, remove it
         if (videoWrapper) {
             const section = videoWrapper.closest('.participant-section');
             videoWrapper.remove();
@@ -275,10 +273,8 @@ class VideoConference {
                 this.updateSectionAfterRemoval(section);
             }
         } else if (senderId) {
-            // If still not found but we have a sender ID, try to find their section
             const participantSection = document.querySelector(`.participant-section[data-participant-id="${senderId}"]`);
 
-            // If no specific section is found, try to find by using the first two sections
             if (!participantSection) {
                 const allSections = document.querySelectorAll('.participant-section');
                 console.log("Participant Section was not found for senderId:", senderId);
@@ -289,12 +285,10 @@ class VideoConference {
                     };
                 }));
 
-                // If there are sections available, try removing videos from them
                 if (allSections.length > 0) {
                     allSections.forEach(section => {
                         const wrappers = section.querySelectorAll('.video-wrapper');
                         if (wrappers.length > 0) {
-                            // Look for any wrapper that might match our sender
                             for (const wrapper of wrappers) {
                                 const wrapperId = wrapper.getAttribute('data-track-id');
                                 if (wrapperId && (wrapperId.includes(senderId) || senderId.includes(wrapperId.split('-')[0]))) {
@@ -308,12 +302,10 @@ class VideoConference {
                     });
                 }
             } else {
-                // We found the participant's section, now check if it has any video wrappers
                 const camerasContainer = participantSection.querySelector('.cameras-container');
                 if (camerasContainer) {
                     const videoWrappers = camerasContainer.querySelectorAll('.video-wrapper');
                     if (videoWrappers.length > 0) {
-                        // If we have wrappers, remove the one that seems most likely to match
                         let wrapperToRemove = null;
                         for (const wrapper of videoWrappers) {
                             const wrapperId = wrapper.getAttribute('data-track-id');
@@ -323,7 +315,6 @@ class VideoConference {
                             }
                         }
 
-                        // If no good match found, remove the first wrapper as fallback
                         if (!wrapperToRemove) {
                             wrapperToRemove = videoWrappers[0];
                         }
@@ -332,7 +323,6 @@ class VideoConference {
                         console.log(`Removed video wrapper from participant section with ID: ${senderId}`);
                     }
 
-                    // Update the section if there are no video wrappers left
                     if (camerasContainer.querySelectorAll('.video-wrapper').length === 0) {
                         this.updateSectionAfterRemoval(participantSection);
                     }
@@ -391,19 +381,16 @@ class VideoConference {
                 return false;
             }
 
-            // First try to remove the track from our data structures
             if (this.remoteTracks.has(senderId)) {
                 const tracks = this.remoteTracks.get(senderId);
                 console.log("Found tracks for senderId:", senderId);
 
-                // Try to find the exact track
                 if (tracks.has && tracks.has(trackId)) {
                     console.log("Found track with exact ID match:", trackId);
                     foundTrack = true;
                     const track = tracks.get(trackId);
                     this.removeTrack(track, trackId, tracks, senderId);
                 } else {
-                    // Try to find a similar track
                     const trackKeys = tracks.has && typeof tracks.has === 'function' ?
                         Array.from(tracks.keys()) :
                         Object.keys(tracks);
@@ -435,7 +422,6 @@ class VideoConference {
             } else {
                 console.log("No tracks found for senderId:", senderId);
 
-                // Try to find tracks that might belong to this sender
                 for (const [participantId, participantTracks] of this.remoteTracks.entries()) {
                     if (participantId.includes(senderId) || senderId.includes(participantId)) {
                         console.log("Found potential match with participant:", participantId);
@@ -456,14 +442,12 @@ class VideoConference {
                 }
             }
 
-            // Always try to remove the DOM element, even if we couldn't find the track in data structures
             this.removeTrackDOM(trackId);
 
             return foundTrack;
         } catch (error) {
             console.error(`Error handling remote track removal for ${trackId}:`, error);
 
-            // Try to remove the DOM element even if we had an error
             try {
                 this.removeTrackDOM(trackId);
             } catch (e) {
@@ -819,121 +803,215 @@ class VideoConference {
         console.log(`Added camera ${label} to container. Total cameras: ${camerasContainer.querySelectorAll('.video-wrapper').length}`);
     }
 
-    onRemoteTrackAdded(track) {
+    async onRemoteTrackAdded(track) {
         if (track.isLocal()) {
             return;
         }
         const participantId = track.getParticipantId();
         const trackId = track.getId();
-        if (this.remoteTracks.has(participantId) &&
-            this.remoteTracks.get(participantId).has(trackId)) {
-            console.log(`Track ${trackId} already exists, skipping duplicate`);
-            return;
+
+        const jitsiParticipant = this.room ? this.room.getParticipantById(participantId) : null;
+        const fullRemoteDisplayName = jitsiParticipant ? jitsiParticipant.getDisplayName() : '';
+
+        if (this.technicalTrackManager &&
+            fullRemoteDisplayName &&
+            fullRemoteDisplayName.startsWith(this.userName + '_technical_') &&
+            this.technicalTrackManager.isManagingTechnicalUserByName(fullRemoteDisplayName)) {
+
+            if (track.getType() === 'video') {
+                console.log(`[VC onRemoteTrackAdded] Own technical user video track ${trackId} from ${fullRemoteDisplayName}. Preview already handled by FixedTechnicalTrackManager. Skipping duplicate creation.`);
+
+                const localSection = document.querySelector('.participant-section[data-participant-id="local"]');
+                if (localSection) {
+                    const existingVideoWrapper = localSection.querySelector(`.video-wrapper[data-track-id="${trackId}"]`);
+                    if (existingVideoWrapper) {
+                        const existingVideoEl = existingVideoWrapper.querySelector('video');
+                        if (existingVideoEl) {
+                            if (!existingVideoEl.srcObject || existingVideoEl.srcObject.id !== track.getTrack().id) {
+                                console.warn(`[VC onRemoteTrackAdded] Re-attaching track ${trackId} to existing preview for own technical user ${fullRemoteDisplayName}.`);
+                                try {
+                                    track.attach(existingVideoEl);
+                                } catch (attachError) {
+                                    console.error(`[VC onRemoteTrackAdded] Error re-attaching track ${trackId} to existing preview:`, attachError);
+                                }
+                            }
+                        } else {
+                            console.warn(`[VC onRemoteTrackAdded] Video element missing in existing wrapper for own technical track ${trackId} (${fullRemoteDisplayName}).`);
+                        }
+                    } else {
+                        console.warn(`[VC onRemoteTrackAdded] Expected preview wrapper for own technical track ${trackId} (${fullRemoteDisplayName}) not found in local section. It should have been created by FixedTechnicalTrackManager.`);
+                    }
+                }
+                return;
+            }
+            if (track.getType() === 'audio') {
+                console.log(`[VC onRemoteTrackAdded] Audio track ${trackId} from own technical user ${fullRemoteDisplayName}. Processing as usual (or could be skipped).`);
+            }
         }
+
         const existingTrackElement = document.querySelector(`[data-track-id="${trackId}"]`);
         if (existingTrackElement) {
-            console.log(`Track ${trackId} is already displayed, skipping`);
+            console.log(`[VC onRemoteTrackAdded] Track ${trackId} from participant ${participantId} (name: ${fullRemoteDisplayName}) is already displayed (generic check), skipping duplicate.`);
+            const videoEl = existingTrackElement.querySelector('video');
+            if (videoEl && track.getType() === 'video' && (!videoEl.srcObject || videoEl.srcObject.id !== track.getTrack().id)) {
+                console.warn(`[VC onRemoteTrackAdded] Re-attaching track ${trackId} to existing generic element for participant ${fullRemoteDisplayName}.`);
+                try {
+                    track.attach(videoEl);
+                } catch (attachError) {
+                    console.error(`[VC onRemoteTrackAdded] Error re-attaching track ${trackId} to generic existing element:`, attachError);
+                }
+            }
             return;
         }
-        console.log(`Remote track added - type: ${track.getType()}, participant: ${participantId}`);
+
+        console.log(`[VC onRemoteTrackAdded] Processing remote track - type: ${track.getType()}, participant ID: ${participantId}, track ID: ${trackId}, remote user name: ${fullRemoteDisplayName}`);
+
         if (!this.remoteTracks.has(participantId)) {
             this.remoteTracks.set(participantId, new Map());
         }
+        if (this.remoteTracks.get(participantId).has(trackId)) {
+            console.log(`[VC onRemoteTrackAdded] Track ${trackId} already exists in remoteTracks for participant ${participantId}, skipping duplicate add to map.`);
+            return;
+            _}
         this.remoteTracks.get(participantId).set(trackId, track);
+
         if (track.getType() !== 'video') {
             if (track.getType() === 'audio') {
                 const existingAudio = document.getElementById(`audio-${trackId}`);
                 if (existingAudio) {
-                    console.log(`Audio element for track ${trackId} already exists`);
+                    console.log(`[VC onRemoteTrackAdded] Audio element for track ${trackId} already exists`);
+                    if (!existingAudio.srcObject || existingAudio.srcObject.id !== track.getTrack().id) {
+                        try {
+                            track.attach(existingAudio);
+                            console.log(`[VC onRemoteTrackAdded] Re-attached audio track ${trackId} to existing element ${existingAudio.id}`);
+                        } catch (e) {
+                            console.error('[VC onRemoteTrackAdded] Error re-attaching audio track to existing element:', e);
+                        }
+                    }
                     return;
                 }
                 const audio = document.createElement('audio');
                 audio.id = `audio-${trackId}`;
+                audio.autoplay = true;
                 try {
                     track.attach(audio);
-                    console.log(`Successfully attached audio track ${trackId} to element ${audio.id}`);
+                    console.log(`[VC onRemoteTrackAdded] Successfully attached audio track ${trackId} to element ${audio.id}`);
                     audio.play().catch(error => {
-                        console.error('Audio playback error:', error);
+                        console.warn('[VC onRemoteTrackAdded] Audio playback error (will try muted):', error);
                         audio.muted = true;
                         audio.play().catch(e => {
-                            console.error('Second audio playback attempt failed:', e);
+                            console.error('[VC onRemoteTrackAdded] Second audio playback attempt (muted) failed:', e);
                         });
                     });
+                    document.body.appendChild(audio);
                 } catch (e) {
-                    console.error('Error attaching audio track:', e);
+                    console.error('[VC onRemoteTrackAdded] Error attaching audio track:', e);
                 }
             }
             return;
         }
-        console.log(`Processing video track: ${trackId} from participant ${participantId}`);
+
+        console.log(`[VC onRemoteTrackAdded] Processing video track: ${trackId} from participant ${participantId}`);
+
         const isValid = ConferenceUtils.isValidVideoTrack(track);
-        console.log(`Video track validity check: ${isValid}`);
+        console.log(`[VC onRemoteTrackAdded] Video track validity check for ${trackId}: ${isValid}`);
         if (!isValid) {
-            console.log(`Skipping invalid video track from participant ${participantId}`);
+            console.log(`[VC onRemoteTrackAdded] Skipping invalid video track ${trackId} from participant ${participantId}`);
+            this.remoteTracks.get(participantId).delete(trackId);
+            if (this.remoteTracks.get(participantId).size === 0) {
+                this.remoteTracks.delete(participantId);
+            }
             return;
         }
+
         const participant = this.participants.get(participantId);
         if (!participant) {
-            console.error(`No participant found for ID ${participantId}, skipping track`);
-            return;
-        }
-        const displayName = participant.displayName || 'Участник';
-        if (this.reconnecting && displayName === this.displayName && participantId !== this.myParticipantId) {
-            console.log(`Skipping track from another user with our display name during reconnection`);
-            return;
-        }
-        let cameraOrder = null;
-        if (participant.isTechnical && participant.cameraInfo) {
-            const orderMatch = participant.cameraInfo.match(/camera(\d+)/);
-            if (orderMatch && orderMatch[1]) {
-                cameraOrder = parseInt(orderMatch[1], 10);
-                console.log(`Found camera order ${cameraOrder} from technical user`);
+            console.error(`[VC onRemoteTrackAdded] No participant found for ID ${participantId} in this.participants, skipping track ${trackId}. Remote tracks for this participant might be orphaned.`);
+            const p = this.room ? this.room.getParticipantById(participantId) : null;
+            if (p) {
+                console.log(`[VC onRemoteTrackAdded] Found participant ${p.getDisplayName()} directly from room.`);
+            } else {
+                this.remoteTracks.get(participantId).delete(trackId);
+                if (this.remoteTracks.get(participantId).size === 0) {
+                    this.remoteTracks.delete(participantId);
+                }
+                return;
             }
         }
+
+        const displayName = (participant && participant.displayName) ? participant.displayName : (jitsiParticipant ? jitsiParticipant.getDisplayName().split('_technical_')[0] : 'Участник');
+
+        if (this.reconnecting && displayName === this.displayName && participantId !== this.myParticipantId) {
+            console.log(`[VC onRemoteTrackAdded] Skipping track ${trackId} from another user ${displayName} (${participantId}) with our display name during reconnection.`);
+            return;
+        }
+
+        let cameraOrder = null;
+        if (participant && participant.isTechnical && participant.cameraInfo) {
+            const orderMatch = participant.cameraInfo.match(/cam(\d+)/i);
+            if (orderMatch && orderMatch[1]) {
+                cameraOrder = parseInt(orderMatch[1], 10);
+                console.log(`[VC onRemoteTrackAdded] Found camera order ${cameraOrder} from technical user ${displayName} properties.`);
+            }
+        }
+
+
         let section = ConferenceUtils.getParticipantSection(displayName, this);
         if (!section) {
             section = this.createParticipantSection(participantId, displayName);
             if (!section) {
-                console.error(`Unable to create section for ${displayName} with ID ${participantId}`);
+                console.error(`[VC onRemoteTrackAdded] Unable to create or find section for ${displayName} (ID: ${participantId}) for track ${trackId}.`);
+                this.remoteTracks.get(participantId).delete(trackId);
+                if (this.remoteTracks.get(participantId).size === 0) {
+                    this.remoteTracks.delete(participantId);
+                }
                 return;
             }
         }
+
         const camerasContainer = section.querySelector('.cameras-container');
         if (!camerasContainer) {
-            console.error(`No cameras container found for participant ${participantId}`);
+            console.error(`[VC onRemoteTrackAdded] No cameras container found for participant ${displayName} (ID: ${participantId}) in section for track ${trackId}.`);
+            this.remoteTracks.get(participantId).delete(trackId);
+            if (this.remoteTracks.get(participantId).size === 0) {
+                this.remoteTracks.delete(participantId);
+            }
             return;
         }
-        if (document.querySelector(`[data-track-id="${trackId}"]`)) {
-            console.log(`Track ${trackId} is already displayed, skipping`);
+
+        if (camerasContainer.querySelector(`[data-track-id="${trackId}"]`)) {
+            console.log(`[VC onRemoteTrackAdded] Track ${trackId} is already in camerasContainer for ${displayName}, skipping creation.`);
             return;
         }
+
         const placeholder = camerasContainer.querySelector('.no-camera-placeholder');
         if (placeholder) {
             placeholder.style.display = 'none';
         }
+
         const wrapper = document.createElement('div');
         wrapper.className = 'video-wrapper';
-        console.log("On ")
         wrapper.setAttribute('data-track-id', trackId);
         wrapper.setAttribute('data-participant-id', participantId);
+
         const video = document.createElement('video');
         video.autoplay = true;
         video.playsInline = true;
         video.id = `video-${trackId}`;
 
         let deviceId = '';
-        if (typeof track.getDeviceId === 'function') {
+        if (typeof track.getDeviceId === 'function' && track.getDeviceId()) {
             deviceId = track.getDeviceId();
-        } else {
-            deviceId = trackId;
+            wrapper.setAttribute('data-device-id', deviceId);
         }
 
         if (cameraOrder !== null) {
             wrapper.setAttribute('data-camera-order', cameraOrder);
         } else {
-            const orderKey = `${displayName}_${deviceId}`;
+            const orderKey = `${displayName}_${deviceId || trackId}`;
             if (this.cameraOrderMap.has(orderKey)) {
-                cameraOrder = this.cameraOrderMap.get(orderKey).order;
+                const config = this.cameraOrderMap.get(orderKey);
+                cameraOrder = config.order;
                 wrapper.setAttribute('data-camera-order', cameraOrder);
             } else {
                 const existingWrappers = camerasContainer.querySelectorAll('.video-wrapper');
@@ -944,28 +1022,42 @@ class VideoConference {
 
         const label = document.createElement('div');
         label.className = 'camera-label';
-        label.textContent = `Camera ${cameraOrder || (camerasContainer.querySelectorAll('.video-wrapper').length + 1)}`;
+        let cameraLabelText = `Camera  ${cameraOrder}`;
+        if (participant && participant.isTechnical && participant.cameraInfo) {
+
+        }
+        label.textContent = cameraLabelText;
 
         try {
             video.addEventListener('error', (e) => {
-                console.error(`Video error for track ${trackId}:`, e);
+                console.error(`[VC onRemoteTrackAdded] Video error for track ${trackId} (participant ${displayName}):`, e);
+                wrapper.remove();
+                if (camerasContainer.querySelectorAll('.video-wrapper').length === 0 && placeholder) {
+                    placeholder.style.display = 'flex';
+                }
             });
             track.attach(video);
-            console.log(`Successfully attached track ${trackId} to video element ${video.id}`);
+            console.log(`[VC onRemoteTrackAdded] Successfully attached remote video track ${trackId} to video element ${video.id} for participant ${displayName}.`);
             video.load();
         } catch (e) {
-            console.error('Error attaching video track:', e);
+            console.error(`[VC onRemoteTrackAdded] Error attaching remote video track ${trackId} for ${displayName}:`, e);
+            this.remoteTracks.get(participantId).delete(trackId);
+            if (this.remoteTracks.get(participantId).size === 0) {
+                this.remoteTracks.delete(participantId);
+            }
+            if (placeholder) placeholder.style.display = 'flex';
             return;
         }
 
         wrapper.appendChild(video);
         wrapper.appendChild(label);
         camerasContainer.appendChild(wrapper);
+
         video.play().catch(error => {
-            console.error('Video playback error:', error);
+            console.warn(`[VC onRemoteTrackAdded] Video playback error for ${trackId} (participant ${displayName}) (will try muted):`, error);
             video.muted = true;
             video.play().catch(e => {
-                console.error('Second video playback attempt failed:', e);
+                console.error(`[VC onRemoteTrackAdded] Second video playback attempt (muted) for ${trackId} (participant ${displayName}) failed:`, e);
                 wrapper.remove();
                 if (camerasContainer.querySelectorAll('.video-wrapper').length === 0 && placeholder) {
                     placeholder.style.display = 'flex';
@@ -1114,7 +1206,7 @@ class VideoConference {
                 return;
             }
 
-            // Clean up existing video tracks
+
             if (!this.localTracks.video) {
                 this.localTracks.video = [];
             } else {
@@ -1126,7 +1218,6 @@ class VideoConference {
                 this.localTracks.video = [];
             }
 
-            // Initialize primary camera
             if (validCameras.length > 0) {
                 const camera = validCameras[0];
                 try {
@@ -1165,29 +1256,34 @@ class VideoConference {
                 }
             }
 
-            // Handle additional cameras with technical users
             if (validCameras.length > 1) {
                 console.log(`Creating ${validCameras.length - 1} technical users for additional cameras`);
 
                 for (let i = 1; i < validCameras.length; i++) {
                     const camera = validCameras[i];
-                    const technicalUserName = `${this.userName}_technical${i}_camera${i+1}`;
-                    console.log(`Creating technical user: ${technicalUserName} for camera: ${camera.label} (${camera.deviceId})`);
+                    const technicalUserName = `${this.userName}_technical_cam${camera.order !== undefined ? camera.order : (i + 1)}_${camera.deviceId.substring(0,5)}`;
+                    console.log(`Preparing to create technical user: ${technicalUserName} for camera: ${camera.label} (${camera.deviceId})`);
 
                     try {
-                        await this.createTechnicalUserWithCamera(technicalUserName, null, {
-                            ...camera,
-                            order: i + 1
-                        });
-                        console.log(`Successfully set up technical user ${technicalUserName} with camera ${camera.label}`);
+                        const cameraDataForManager = {
+                            deviceId: camera.deviceId,
+                            label: camera.label,
+                            order: camera.order !== undefined ? camera.order : (i + 1)
+                        };
+                        if (!this.technicalTrackManager) {
+                            console.error("FATAL: technicalTrackManager not initialized at the point of creating technical user in initializeDevices.");
+                            ConferenceUtils.showError("Critical error: Technical camera manager not ready.");
+                            continue;
+                        }
+                        await this.technicalTrackManager.createTechnicalUser(technicalUserName, cameraDataForManager);
+                        console.log(`Successfully requested creation of technical user ${technicalUserName} with camera ${camera.label}`);
                     } catch (e) {
-                        console.error(`Error setting up technical user for camera: ${camera.label}`, e);
+                        console.error(`Error requesting creation of technical user for camera: ${camera.label}`, e);
                         ConferenceUtils.showError(`Camera access error for additional camera: ${camera.label}`);
                     }
                 }
             }
 
-            // Update user counts and lists
             ConferenceUtils.updateUserCount(
                 this.conferenceId,
                 this.userName,
@@ -1475,146 +1571,6 @@ class VideoConference {
         ).then(() => {
             ConferenceUtils.updateUsersList();
         });
-    }
-    async createTechnicalUserWithCamera(technicalUserName, videoTrack, camera) {
-        try {
-            console.log(`Creating technical user ${technicalUserName} for camera ${camera.label} (${camera.deviceId})`);
-
-            // Create a new connection for the technical user
-            const technicalConnection = new JitsiMeetJS.JitsiConnection(
-                null,
-                null,
-                this.connectionOptions
-            );
-
-            if (!this.technicalConnections) {
-                this.technicalConnections = [];
-            }
-            this.technicalConnections.push(technicalConnection);
-
-            // Connect the technical user
-            await new Promise((resolve, reject) => {
-                technicalConnection.addEventListener(
-                    JitsiMeetJS.events.connection.CONNECTION_ESTABLISHED,
-                    resolve
-                );
-                technicalConnection.addEventListener(
-                    JitsiMeetJS.events.connection.CONNECTION_FAILED,
-                    reject
-                );
-                technicalConnection.connect();
-            });
-
-            console.log(`Technical user ${technicalUserName} connected successfully`);
-
-            // Create a conference room for the technical user
-            const technicalRoom = technicalConnection.initJitsiConference(
-                this.conferenceId,
-                this.conferenceOptions
-            );
-
-            if (!this.technicalRooms) {
-                this.technicalRooms = [];
-            }
-            this.technicalRooms.push(technicalRoom);
-            technicalRoom.setDisplayName(technicalUserName);
-
-            // Join the conference
-            await new Promise((resolve) => {
-                technicalRoom.on(JitsiMeetJS.events.conference.CONFERENCE_JOINED, resolve);
-                technicalRoom.join();
-            });
-
-            console.log(`Technical user ${technicalUserName} joined conference room`);
-
-            // Track management - always create a new track for technical users
-            let newTrack = null;
-            let trackId = null;
-            let createdNewTrack = false;
-
-            try {
-                console.log(`Creating new track for technical user ${technicalUserName} with camera ${camera.deviceId}`);
-                const tracks = await JitsiMeetJS.createLocalTracks({
-                    devices: ['video'],
-                    cameraDeviceId: camera.deviceId,
-                    constraints: {
-                        video: {
-                            deviceId: { exact: camera.deviceId },
-                            height: { ideal: 480 },
-                            width: { ideal: 640 }
-                        }
-                    }
-                });
-
-                if (tracks && tracks.length > 0 && tracks[0]) {
-                    newTrack = tracks[0];
-                    trackId = newTrack.getId();
-                    createdNewTrack = true;
-                    console.log(`Created new track with ID ${trackId} for technical user ${technicalUserName}`);
-                } else {
-                    throw new Error(`Failed to create video track for technical user ${technicalUserName}`);
-                }
-            } catch (error) {
-                console.error(`Error creating track for technical user ${technicalUserName}:`, error);
-
-                // Clean up if we failed to create a track
-                if (technicalRoom) {
-                    technicalRoom.leave();
-                }
-                if (technicalConnection) {
-                    technicalConnection.disconnect();
-                }
-
-                throw error;
-            }
-
-            if (!newTrack) {
-                throw new Error(`No valid track available for technical user ${technicalUserName}`);
-            }
-
-            // Add the track to the technical user's conference
-            try {
-                await technicalRoom.addTrack(newTrack);
-                console.log(`Technical user ${technicalUserName} added track ${trackId} to room`);
-            } catch (error) {
-                console.error(`Error adding track to technical room for ${technicalUserName}:`, error);
-
-                // Clean up the track if we failed to add it
-                if (createdNewTrack && newTrack) {
-                    newTrack.dispose();
-                }
-
-                // Clean up the technical user
-                if (technicalRoom) {
-                    technicalRoom.leave();
-                }
-                if (technicalConnection) {
-                    technicalConnection.disconnect();
-                }
-
-                throw error;
-            }
-
-            // Store the mapping between technical user and track info
-            if (!this.technicalUsers) {
-                this.technicalUsers = new Map();
-            }
-
-            this.technicalUsers.set(technicalUserName, {
-                connection: technicalConnection,
-                room: technicalRoom,
-                track: newTrack,
-                trackId: trackId,
-                deviceId: camera.deviceId,
-                label: camera.label,
-                order: camera.order || parseInt(technicalUserName.match(/camera(\d+)/)[1])
-            });
-
-            return technicalRoom;
-        } catch (error) {
-            console.error(`Error creating technical user ${technicalUserName}:`, error);
-            throw error;
-        }
     }
 
     async cleanupBeforeReconnection() {

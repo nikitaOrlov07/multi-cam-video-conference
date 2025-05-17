@@ -1,181 +1,205 @@
-services:
-  jicofo:
-    image: jitsi/jicofo:stable-9909
-    restart: unless-stopped
-    volumes:
-      - ./.jitsi-meet-cfg/jicofo:/config:Z
-    environment:
-      - ENABLE_AUTH=0
-      - ENABLE_GUESTS=1
-      - AUTH_TYPE=none
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_SERVER=prosody
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - JICOFO_AUTH_USER=focus
-      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-secure_password}
-      - JICOFO_COMPONENT_SECRET=s3cr37
-      - TZ=UTC
-    depends_on:
-      - prosody
-    networks:
-      - meet.jitsi
+  services:
+    jicofo:
+      image: jitsi/jicofo:stable-9909
+      restart: unless-stopped
+      volumes:
+        - ./.jitsi-meet-cfg/jicofo:/config:Z
+      environment:
+        - ENABLE_AUTH=0
+        - ENABLE_GUESTS=1
+        - AUTH_TYPE=none
+        - XMPP_DOMAIN=meet.jitsi
+        - XMPP_SERVER=prosody
+        - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+        - JICOFO_AUTH_USER=focus
+        - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-secure_password}
+        - JICOFO_COMPONENT_SECRET=s3cr37
+        - TZ=UTC
+      depends_on:
+        - prosody
+      networks:
+        - meet.jitsi
 
-  db:
-    image: postgres:14-alpine
-    restart: unless-stopped
-    environment:
-      - POSTGRES_DB=videoconf
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=password
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - meet.jitsi
+    db:
+      image: postgres:14-alpine
+      restart: unless-stopped
+      environment:
+        - POSTGRES_DB=videoconf
+        - POSTGRES_USER=postgres
+        - POSTGRES_PASSWORD=password
+      volumes:
+        - postgres_data:/var/lib/postgresql/data
+      healthcheck:
+        test: ["CMD-SHELL", "pg_isready -U postgres"]
+        interval: 10s
+        timeout: 5s
+        retries: 5
+      networks:
+        - meet.jitsi
 
-  jitsi-web:
-    image: jitsi/web:stable-9909
-    restart: unless-stopped
-    ports:
-      - "8080:80"
-    volumes:
-      - ./.jitsi-meet-cfg/web:/config:Z
-    environment:
-      - DISABLE_HTTPS=1
-      - ENABLE_HTTPS=0
-      - HTTP_PORT=8080
-      - ENABLE_AUTH=0
-      - ENABLE_GUESTS=1
-      - AUTHENTICATION=none
-      - DISABLE_HTTPS=1
-      - PUBLIC_URL=http://localhost:8080
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_BOSH_URL_BASE=http://localhost:5280
-      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
-      - XMPP_DOMAIN_INSECURE=true
-      - WEBSOCKET_DOMAIN=localhost
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
-      - WEBSOCKET_PORT=5280
-      - ENABLE_GUEST_DOMAIN=1
-      - TURN_ENABLE=1
-      - TURN_STATIC_AUTH_SECRET=orlikorlikorlikorlikorlikorlikorlik
-      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-secure_password}
-      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD:-secure_password}
-    networks:
-      - meet.jitsi
+    jitsi-web:
+      image: jitsi/web:stable-9909
+      restart: unless-stopped
+      ports:
+        - "8080:80"
+      volumes:
+        - ./.jitsi-meet-cfg/web:/config:Z
+      environment:
+        - DISABLE_HTTPS=1
+        - ENABLE_HTTPS=0
+        - HTTP_PORT=8080
+        - ENABLE_AUTH=0
+        - ENABLE_GUESTS=1
+        - AUTHENTICATION=none
+        - DISABLE_HTTPS=1
+        - PUBLIC_URL=http://localhost:8080
+        - XMPP_DOMAIN=meet.jitsi
+        - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+        - XMPP_BOSH_URL_BASE=http://localhost:5280
+        - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+        - XMPP_MUC_DOMAIN=muc.meet.jitsi
+        - XMPP_DOMAIN_INSECURE=true
+        - WEBSOCKET_DOMAIN=localhost
+        - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+        - XMPP_MUC_DOMAIN=muc.meet.jitsi
+        - WEBSOCKET_PORT=5280
+        - ENABLE_GUEST_DOMAIN=1
+        - TURN_ENABLE=1
+        - TURN_STATIC_AUTH_SECRET=orlikorlikorlikorlikorlikorlikorlik
+        - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-secure_password}
+        - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD:-secure_password}
+      networks:
+        - meet.jitsi
 
-  prosody:
-    image: jitsi/prosody:stable-9909
-    restart: unless-stopped
-    ports:
-      - "5280:5280"
-      - "5222:5222"
-    hostname: xmpp.meet.jitsi
-    volumes:
-      - ./.jitsi-meet-cfg/prosody/config:/config:Z
-      - ./.jitsi-meet-cfg/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
-    environment:
-      - ENABLE_AUTH=0
-      - DISABLE_HTTPS=1
-      - ENABLE_GUESTS=1
-      - AUTH_TYPE=none
-      - ENABLE_ENCRYPTION=0
-      - XMPP_DOMAIN=meet.jitsi
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
-      - XMPP_SERVER=prosody
-      - JICOFO_AUTH_USER=focus
-      - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-secure_password}
-      - XMPP_BOSH_URL_BASE=http://localhost:5280
-      - XMPP_MUC_DOMAIN=muc.meet.jitsi
-      - JVB_AUTH_USER=jvb
-      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD:-secure_password}
-      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
-      - XMPP_GUEST_DOMAIN=guest.meet.jitsi
-      - XMPP_MODULES=
-      - XMPP_MUC_MODULES=
-      - XMPP_INTERNAL_MUC_MODULES=
-      - XMPP_DOMAIN_INSECURE=true
-      - SECURITY_MODE=disabled
-      - WEBSOCKET_DOMAIN=localhost
-      - WEBSOCKET_PORT=5280
-      - TURN_ENABLE=1
-      - TURN_STATIC_AUTH_SECRET=orlikorlikorlikorlikorlikorlikorlik
-      - TURN_HOST=coturn
-      - TURN_PORT=3478
-      - TURN_TRANSPORT=udp
-      - ENABLE_GUEST_DOMAIN=1
-      - PROSODY_LOG_LEVEL=debug
-      - ENABLE_ANALYTICS=0
-      - ENABLE_RTC_STATS=0
-      - WEBSOCKET_ENABLED=1
-      - ENABLE_WEBSOCKETS=true
-      - PUBLIC_URL=http://localhost:8080
-      - JICOFO_AUTH_USER=focus
-      - JVB_AUTH_USER=jvb
-      - TURN_CREDENTIALS=jitsi:orlikorlikorlikorlikorlikorlik
-      - XMPP_COMPONENT_DOMAINS=focus.meet.jitsi
-      - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
-      - JICOFO_COMPONENT_SECRET=s3cr37
-      - PROSODY_LOG_LEVEL=debug
-    networks:
-      - meet.jitsi
+    prosody:
+      image: jitsi/prosody:stable-9909
+      restart: unless-stopped
+      ports:
+        - "5280:5280"
+        - "5222:5222"
+      hostname: xmpp.meet.jitsi
+      volumes:
+        - ./.jitsi-meet-cfg/prosody/config:/config:Z
+        - ./.jitsi-meet-cfg/prosody/prosody-plugins-custom:/prosody-plugins-custom:Z
+      environment:
+        - ENABLE_AUTH=0
+        - DISABLE_HTTPS=1
+        - ENABLE_GUESTS=1
+        - AUTH_TYPE=none
+        - ENABLE_ENCRYPTION=0
+        - XMPP_DOMAIN=meet.jitsi
+        - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+        - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+        - XMPP_MUC_DOMAIN=muc.meet.jitsi
+        - XMPP_SERVER=prosody
+        - JICOFO_AUTH_USER=focus
+        - JICOFO_AUTH_PASSWORD=${JICOFO_AUTH_PASSWORD:-secure_password}
+        - XMPP_BOSH_URL_BASE=http://localhost:5280
+        - XMPP_MUC_DOMAIN=muc.meet.jitsi
+        - JVB_AUTH_USER=jvb
+        - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD:-secure_password}
+        - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+        - XMPP_GUEST_DOMAIN=guest.meet.jitsi
+        - XMPP_MODULES=
+        - XMPP_MUC_MODULES=
+        - XMPP_INTERNAL_MUC_MODULES=
+        - XMPP_DOMAIN_INSECURE=true
+        - SECURITY_MODE=disabled
+        - WEBSOCKET_DOMAIN=localhost
+        - WEBSOCKET_PORT=5280
+        - TURN_ENABLE=1
+        - TURN_STATIC_AUTH_SECRET=orlikorlikorlikorlikorlikorlikorlik
+        - TURN_HOST=coturn
+        - TURN_PORT=3478
+        - TURN_TRANSPORT=udp
+        - ENABLE_GUEST_DOMAIN=1
+        - PROSODY_LOG_LEVEL=debug
+        - ENABLE_ANALYTICS=0
+        - ENABLE_RTC_STATS=0
+        - WEBSOCKET_ENABLED=1
+        - ENABLE_WEBSOCKETS=true
+        - PUBLIC_URL=http://localhost:8080
+        - JICOFO_AUTH_USER=focus
+        - JVB_AUTH_USER=jvb
+        - TURN_CREDENTIALS=jitsi:orlikorlikorlikorlikorlikorlik
+        - XMPP_COMPONENT_DOMAINS=focus.meet.jitsi
+        - XMPP_INTERNAL_MUC_DOMAIN=internal-muc.meet.jitsi
+        - JICOFO_COMPONENT_SECRET=s3cr37
+        - PROSODY_LOG_LEVEL=debug
+      networks:
+        - meet.jitsi
 
-  jvb:
-    image: jitsi/jvb:stable-9909
-    restart: unless-stopped
-    ports:
-      - "10000:10000/udp"
-    volumes:
-      - ./.jitsi-meet-cfg/jvb:/config:Z
-    environment:
-      - ENABLE_HTTPS=0
-      - DISABLE_HTTPS=1
-      - ENABLE_AUTH=0
-      - XMPP_AUTH_DOMAIN=auth.meet.jitsi
-      - XMPP_SERVER=prosody
-      - JVB_PORT=10000
-      - JVB_ENABLE_APIS=rest,colibri
-      - PUBLIC_URL=http://localhost:8080
-      - JVB_AUTH_USER=jvb
-      - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD:-secure_password}
-      - XMPP_DOMAIN_INSECURE=true
-      - SECURITY_MODE=disabled
-      - WEBSOCKET_DOMAIN=localhost
-      - WEBSOCKET_PORT=5280
-    depends_on:
-      - prosody
-    networks:
-      - meet.jitsi
+    jvb:
+      image: jitsi/jvb:stable-9909
+      restart: unless-stopped
+      ports:
+        - "10000:10000/udp"
+      volumes:
+        - ./.jitsi-meet-cfg/jvb:/config:Z
+      environment:
+        - ENABLE_HTTPS=0
+        - DISABLE_HTTPS=1
+        - ENABLE_AUTH=0
+        - XMPP_AUTH_DOMAIN=auth.meet.jitsi
+        - XMPP_SERVER=prosody
+        - JVB_PORT=10000
+        - JVB_ENABLE_APIS=rest,colibri
+        - PUBLIC_URL=http://localhost:8080
+        - JVB_AUTH_USER=jvb
+        - JVB_AUTH_PASSWORD=${JVB_AUTH_PASSWORD:-secure_password}
+        - XMPP_DOMAIN_INSECURE=true
+        - SECURITY_MODE=disabled
+        - WEBSOCKET_DOMAIN=localhost
+        - WEBSOCKET_PORT=5280
+      depends_on:
+        - prosody
+      networks:
+        - meet.jitsi
 
-  coturn:
-    image: coturn/coturn
-    restart: unless-stopped
-    ports:
-      - "3478:3478"
-      - "3478:3478/udp"
-      - "5349:5349"
-      - "5349:5349/udp"
-    volumes:
-      - ./coturn.conf:/etc/coturn/turnserver.conf
-    environment:
-      - TURN_USERNAME=jitsi
-      - TURN_PASSWORD=orlikorlikorlikorlikorlikorlik
-    networks:
-      - meet.jitsi
+    coturn:
+      image: coturn/coturn
+      restart: unless-stopped
+      ports:
+        - "3478:3478"
+        - "3478:3478/udp"
+        - "5349:5349"
+        - "5349:5349/udp"
+      volumes:
+        - ./coturn.conf:/etc/coturn/turnserver.conf
+      environment:
+        - TURN_USERNAME=jitsi
+        - TURN_PASSWORD=orlikorlikorlikorlikorlikorlik
+      networks:
+        - meet.jitsi
 
-networks:
-  meet.jitsi:
-    name: meet.jitsi
-    driver: bridge
+    app:
+      build:
+        context: .
+        dockerfile: Dockerfile
+      restart: unless-stopped
+      ports:
+        - "8081:8080"
+      depends_on:
+        - db
+        - jitsi-web
+        - prosody
+      environment:
+        - SPRING_DATASOURCE_URL=jdbc:postgresql://db:5432/videoconf
+        - SPRING_DATASOURCE_USERNAME=postgres
+        - SPRING_DATASOURCE_PASSWORD=password
+        - JITSI_WEB_URL=http://jitsi-web
+        - PROSODY_HOST=prosody
+        - JICOFO_HOST=jicofo
+        - JVB_HOST=jvb
+      volumes:
+        - ./target:/app/target
+      networks:
+        - meet.jitsi
 
-volumes:
-  postgres_data:
+  networks:
+    meet.jitsi:
+      name: meet.jitsi
+      driver: bridge
+
+  volumes:
+    postgres_data:
