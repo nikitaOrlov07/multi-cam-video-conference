@@ -260,8 +260,8 @@ public class ChatController {
     @SendTo("/topic/chat/{chatId}")
     public Message clearChat(@DestinationVariable Long chatId,
                              SimpMessageHeaderAccessor headerAccessor) {
-        String email = (String) headerAccessor.getSessionAttributes().get("email");
-        UserEntity currentUser = userService.findByEmail(email).get();
+        String email = SecurityUtil.getSessionUserEmail(headerAccessor.getUser());
+        UserEntity currentUser = userService.findByEmail(email).orElseThrow(() -> new AuthException("User not found"));
         Chat chat = chatService.findById(chatId).orElseThrow();
         Conference conference = conferenceService.findConferenceByChat(chat);
 
