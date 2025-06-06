@@ -1,6 +1,7 @@
 const ConferenceUtils = {
     cameraOrderMap: new Map(),
     async updateUserCount(conferenceId, userName, userCounts, displayName, reconnecting, callback) {
+        console.log("Update user count started to work")
         try {
             let userDisplayName = userName;
             if (userDisplayName && userDisplayName.includes('_technical')) {
@@ -12,16 +13,7 @@ const ConferenceUtils = {
                 return Promise.resolve(userCounts.get(userDisplayName) || 1);
             }
 
-            if (userDisplayName === displayName) {
-                if (!userCounts.has(userDisplayName)) {
-                    userCounts.set(userDisplayName, 1);
-                }
-                if (callback && typeof callback === 'function') {
-                    callback();
-                }
-                return Promise.resolve(userCounts.get(userDisplayName));
-            }
-
+            console.log("Startin to Fetch")
             return fetch(`/conference/updateUserJoinCount?userName=${encodeURIComponent(userDisplayName)}&conferenceId=${encodeURIComponent(conferenceId)}`)
                 .then(response => {
                     if (!response.ok) {
@@ -30,6 +22,7 @@ const ConferenceUtils = {
                     return response.json().catch(() => 0);
                 })
                 .then(count => {
+                    console.log("res count")
                     userCounts.set(userDisplayName, count);
                     if (callback && typeof callback === 'function') {
                         callback();

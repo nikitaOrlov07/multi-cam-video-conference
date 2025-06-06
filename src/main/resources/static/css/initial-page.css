@@ -3,10 +3,18 @@
     min-height: 100vh;
     background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     padding: 2rem;
-    /* Ensure container itself doesn't cause overflow issues */
     box-sizing: border-box;
     width: 100%;
-    overflow-x: hidden; /* Prevent horizontal scroll on body/container */
+    overflow-x: hidden;
+    /* Максимально широкий контейнер */
+    max-width: 100%;
+    margin: 0;
+}
+
+/* Основной контейнер для контента */
+.container {
+    max-width: 100%;
+    width: 100%;
 }
 
 .welcome-card, .account, .past-conferences, .chats-section, .users-section, .account-details {
@@ -16,7 +24,6 @@
     padding: 1.5rem;
     margin-top: 2rem;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    /* Prevent card itself from overflowing */
     max-width: 100%;
     box-sizing: border-box;
 }
@@ -36,10 +43,10 @@
 
 .main-title {
     color: #2c3e50;
-    font-size: 3rem; /* Consider slightly smaller font on very small screens if needed */
+    font-size: 3rem;
     margin-bottom: 2rem;
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
-    word-wrap: break-word; /* Ensure title wraps */
+    word-wrap: break-word;
 }
 
 .modal-content, .modal-header {
@@ -57,17 +64,17 @@
     box-shadow: 0 0 0 0.2rem rgba(74, 144, 226, 0.25);
 }
 
-/* Account Information Specific Styles */
+/* Улучшенный layout для больших экранов */
 .split-layout {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* More flexible grid */
-    gap: 2rem; /* Add gap between sections */
-    align-items: start; /* Align items to the top */
+    /* На очень широких экранах делаем 2 колонки */
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    align-items: start;
 }
 
 .account-details {
-    /* Keep specific styling for the account details section */
-    padding: 1.5rem; /* Keep padding here, adjust in media query if needed */
+    padding: 1.5rem;
 }
 
 .account-header {
@@ -83,37 +90,38 @@
     font-size: 1.5rem;
 }
 
+/* Улучшенная сетка для информации аккаунта */
 .account-info-grid {
     display: grid;
-    /* Start with 2 columns */
+    /* На больших экранах - 2 колонки */
     grid-template-columns: repeat(2, 1fr);
     gap: 1rem;
-    max-height: 500px; /* Set an appropriate height */
-    overflow-y: auto; /* Only add scrollbar on vertical overflow */
-    overflow-x: hidden; /* Prevent horizontal scrolling */}
+    max-height: 500px;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
 
 .account-info-item {
     background-color: #f8f9fa;
     border-radius: 8px;
-    padding: 1rem; /* Default padding */
-    box-sizing: border-box; /* Include padding in width calculation */
-    word-wrap: break-word; /* Ensure container wraps if needed */
+    padding: 1rem;
+    box-sizing: border-box;
+    word-wrap: break-word;
 }
 
 .account-info-item label {
     font-weight: 600;
     color: #6c757d;
-    display: block; /* Ensure label takes full width */
+    display: block;
     margin-bottom: 0.25rem;
 }
 
 .account-info-item .value {
     font-size: 1.1rem;
     color: #2c3e50;
-    /* Add word wrapping for long content like emails */
     overflow-wrap: break-word;
-    word-wrap: break-word; /* older browsers */
-    word-break: break-word; /* Tries to break words if needed */
+    word-wrap: break-word;
+    word-break: break-word;
 }
 
 .account-actions {
@@ -121,17 +129,17 @@
     gap: 10px;
     justify-content: flex-start;
     flex-wrap: wrap;
-    /* Make actions span full width in grid if needed */
-    grid-column: 1 / -1; /* Span across all columns */
-    margin-top: 1rem; /* Add some space above actions */
+    grid-column: 1 / -1;
+    margin-top: 1rem;
 }
 
-/* Список конференций и чатов */
+/* Улучшенные списки для широких экранов */
 .chat-list-container, .users-section > div:not(.search-form):not(.text-center) {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    justify-content: flex-start; /* Keep items aligned left */
+    display: grid;
+    /* На больших экранах - до 6 колонок */
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
 }
 
 .chat-item, .user-item, .past-conference-item {
@@ -141,15 +149,11 @@
     padding: 1rem;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    /* Flexbox basis for better wrapping */
-    flex-basis: calc(33.333% - 1rem);
-    min-width: 250px; /* Minimum width before wrapping */
-    margin-bottom: 1rem; /* Use gap instead of margin where possible */
     border: 1px solid #dee2e6;
     box-sizing: border-box;
+    min-height: 120px;
 }
 
-/* Ensure content inside items wraps */
 .chat-details, .user-details, .conference-name {
     overflow-wrap: break-word;
     word-wrap: break-word;
@@ -161,180 +165,237 @@
     gap: 0.5rem;
     font-size: 0.9em;
 }
+
 .participant-name {
     background-color: #e9ecef;
     padding: 0.2rem 0.4rem;
     border-radius: 4px;
 }
 
-
 .btn-chat {
     transition: all 0.3s ease;
-    margin-top: auto; /* Pushes button to bottom */
+    margin-top: auto;
 }
 
 .btn-chat:hover {
     transform: scale(1.05);
 }
 
-/* Search form adjustments */
 .search-form .input-group {
-    flex-wrap: nowrap; /* Prevent button from wrapping */
+    flex-wrap: nowrap;
+    max-width: 600px;
+    margin: 0 auto 2rem auto;
 }
+
 .search-form input {
-    min-width: 150px; /* Ensure input has some minimum width */
+    min-width: 150px;
 }
 
-/* Адаптивность */
-@media (max-width: 992px) {
-    .split-layout {
-        grid-template-columns: 1fr; /* Stack sections */
-    }
-    /* Make account grid 1 column */
-    .account-info-grid {
-        grid-template-columns: 1fr;
-    }
-    /* Make chat/user/conference items 2 columns */
-    .chat-item, .user-item, .past-conference-item {
-        flex-basis: calc(50% - 1rem); /* Adjust basis for 2 columns */
-        min-width: 200px; /* Adjust min-width if needed */
-    }
-    .main-title {
-        font-size: 2.5rem; /* Slightly smaller title */
-    }
-}
-
-@media (max-width: 768px) {
-    /* No need for account-info-grid rule here, already handled by 992px */
-
-    .btn-custom {
-        max-width: none; /* Allow buttons to take full width */
-        padding: 0.8rem 1.5rem; /* Adjust padding slightly */
-        font-size: 1.1rem;
-    }
-    .main-title {
-        font-size: 2.2rem;
-    }
-    .welcome-container {
-        padding: 1rem; /* Reduce container padding */
-    }
-    .welcome-card, .account-details, .chats-section, .users-section, .past-conferences {
-        padding: 1rem; /* Reduce card padding */
-    }
-    .chat-item, .user-item, .past-conference-item {
-        min-width: 180px; /* Further adjust min-width */
-    }
-}
-
-@media (max-width: 576px) {
-    /* Make chat/user/conference items 1 column */
-    .chat-item, .user-item, .past-conference-item {
-        flex-basis: 100%; /* Full width */
-        min-width: 0; /* Remove min-width constraint */
-    }
-    .main-title {
-        font-size: 1.8rem; /* Even smaller title */
-    }
-    /* --- FIX FOR ACCOUNT INFO OVERFLOW --- */
-    .account-info-item {
-        padding: 0.75rem; /* Reduce padding inside account items */
-    }
-    .account-details {
-        padding: 1rem 0.75rem; /* Reduce padding on the container too */
-    }
-    .account-info-grid {
-        gap: 0.75rem; /* Reduce gap between items */
-    }
-    /* --- END FIX --- */
-
-    .btn-custom {
-        font-size: 1rem;
-        padding: 0.75rem 1rem;
-    }
-    .account-actions {
-        /* Ensure buttons stack nicely if needed */
-        flex-direction: column;
-        align-items: stretch; /* Make buttons full width of container */
-    }
-    .account-actions .btn {
-        width: 100%; /* Make buttons take full width */
-        margin-bottom: 0.5rem; /* Add space between stacked buttons */
-    }
-    .account-actions .btn:last-child {
-        margin-bottom: 0;
-    }
-}
-
-/* Specific fix for very narrow screens if 576px isn't enough */
-@media (max-width: 380px) {
-    .welcome-container {
-        padding: 0.5rem;
-    }
-    .welcome-card, .account-details, .chats-section, .users-section, .past-conferences {
-        padding: 0.75rem;
-        border-radius: 10px; /* Slightly smaller radius */
-    }
-    .account-info-item {
-        padding: 0.5rem; /* Further reduce padding */
-    }
-    .account-info-item label {
-        font-size: 0.9em;
-    }
-    .account-info-item .value {
-        font-size: 1em;
-    }
-    .main-title {
-        font-size: 1.6rem;
-    }
-    .account-header h3 {
-        font-size: 1.2rem;
-    }
-}
+/* Улучшенный список конференций */
 .conference-list-container {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 1rem;
-    justify-content: flex-start;
+    display: grid;
+    /* На больших экранах - до 6 колонок */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    width: 100%;
 }
 
-/* Conference items - this ensures 3 per row */
 .conference-item {
     display: flex;
     flex-direction: column;
     background: white;
-    padding: 1rem;
+    padding: 1.25rem;
     border-radius: 10px;
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    /* Set to take up one third of the row minus the gap */
-    flex: 0 0 calc(33.333% - 1rem);
-    min-width: 250px;
-    margin-bottom: 1rem;
     border: 1px solid #dee2e6;
     box-sizing: border-box;
+    min-height: 140px;
 }
 
-/* Make sure the conference details and actions are properly spaced */
 .conference-details {
     flex: 1;
     overflow-wrap: break-word;
     word-wrap: break-word;
 }
 
+.conference-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
 .conference-actions {
     display: flex;
     gap: 0.5rem;
     margin-top: auto;
+    flex-wrap: wrap;
 }
 
-/* Responsive adjustments */
+/* Медиа-запросы для адаптивности */
+
+/* Очень большие экраны (1600px+) */
+@media (min-width: 1600px) {
+    .welcome-container {
+        padding: 2rem 4rem;
+    }
+
+    .split-layout {
+        gap: 4rem;
+    }
+
+    .main-title {
+        font-size: 4rem;
+    }
+
+    .chat-list-container,
+    .conference-list-container,
+    .users-section > div:not(.search-form):not(.text-center) {
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+    }
+}
+
+/* Большие экраны (1200px - 1599px) */
+@media (min-width: 1200px) and (max-width: 1599px) {
+    .welcome-container {
+        padding: 2rem 3rem;
+    }
+
+    .chat-list-container,
+    .conference-list-container,
+    .users-section > div:not(.search-form):not(.text-center) {
+        grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+}
+
+/* Средние экраны */
+@media (max-width: 1199px) {
+    .split-layout {
+        grid-template-columns: 1fr;
+        gap: 2rem;
+    }
+}
+
 @media (max-width: 992px) {
-    .conference-item {
-        flex: 0 0 calc(50% - 1rem); /* 2 columns on medium screens */
+    .welcome-container {
+        padding: 2rem 1.5rem;
+    }
+
+    .account-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .chat-list-container,
+    .conference-list-container,
+    .users-section > div:not(.search-form):not(.text-center) {
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+    }
+
+    .main-title {
+        font-size: 2.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .btn-custom {
+        max-width: none;
+        padding: 0.8rem 1.5rem;
+        font-size: 1.1rem;
+    }
+
+    .main-title {
+        font-size: 2.2rem;
+    }
+
+    .welcome-container {
+        padding: 1rem;
+    }
+
+    .welcome-card, .account-details, .chats-section, .users-section, .past-conferences {
+        padding: 1rem;
+    }
+
+    .chat-list-container,
+    .conference-list-container,
+    .users-section > div:not(.search-form):not(.text-center) {
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
     }
 }
 
 @media (max-width: 576px) {
-    .conference-item {
-        flex: 0 0 100%; /* 1 column on small screens */
+    .chat-list-container,
+    .conference-list-container,
+    .users-section > div:not(.search-form):not(.text-center) {
+        grid-template-columns: 1fr;
+    }
+
+    .main-title {
+        font-size: 1.8rem;
+    }
+
+    .account-info-item {
+        padding: 0.75rem;
+    }
+
+    .account-details {
+        padding: 1rem 0.75rem;
+    }
+
+    .account-info-grid {
+        gap: 0.75rem;
+    }
+
+    .btn-custom {
+        font-size: 1rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .account-actions {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .account-actions .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+
+    .account-actions .btn:last-child {
+        margin-bottom: 0;
+    }
+}
+
+@media (max-width: 380px) {
+    .welcome-container {
+        padding: 0.5rem;
+    }
+
+    .welcome-card, .account-details, .chats-section, .users-section, .past-conferences {
+        padding: 0.75rem;
+        border-radius: 10px;
+    }
+
+    .account-info-item {
+        padding: 0.5rem;
+    }
+
+    .account-info-item label {
+        font-size: 0.9em;
+    }
+
+    .account-info-item .value {
+        font-size: 1em;
+    }
+
+    .main-title {
+        font-size: 1.6rem;
+    }
+
+    .account-header h3 {
+        font-size: 1.2rem;
     }
 }

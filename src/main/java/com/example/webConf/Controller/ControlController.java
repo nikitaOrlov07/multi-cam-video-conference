@@ -183,5 +183,4 @@ public class ControlController { // Controller for admin control page
         userService.editSettings(settings);
         return ResponseEntity.ok(null);
     }
-    ///  Delete All
 }

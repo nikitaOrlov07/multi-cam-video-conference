@@ -2,6 +2,7 @@ package com.example.webConf.service.impl;
 
 import com.example.webConf.dto.Registration.RegistrationDto;
 import com.example.webConf.mappers.UserEntityMapper;
+import com.example.webConf.model.Chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;
@@ -11,10 +12,13 @@ import com.example.webConf.repository.SettingsEntityRepository;
 import com.example.webConf.repository.UserConferenceJoinRepository;
 import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.security.SecurityUtil;
+import com.example.webConf.service.ChatService;
+import com.example.webConf.service.MessageService;
 import com.example.webConf.service.UserEntityService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,22 +37,23 @@ public class UserEntityServiceImpl implements UserEntityService {
     private final ConferenceRepository conferenceRepository;
     private final SettingsEntityRepository settingsEntityRepository;
     private final PasswordEncoder passwordEncoder;
+    private final MessageService messageService;
 
     @Autowired
     public UserEntityServiceImpl(UserEntityRepository userEntityRepository,
-                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository, SettingsEntityRepository settingsEntityRepository, PasswordEncoder passwordEncoder) {
+                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository, SettingsEntityRepository settingsEntityRepository, PasswordEncoder passwordEncoder ,
+                                 @Lazy MessageService messageService) {
         this.userEntityRepository = userEntityRepository;
         this.userEntityMapper = userEntityMapper;
         this.userConderenceJoinRepository = userConderenceJoinRepository;
         this.conferenceRepository = conferenceRepository;
         this.settingsEntityRepository = settingsEntityRepository;
         this.passwordEncoder = passwordEncoder;
+        this.messageService = messageService;
     }
 
     @Override
     public Boolean createUser(RegistrationDto user) {
-        log.info("Saving user service method is called");
-        log.info("Name: " + user.getName());
         UserEntity savedUser = userEntityRepository.save(userEntityMapper.registrationDtoToUserEntity(user));
         return savedUser != null;
     }
@@ -135,6 +140,11 @@ public class UserEntityServiceImpl implements UserEntityService {
             }
             conference.getUsers().remove(userEntity);
         }
+        ///  Find user messages
+        List<Message> messages =  messageService.findAllBySender_id(userEntity.getId());
+        for(Message message : messages){
+            messageService.deleteMessage(message,userEntity,message.getChat());
+        }
         userEntityRepository.delete(userEntity);
     }
 
@@ -142,7 +152,13 @@ public class UserEntityServiceImpl implements UserEntityService {
     @Transactional
     public void editUser(Long uuid,RegistrationDto registrationDto) {
         UserEntity user = userEntityRepository.findById(uuid).get();
-        BeanUtils.copyProperties(registrationDto, user);
+        user.setSurname(registrationDto.getSurname());
+        user.setName(registrationDto.getName());
+        user.setCountry(registrationDto.getCountry());
+        user.setCity(registrationDto.getCity());
+        user.setAddress(registrationDto.getAddress());
+        user.setEmail(registrationDto.getEmail());
+
         user.setUserName(registrationDto.getName() + " " + registrationDto.getSurname());
         if(registrationDto.getPassword() != null || !registrationDto.getPassword().isEmpty())
             user.setPassword(passwordEncoder.encode(registrationDto.getPassword()));

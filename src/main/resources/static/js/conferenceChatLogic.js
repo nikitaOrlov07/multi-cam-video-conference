@@ -1,52 +1,77 @@
 class ChatManager {
-    constructor(conferenceId, userName , chatId) {
+    constructor(conferenceId, userName, chatId) {
         this.conferenceId = conferenceId;
         this.userName = userName;
         this.stompClient = null;
         this.chatId = chatId;
         this.isFirstJoin = true;
+        this.isConnected = false; // Добавляем флаг соединения
     }
 
-    init() {
+    async init() {
         // Get the chatId from URL if available
         const pathParts = window.location.pathname.split('/');
         if (pathParts.includes('chat') && !isNaN(pathParts[pathParts.indexOf('chat') + 1])) {
             this.chatId = pathParts[pathParts.indexOf('chat') + 1];
         }
 
-        this.connectChat();
+        await this.connectChat(); // Делаем асинхронным
         this.setupChatListeners();
     }
 
     connectChat() {
-        console.log("Connecting to WebSocket...");
-        const socket = new SockJS('/ws');
-        this.stompClient = Stomp.over(socket);
-        this.stompClient.connect({}, (frame) => {
-            console.log('Connected: ' + frame);
-            console.log('StompClient ready:', this.stompClient);
+        return new Promise((resolve, reject) => {
+            console.log("Connecting to WebSocket...");
+            const socket = new SockJS('/ws');
+            this.stompClient = Stomp.over(socket);
 
-            if (this.chatId) {
+            this.stompClient.connect({}, (frame) => {
+                console.log('Connected: ' + frame);
+                console.log('StompClient ready:', this.stompClient);
+                this.isConnected = true; // Устанавливаем флаг
+
+                if (this.chatId) {
+                    this.subscribeToChat(this.chatId);
+                    this.addUser();
+                } else if (this.conferenceId) {
+                    // If we're in a conference, we'll get the chat ID later
+                    this.subscribeToConferenceChat(this.conferenceId);
+                }
+
+                // Load any initial messages (if available in the page)
+                if (typeof initialMessages !== 'undefined' && initialMessages) {
+                    try {
+                        const messages = JSON.parse(initialMessages);
+                        if (Array.isArray(messages)) {
+                            messages.forEach(msg => this.showMessage(msg));
+                        }
+                    } catch (e) {
+                        console.error('Failed to parse initial messages:', e);
+                    }
+                }
+                resolve(); // Разрешаем промис после успешного подключения
+            }, (error) => {
+                console.error('STOMP error:', error);
+                this.isConnected = false;
+                reject(error); // Отклоняем промис при ошибке
+            });
+        });
+    }
+
+    // Добавляем метод для подписки на конференцию
+    subscribeToConferenceChat(conferenceId) {
+        console.log("Subscribing to conference chat:", conferenceId);
+        this.stompClient.subscribe('/topic/conference/' + conferenceId + '/chat', (response) => {
+            console.log('Received conference chat message:', response.body);
+            const message = JSON.parse(response.body);
+
+            // Если получили chat ID от сервера
+            if (message.chatId && !this.chatId) {
+                this.chatId = message.chatId;
+                console.log('Received chatId from server:', this.chatId);
                 this.subscribeToChat(this.chatId);
                 this.addUser();
-            } else if (this.conferenceId) {
-                // If we're in a conference, we'll get the chat ID later
-                this.subscribeToConferenceChat(this.conferenceId);
             }
-
-            // Load any initial messages (if available in the page)
-            if (typeof initialMessages !== 'undefined' && initialMessages) {
-                try {
-                    const messages = JSON.parse(initialMessages);
-                    if (Array.isArray(messages)) {
-                        messages.forEach(msg => this.showMessage(msg));
-                    }
-                } catch (e) {
-                    console.error('Failed to parse initial messages:', e);
-                }
-            }
-        }, (error) => {
-            console.error('STOMP error:', error);
         });
     }
 
@@ -125,10 +150,9 @@ class ChatManager {
             messageDiv.style.fontStyle = 'italic';
             messageDiv.style.color = '#4a4a4a';
         }
-        else if(message.type === 'INVITATION')
-        {
+        else if(message.type === 'INVITATION') {
             messageDiv.className = "invitation-message";
-            messageText
+            messageDiv.textContent = messageText; // Исправляем эту строку
         }
         else {
             const messageContent = document.createElement('div');
@@ -200,11 +224,12 @@ class ChatManager {
         }
 
         console.log("Adding user to chat:", this.userName, this.chatId);
-        console.debug("Sending data for add User " ,  JSON.stringify({
+        console.debug("Sending data for add User", JSON.stringify({
             author: this.userName,
             type: 'JOIN',
             chat: { id: this.chatId }
-        }))
+        }));
+
         this.stompClient.send(
             "/app/chat/" + this.chatId + "/addUser",
             {},
@@ -216,24 +241,55 @@ class ChatManager {
         );
     }
 
-    // Send message
+    // Send message - улучшенная версия с проверками
     sendMessage() {
+        console.log("Conference Chat Sending message");
         const messageInput = document.getElementById('commentText');
+
+        if (!messageInput) {
+            console.error("Message input element not found");
+            return;
+        }
+
         const messageContent = messageInput.value.trim();
         console.log("Attempting to send message: " + messageContent);
 
-        if (messageContent && this.stompClient && this.chatId) {
-            console.log("Sending")
-            const message = {
-                author: this.userName,
-                text: messageContent,
-                type: 'CHAT',
-            };
+        // Проверяем все необходимые условия
+        if (!messageContent) {
+            console.error("Cannot send message: input is empty");
+            return;
+        }
+
+        if (!this.stompClient) {
+            console.error("Cannot send message: stompClient is not connected");
+            return;
+        }
+
+        if (!this.isConnected) {
+            console.error("Cannot send message: WebSocket is not connected");
+            return;
+        }
+
+        if (!this.chatId) {
+            console.error("Cannot send message: chatId is undefined");
+            return;
+        }
+
+        console.log("All checks passed, sending message");
+        const message = {
+            author: this.userName,
+            text: messageContent,
+            type: 'CHAT',
+        };
+
+        try {
             this.stompClient.send("/app/chat/" + this.chatId + "/sendMessage", {}, JSON.stringify(message));
             messageInput.value = '';
-        } else {
-            console.error("Cannot send message: input is empty, stompClient is not connected, or chatId is undefined");
+            console.log("Message sent successfully");
+        } catch (error) {
+            console.error("Error sending message:", error);
         }
+
         this.updateCharCount();
     }
 

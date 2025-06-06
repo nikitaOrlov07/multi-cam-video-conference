@@ -1,5 +1,6 @@
 package com.example.webConf.service.impl;
 
+import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.model.Chat.Chat;
 import com.example.webConf.model.Chat.Message;
 import com.example.webConf.model.user.UserEntity;
@@ -60,6 +61,12 @@ public class MessageServiceImpl implements MessageService {
         user.getMessages().remove(message);
         chat.getMessages().remove(message);
         messageRepository.delete(message);
+    }
+
+    @Override
+    public List<Message> findAllBySender_id(Long id) {
+        UserEntity user = userService.findById(id).orElseThrow(() -> new AuthException("User not found"));
+        return messageRepository.findAllByUser(user);
     }
 
 }

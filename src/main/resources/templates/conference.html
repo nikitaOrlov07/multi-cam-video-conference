@@ -8,12 +8,12 @@
     <script src="http://localhost:8080/libs/lib-jitsi-meet.min.js"></script>
     <script th:src="@{/js/videoConferenceAdditionalLogic.js}"></script>
     <script th:src="@{/js/movingSectionAndCameras.js}"></script>
-    <script th:src="@{/js/FixedTechnicalTrackManager.js}"></script>
+    <script th:src="@{/js/technicalUserManager.js}"></script>
     <script th:src="@{/js/videoConferenceLogic.js}"></script>
+    <script th:src="@{/js/conferenceChatLogic.js}"></script>
     <script th:src="@{/js/cameraManaging.js}"></script>
     <script th:src="@{/js/screenSharingLogic.js}"></script>
     <link href="/css/conferencePage.css" rel="stylesheet">
-    <script th:src="@{/js/conferenceChatLogic.js}"></script>
     <script th:src="@{/js/commonFunctions.js}"></script>
 </head>
 <body>
@@ -189,18 +189,18 @@
         // Pass necessary initial data from server-side rendering
         const conferenceId = /*[[${conferenceId}]]*/ 'default-conf-id';
         const userName = /*[[${userName}]]*/ 'default-username';
-        // const chatId  = /*[[${chatId}]]*/ 'default-username';
+        const chatId  = /*[[${chatId}]]*/ 'default-username';
         const allUsers = /*[[${allUsers}]]*/ [];
 
         initInviteFunctionality(conferenceId, allUsers);
 
         // Initialize conference and chat
         const conference = new VideoConference(conferenceId, userName);
-        // const chat = new ChatManager(conferenceId, userName , chatId);
+        const chat = new ChatManager(conferenceId, userName , chatId);
 
         try {
             await conference.init();
-            // await chat.init();
+            await chat.init();
         } catch (error) {
             console.error('Initialization error:', error);
             conference.showError('Ошибка инициализации');

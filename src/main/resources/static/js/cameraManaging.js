@@ -23,7 +23,7 @@ const AddCameraLogic = {
         const originalInit = VideoConference.prototype.init;
         VideoConference.prototype.init = async function() {
 
-            this.technicalTrackManager = new FixedTechnicalTrackManager({
+            this.technicalTrackManager = new TechnicalUserManager({
                 conference: this,
                 onTrackDisposed: (trackId) => {
                     console.log(`Track ${trackId} disposed via manager.`);

@@ -76,6 +76,16 @@ async function getDevices() {
         cameraList.innerHTML = '';
         audioList.innerHTML = '';
 
+        cameraList.style.maxHeight = '400px';
+        cameraList.style.overflowY = 'auto';
+        cameraList.style.border = '1px solid #dee2e6';
+        cameraList.style.borderRadius = '0.375rem';
+
+        audioList.style.maxHeight = '300px';
+        audioList.style.overflowY = 'auto';
+        audioList.style.border = '1px solid #dee2e6';
+        audioList.style.borderRadius = '0.375rem';
+
         videoDevices.forEach((device, index) => {
             const li = document.createElement('li');
             li.className = 'list-group-item camera-item';

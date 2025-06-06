@@ -1,4 +1,4 @@
-class FixedTechnicalTrackManager {
+class TechnicalUserManager {
     /**
      * A utility class for managing JitsiMeet technical users and their tracks.
      * 
@@ -26,7 +26,7 @@ class FixedTechnicalTrackManager {
      * 
      * @param {string} technicalUserName - Name for the technical user
      * @param {Object} camera - Camera information
-     * @param {string} camera.deviceId - The device ID of the camera
+     * @param {string} camera.devicaeId - The device ID of the camera
      * @param {string} camera.label - The label of the camera
      * @param {number} camera.order - The order of the camera
      * @returns {Promise<Object>} - Technical user information
@@ -227,15 +227,5 @@ class FixedTechnicalTrackManager {
             });
         }
         return users;
-    }
-    
-    /**
-     * Disposes all technical users
-     */
-    async disposeAll() {
-        const userNames = Array.from(this.technicalUsers.keys());
-        for (const userName of userNames) {
-            await this.removeTechnicalUser(userName);
-        }
     }
 }
