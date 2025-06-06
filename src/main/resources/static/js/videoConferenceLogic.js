@@ -1307,15 +1307,21 @@ class VideoConference {
     async leaveConference() {
         sessionStorage.removeItem('conferenceUserId');
         sessionStorage.removeItem('conferenceId');
+        let currentCount = this.userCounts.get(this.userName) || 0;
+        this.userCounts.set(this.userName, Math.max(0, currentCount - 1));
+
         try {
-            const count = await ConferenceUtils.updateUserCount(
+            ConferenceUtils.updateUserCount(
                 this.conferenceId,
                 this.userName,
                 this.userCounts,
                 this.displayName,
-                false,
+                this.reconnecting,
                 () => ConferenceUtils.updateUsersList()
-            );
+            ).then(() => {
+                ConferenceUtils.updateUsersList();
+            });
+
             if (this.room && this.room.getBridgeChannel && this.room.getBridgeChannel()) {
                 const message = {
                     type: 'user_left',
@@ -1327,6 +1333,7 @@ class VideoConference {
         } catch (error) {
             console.error('Error updating user count during leave:', error);
         }
+
         this.remoteTracks.forEach((tracks, participantId) => {
             tracks.forEach(track => track.detach());
             const container = document.querySelector(`[data-participant-id="${participantId}"]`);
@@ -1335,40 +1342,114 @@ class VideoConference {
             }
         });
         this.remoteTracks.clear();
+
         Object.values(this.localTracks).flat().forEach(track => {
             if (track) {
                 track.dispose();
             }
         });
+
         if (this.room) {
             this.room.leave();
         }
         if (this.connection) {
             this.connection.disconnect();
         }
+
         if (!this.userName.includes('_technical')) {
             const technicalFrames = document.querySelectorAll('iframe[id^="technical-frame-"]');
             technicalFrames.forEach(frame => {
                 frame.remove();
             });
         }
-        await fetch('/conference/leaveConference', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-            },
-            body: `conferenceId=${encodeURIComponent(this.conferenceId)}&userName=${encodeURIComponent(this.userName)}`
-        })
-            .then(response => {
-                if (response.ok) {
-                    window.location.href = '/home';
-                } else {
-                    console.error('Error leaving conference:', response.statusText);
-                }
-            })
-            .catch(error => {
-                console.error('Request failed', error);
+
+        try {
+            const response = await fetch('/conference/leaveConference', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `conferenceId=${encodeURIComponent(this.conferenceId)}&userName=${encodeURIComponent(this.userName)}`
             });
+
+            if (response.ok) {
+                console.log('Successfully left conference on server side');
+
+                try {
+                    await this.updateCountForAllParticipants();
+                    console.log('Updated user counts after leaving conference');
+                } catch (countError) {
+                    console.error('Error updating user counts after leaving:', countError);
+                }
+                window.location.href = '/home';
+            } else {
+                console.error('Error leaving conference:', response.statusText);
+                window.location.href = '/home';
+            }
+        } catch (error) {
+            console.error('Request failed:', error);
+            window.location.href = '/home';
+        }
+    }
+    async updateCountForAllParticipants() {
+        console.log('Starting to update user counts for all known participants...');
+
+        if (true) {
+            console.log('No participants found, updating count only for current user');
+            if (this.displayName && this.displayName.trim() !== '') {
+                try {
+                    await ConferenceUtils.updateUserCount(
+                        this.conferenceId,
+                        this.displayName,
+                        this.userCounts,
+                        this.displayName,
+                        this.reconnecting,
+                        () => ConferenceUtils.updateUsersList()
+                    );
+                } catch (error) {
+                    console.error(`Error updating user count for current user:`, error);
+                }
+            }
+            return;
+        }
+
+        const participantDisplayNames = new Set();
+
+        for (const participant of this.participants.values()) {
+            if (participant.displayName && participant.displayName.trim() !== '') {
+                participantDisplayNames.add(participant.displayName);
+            } else {
+                console.warn(`Participant with ID ${participant.id} has no valid displayName, skipping count update.`);
+            }
+        }
+
+        if (this.displayName && this.displayName.trim() !== '') {
+            participantDisplayNames.add(this.displayName);
+        }
+
+        console.log(`Found ${participantDisplayNames.size} unique participants to update`);
+
+        const updatePromises = Array.from(participantDisplayNames).map(async (displayNameToUpdate) => {
+            console.log(`Updating user count for: ${displayNameToUpdate}`);
+            try {
+                return await ConferenceUtils.updateUserCount(
+                    this.conferenceId,
+                    displayNameToUpdate,
+                    this.userCounts,
+                    this.displayName,
+                    this.reconnecting,
+                    null
+                );
+            } catch (error) {
+                console.error(`Error updating user count for ${displayNameToUpdate}:`, error);
+                return null;
+            }
+        });
+
+        await Promise.allSettled(updatePromises);
+
+        console.log('Finished updating user counts for all participants.');
+        ConferenceUtils.updateUsersList();
     }
     async onConferenceJoined() {
         try {
@@ -1737,6 +1818,18 @@ class VideoConference {
                 }
             }
             if (this.room) {
+                const handleConferenceJoined = async () => {
+                    console.log("Conference joined, attempting to update all user counts.");
+
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+
+                    try {
+                        await this.updateCountForAllParticipants();
+                    } catch (error) {
+                        console.error("Error updating user counts:", error);
+                    }
+                };
+
                 await new Promise(resolve => {
                     if (this.room.isJoined()) {
                         resolve();

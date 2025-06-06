@@ -163,7 +163,7 @@ public class InitialController {
                         .userName(existedConfiguration.getUserName())
                         .microphoneDeviceId(existedConfiguration.getMicrophoneDeviceId())
                         .microphoneLabel(existedConfiguration.getMicrophoneLabel())
-                        .cameraConfiguration(objectMapper.writeValueAsString(deviceSelection.getCameras()))
+                        .cameraConfiguration(existedConfiguration.getCameraConfiguration())
                         .build();
 
                 if(existedConfiguration.getMicrophoneDeviceId() != null && existedConfiguration.getMicrophoneLabel() != null) {

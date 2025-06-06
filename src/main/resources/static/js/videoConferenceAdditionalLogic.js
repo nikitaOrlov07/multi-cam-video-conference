@@ -1,7 +1,8 @@
 const ConferenceUtils = {
     cameraOrderMap: new Map(),
     async updateUserCount(conferenceId, userName, userCounts, displayName, reconnecting, callback) {
-        console.log("Update user count started to work")
+        console.log(`Update user count started for: ${userName}`);
+
         try {
             let userDisplayName = userName;
             if (userDisplayName && userDisplayName.includes('_technical')) {
@@ -10,34 +11,38 @@ const ConferenceUtils = {
 
             if (reconnecting && userDisplayName === displayName) {
                 console.log('Skipping user count update for reconnecting user');
-                return Promise.resolve(userCounts.get(userDisplayName) || 1);
+                return userCounts.get(userDisplayName) || 1;
             }
 
-            console.log("Startin to Fetch")
-            return fetch(`/conference/updateUserJoinCount?userName=${encodeURIComponent(userDisplayName)}&conferenceId=${encodeURIComponent(conferenceId)}`)
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Failed to update user count');
-                    }
-                    return response.json().catch(() => 0);
-                })
-                .then(count => {
-                    console.log("res count")
-                    userCounts.set(userDisplayName, count);
-                    if (callback && typeof callback === 'function') {
-                        callback();
-                    }
-                    return count;
-                })
-                .catch(error => {
-                    console.error('Error updating user count:', error);
-                    ConferenceUtils.showError('Error while updating users count');
-                    return null;
-                });
+            console.log(`Fetching user count for: ${userDisplayName}`);
+
+            const response = await fetch(`/conference/updateUserJoinCount?userName=${encodeURIComponent(userDisplayName)}&conferenceId=${encodeURIComponent(conferenceId)}`);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: Failed to update user count`);
+            }
+
+            let count;
+            try {
+                count = await response.json();
+            } catch (parseError) {
+                console.warn('Failed to parse JSON response, defaulting to 0');
+                count = 0;
+            }
+
+            console.log(`Received count ${count} for user: ${userDisplayName}`);
+            userCounts.set(userDisplayName, count);
+
+            if (callback && typeof callback === 'function') {
+                callback();
+            }
+
+            return count;
+
         } catch (error) {
-            console.error('Error updating user count:', error);
+            console.error(`Error updating user count for ${userName}:`, error);
             ConferenceUtils.showError('Error while updating users count');
-            return Promise.resolve(null);
+            return null;
         }
     },
 

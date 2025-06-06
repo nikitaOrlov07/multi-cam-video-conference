@@ -135,6 +135,7 @@ public class ConferenceController {
             throw new ConferenceException("Device not found");
         }
 
+
         return "conference";
     }
 
