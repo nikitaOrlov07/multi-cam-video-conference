@@ -1,4 +1,4 @@
-![image](https://github.com/user-attachments/assets/26331d1c-51e3-4f6a-b14d-4da203583062)![image](https://github.com/user-attachments/assets/181172ee-1797-4024-9250-d6da6472415d)# 🎥 Multi-Camera Video Conference Application
+# 🎥 Multi-Camera Video Conference Application
 
 This repository contains a **video conferencing application** that supports **multiple cameras per user** and various advanced features for real-time control and collaboration.
 
@@ -161,32 +161,132 @@ To run the application:
 ## 🖼️ Screenshots
 ### 🔹 Conference Page
 ![image](https://github.com/user-attachments/assets/9d1d6a18-a678-4392-9f56-d3a936ede09a)
+###№ Functionality of the Page
 
+- Communicate with other users via video and audio streams.
+- Select which users are displayed on the conference page.
+- Set or change the conference password.
+- Send invitations to join the conference.
+- Dynamically add or remove cameras during the session.
+- Share the screen.
+- Move, resize, restore, or fullscreen user sections.
+- Move cameras within user sections.
+- Enlarge, hide, or remove cameras from the screen.
+- Join a conference without microphones or cameras; communicate with multiple cameras but only one microphone.
+- Use chat functionality within the conference.
+- When clicking "Share Screen," a browser window opens to select what to share.
+
+Data received from the server includes:
+- Initial device configurations
+- Usernames
+- List of users and count of their active devices in the conference
+- Conference password
+- List of all users
+
+The client-side application communicates with the Jitsi API via JavaScript.
 ### Conference Chat Page
 ![image](https://github.com/user-attachments/assets/60a4a2c2-dba5-4180-acb3-097ddf3b5223)
+Users can view and send messages in real time on this page. Existing messages are fetched from the server and stored in the database. Most of the messaging logic is implemented using JavaScript on the client side.
 
 ### Personal Chat Page
 ![image](https://github.com/user-attachments/assets/c92d077e-7e50-4d02-bc67-c723fbce64cc)
 
 ### Initial Device Setting Pape
 ![image](https://github.com/user-attachments/assets/d71b745e-4acf-4422-a62a-ed82cbef1d7c)
+#### Features:
 
+- **"Without Cameras" Checkbox**  
+  When checked, the camera section is removed, allowing the user to join the conference without a camera.  
+  If unchecked, the user must select at least one camera.
+
+- **"Without Microphones" Checkbox**  
+  When checked, the microphone section is removed, allowing the user to join the conference without a microphone.  
+  If unchecked, the user must select at least one microphone.
+
+- Cameras and microphones are displayed dynamically using the `device-settings.js` script.
+
+- The page shows video streams from all available cameras and provides microphone testing functionality:  
+  Users can record audio directly on the page while watching a real-time waveform (audio amplitude graph).  
+  After stopping the recording, the audio playback is available.
+
+- For **authorized users** (with a **Permanent** account type), previously saved device configurations are available to browse. Each configuration is unique and loaded from the backend.
 ### Initial Page (for authorized users)
 ![image](https://github.com/user-attachments/assets/8e7b6600-ba67-44f9-98f1-3350f5c75d65)
 ![image](https://github.com/user-attachments/assets/b66341f7-f170-499c-88c7-02efc50134ed)
 
+#### Functionality
+This section describes the main features of the application:
+
+- Supports communication using multiple cameras and microphones. Users can also join a conference without cameras and microphones.
+
+- Camera management: cameras can be moved within sections, removed, hidden, and enlarged. Users can dynamically add or remove their own cameras during the conference. Screen sharing is also supported.
+
+- Users (both authorized and guests) can start a new conference or join an existing one.
+
+- User sections (where cameras are displayed) can be moved, fullscreened, and resized.
+
+- The application is usable on various devices (phones, tablets, computers) and has a user-friendly interface.
+
+- Authorized users can log into the conference from multiple devices simultaneously. The number of devices connected from one account is shown in the user list.
+
+- Users can select which participants to display on the conference page — different users can be viewed on different devices.
+
+- Registration and authorization are available. After login, users gain access to more features such as viewing their past conferences and chats, creating new chats, and using saved device configurations. User accounts have a type attribute: **Permanent** for registered users, **Temporary** for guests. Authorized users can also view, edit, and delete their accounts.
+
+- Guests can join by simply entering a name. Guests cannot use personal chats but can participate in conference chats. Guest accounts are deleted after leaving the conference.
+
+- Existing chats include personal chats between two users and conference chats.
+
+- Roles system: **User**, **Creator**, and **Admin**. Creators and admins have access to the admin page where they can view, create, update, and delete users, manage global settings (e.g., cleanup intervals for unused conferences and temporary users), and view and manage all conferences (including their status, creation date, and participant list). They can also join conferences from this page.
+
+- Conference security: passwords are supported. By default, conferences are created without a password, but a password can be set or changed on the conference page.
+
+- Users can invite others to conferences by sending special chat messages. Clicking these messages redirects the recipient to the device setup page with the conference ID prefilled.
+
 ### Initial Page (for unauthorized users)
 ![image](https://github.com/user-attachments/assets/df131bce-fe4d-4b75-8712-ea19168f5938)
+#### On this page, three buttons are available:
+- **Log In**  
+  Opens a modal window with fields for username and password, allowing the user to log into their account.
 
+- **Register**  
+  Redirects to the registration page.
+
+- **Start Conference**  
+  Opens a modal window where the user enters their name and proceeds to the device setup page.  
+  After selecting devices, a temporary account is created with the username provided. This account type is **Temporary** and will be deleted after the conference ends.
+  
 ### Login modal Window
 ![image](https://github.com/user-attachments/assets/f07e408a-7f6d-40b5-867a-c7e7890b1955)
+The user must enter an email and a password (the password is hidden as it is typed). If they do not match, the server sends an error which is displayed in a modal window.
 
 ### Registration Page
 ![image](https://github.com/user-attachments/assets/937f606b-d110-41bb-8c60-4c0b20644ec1)
 
+The user sets their first name, last name, email, password, city, country, and address.
+Server-side validation is performed for the first name, last name, email, and password fields. The validation checks that the data is not empty and does not contain only whitespace. Validation errors are displayed on the page next to the corresponding fields.
+After successful validation, the data is saved to the database. The password is stored in encrypted form, and the user account type is set to PERMANENT.
+
 ### Controle Page
 ![image](https://github.com/user-attachments/assets/be34192d-a960-4587-a5a2-c16253e21f69)
 ![image](https://github.com/user-attachments/assets/679f6b81-da5c-4e42-9f71-f02516619956)
+
+#### Functionality of the Page
+- Access restricted to users with **Admin** or **Creator** roles.
+- **User Management**:  
+  - View a detailed list of users with last name, first name, email, account type (Permanent or Temporary), role, and location (country, city, street).  
+  - Add new users via a modal form with required (first name, last name, email, password, role) and optional fields (country, city, address).  
+  - Edit existing users through a modal dialog with pre-filled data.  
+  - Delete users with confirmation.
+
+- **Global Settings**:  
+  - View all global settings (e.g., time intervals for deleting unused conferences).  
+  - Edit setting values and add new settings.
+
+- **Conference Management**:  
+  - View a list of all conferences with ID, creation date, and status (active/inactive).  
+  - Leave or delete conferences (deletion only if user is not part of it).  
+  - Join conferences directly or via the device setup page with pre-filled conference ID.
 
 
 
