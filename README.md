@@ -161,7 +161,7 @@ To run the application:
 ## 🖼️ Screenshots
 ### 🔹 Conference Page
 ![image](https://github.com/user-attachments/assets/9d1d6a18-a678-4392-9f56-d3a936ede09a)
-###№ Functionality of the Page
+#### Functionality of the Page
 
 - Communicate with other users via video and audio streams.
 - Select which users are displayed on the conference page.
@@ -186,10 +186,51 @@ Data received from the server includes:
 The client-side application communicates with the Jitsi API via JavaScript.
 ### Conference Chat Page
 ![image](https://github.com/user-attachments/assets/60a4a2c2-dba5-4180-acb3-097ddf3b5223)
+
 Users can view and send messages in real time on this page. Existing messages are fetched from the server and stored in the database. Most of the messaging logic is implemented using JavaScript on the client side.
 
 ### Personal Chat Page
 ![image](https://github.com/user-attachments/assets/c92d077e-7e50-4d02-bc67-c723fbce64cc)
+
+#### Features:
+
+- Real-time display of messages  
+- Sending messages  
+- Deleting messages (only own messages)  
+- Deleting entire chats  
+- Clearing all messages in a chat  
+- Navigating to a conference (if the message type is **INVITE**)
+
+The real-time messaging uses WebSocket configuration (detailed description available in *WebSocket Configuration*).  
+Most of the chat logic is implemented in JavaScript (*see `chatLogic.js`*).
+
+##### Message Types
+
+- Chat messages  
+- User joined chat notifications  
+- Message deletion notifications  
+- Chat cleared notifications  
+- Chat message deletion notifications  
+- User joined chat notifications
+
+Each message type has its own handler method in the JavaScript code.
+
+On the server side, chat messages are stored in the database and loaded when a user accesses the chat.
+
+When a chat is deleted, users receive a notification, and are redirected to the main page. This also redirects the other user if they are in the chat. The chat and all its messages are removed from the database.
+
+When a chat is cleared, users are notified, and all messages are deleted from the database.
+
+##### Security
+
+- Users cannot enter, clear, or delete chats they are not members of.  
+- Users cannot delete messages they do not own.
+
+##### Notes
+
+- Document forwarding in chat is not implemented due to time constraints.  
+- Personal chats are available only for authorized users.
+
 
 ### Initial Device Setting Pape
 ![image](https://github.com/user-attachments/assets/d71b745e-4acf-4422-a62a-ed82cbef1d7c)
@@ -245,6 +286,7 @@ This section describes the main features of the application:
 
 ### Initial Page (for unauthorized users)
 ![image](https://github.com/user-attachments/assets/df131bce-fe4d-4b75-8712-ea19168f5938)
+
 #### On this page, three buttons are available:
 - **Log In**  
   Opens a modal window with fields for username and password, allowing the user to log into their account.
@@ -258,6 +300,7 @@ This section describes the main features of the application:
   
 ### Login modal Window
 ![image](https://github.com/user-attachments/assets/f07e408a-7f6d-40b5-867a-c7e7890b1955)
+
 The user must enter an email and a password (the password is hidden as it is typed). If they do not match, the server sends an error which is displayed in a modal window.
 
 ### Registration Page
