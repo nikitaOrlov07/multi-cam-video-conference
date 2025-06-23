@@ -88,9 +88,9 @@ Used for containerizing:
 
 ---
 ## 🧩 Database Schema
+![image](https://github.com/user-attachments/assets/21f37249-2321-483f-a6e5-5251c864a75f)
 
 ### 🧑 `users`
-![image](https://github.com/user-attachments/assets/21f37249-2321-483f-a6e5-5251c864a75f)
 Stores user data:
 - First name, last name, email, encrypted password (via `BCryptPasswordEncoder()`), city, country, street
 - Account type (temporary or permanent)
