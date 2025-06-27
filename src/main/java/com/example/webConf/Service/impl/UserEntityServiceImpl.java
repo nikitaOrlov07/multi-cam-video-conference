@@ -41,7 +41,7 @@ public class UserEntityServiceImpl implements UserEntityService {
 
     @Autowired
     public UserEntityServiceImpl(UserEntityRepository userEntityRepository,
-                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository, SettingsEntityRepository settingsEntityRepository, PasswordEncoder passwordEncoder ,
+                                 UserEntityMapper userEntityMapper, UserConferenceJoinRepository userConderenceJoinRepository, ConferenceRepository conferenceRepository, SettingsEntityRepository settingsEntityRepository, PasswordEncoder passwordEncoder,
                                  @Lazy MessageService messageService) {
         this.userEntityRepository = userEntityRepository;
         this.userEntityMapper = userEntityMapper;
@@ -109,8 +109,8 @@ public class UserEntityServiceImpl implements UserEntityService {
     public void deleteUnusedTemporaryAccounts() {
         Set<UserEntity> temporaryUsers = userEntityRepository.findAllByAccountTypeAndCreatedAtOlderThan60Minutes(
                 UserEntity.AccountType.TEMPORARY.toString(), LocalDateTime.now());
-        if(!temporaryUsers.isEmpty()){
-            log.info("DELETE UNUSED TEMPORARY ACCOUNTS: {}" , temporaryUsers.size());
+        if (!temporaryUsers.isEmpty()) {
+            log.info("DELETE UNUSED TEMPORARY ACCOUNTS: {}", temporaryUsers.size());
         }
         for (UserEntity temporaryUser : temporaryUsers) {
             for (Conference conference : temporaryUser.getConferences()) {
@@ -134,47 +134,60 @@ public class UserEntityServiceImpl implements UserEntityService {
         UserEntity userEntity = userEntityRepository.findById(uuid).get();
         ///  Find user conferences
         List<Conference> conferences = conferenceRepository.findAllByUsersContains(userEntity);
-        for(Conference conference : conferences){
-            if(findUserConferenceJoin(userEntity,conference).isPresent()){
-                removeUserConferenceJoin(userEntity,conference);
+        for (Conference conference : conferences) {
+            if (findUserConferenceJoin(userEntity, conference).isPresent()) {
+                removeUserConferenceJoin(userEntity, conference);
             }
             conference.getUsers().remove(userEntity);
         }
         ///  Find user messages
-        List<Message> messages =  messageService.findAllBySender_id(userEntity.getId());
-        for(Message message : messages){
-            messageService.deleteMessage(message,userEntity,message.getChat());
+        List<Message> messages = messageService.findAllBySender_id(userEntity.getId());
+        for (Message message : messages) {
+            messageService.deleteMessage(message, userEntity, message.getChat());
         }
         userEntityRepository.delete(userEntity);
     }
 
     @Override
     @Transactional
-    public void editUser(Long uuid,RegistrationDto registrationDto) {
+    public void editUser(Long uuid, RegistrationDto registrationDto) {
         UserEntity user = userEntityRepository.findById(uuid).get();
-        user.setSurname(registrationDto.getSurname());
-        user.setName(registrationDto.getName());
-        user.setCountry(registrationDto.getCountry());
-        user.setCity(registrationDto.getCity());
-        user.setAddress(registrationDto.getAddress());
-        user.setEmail(registrationDto.getEmail());
+        if (registrationDto.getSurname() != null)
+            user.setSurname(registrationDto.getSurname());
 
-        user.setUserName(registrationDto.getName() + " " + registrationDto.getSurname());
-        if(registrationDto.getPassword() != null || !registrationDto.getPassword().isEmpty())
+        if (registrationDto.getName() != null)
+            user.setName(registrationDto.getName());
+
+        if (registrationDto.getCountry() != null)
+            user.setCountry(registrationDto.getCountry());
+
+        if(registrationDto.getCity() != null)
+            user.setCity(registrationDto.getCity());
+
+        if(registrationDto.getAddress() != null)
+            user.setAddress(registrationDto.getAddress());
+
+        if(registrationDto.getEmail() != null)
+            user.setEmail(registrationDto.getEmail());
+
+        user.setUserName(user.getName() + " " + user.getSurname());
+
+        if (registrationDto.getPassword() != null || !registrationDto.getPassword().isEmpty())
             user.setPassword(passwordEncoder.encode(registrationDto.getPassword()));
+
     }
 
     @Override
     public List<UserEntity> findUsersByUsername(String search) {
         List<UserEntity> users = new ArrayList<>();
         String decodedUsername = URLDecoder.decode(search, StandardCharsets.UTF_8).toLowerCase();
-        log.info("Searching users by search: {}",decodedUsername);
+        log.info("Searching users by search: {}", decodedUsername);
         String[] words = decodedUsername.split("\\s+");
         for (String word : words) {
             users.addAll(userEntityRepository.searchByNameOrSurname(word));
         }
         users = users.stream().distinct().toList();
-        log.info("Found {} users" , users.size());
+        log.info("Found {} users", users.size());
         return users;
     }
 
@@ -185,23 +198,23 @@ public class UserEntityServiceImpl implements UserEntityService {
             String key = entry.getKey();
             String value = entry.getValue();
             Optional<SettingsEntity> settingsEntity = settingsEntityRepository.findById(key);
-            if(settingsEntity.isPresent()){
+            if (settingsEntity.isPresent()) {
                 log.info("Changing existing settings: {} -> {}", key, value);
                 settingsEntity.get().setUserId(user.getId());
-                if(user.getEmail() == null){
+                if (user.getEmail() == null) {
                     settingsEntity.get().setEmail(user.getName() + " " + user.getSurname());
-                }else{
+                } else {
                     settingsEntity.get().setEmail(user.getEmail());
                 }
                 settingsEntity.get().setValue(value);
                 settingsEntityRepository.save(settingsEntity.get());
-            }else{
+            } else {
                 log.info("Creating new settings: {} -> {}", key, value);
                 SettingsEntity newSettingsEntity = new SettingsEntity();
                 newSettingsEntity.setUserId(user.getId());
-                if(user.getEmail() == null){
+                if (user.getEmail() == null) {
                     newSettingsEntity.setEmail(user.getName() + " " + user.getSurname());
-                }else{
+                } else {
                     newSettingsEntity.setEmail(user.getEmail());
                 }
                 newSettingsEntity.setCreatedAt(LocalDateTime.now());
@@ -222,7 +235,7 @@ public class UserEntityServiceImpl implements UserEntityService {
 
     @Override
     public List<UserConferenceJoin> findAllUserConferenceJoins(UserEntity userEntity) {
-        return  userConderenceJoinRepository.findAll();
+        return userConderenceJoinRepository.findAll();
     }
 
     @Override

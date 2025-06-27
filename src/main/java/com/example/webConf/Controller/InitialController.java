@@ -37,7 +37,7 @@ public class InitialController {
         UserEntity user;
         if (!currentUserEmail.equals("User is not authorized")) {
             // User is authorized
-            user = userService.findByEmail(currentUserEmail).get();
+            user = userService.findByEmail(currentUserEmail).orElse(null); // Todo -> error if email change -> in session it will not change
             if (user != null) {
                 List<Conference> conferences = conferenceService.findConferencesByUser(user.getId());
                 List<Conference> userConferences = conferenceService.findUserConferences(user);
