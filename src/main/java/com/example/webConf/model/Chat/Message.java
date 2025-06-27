@@ -3,6 +3,7 @@ package com.example.webConf.model.Chat;
 import com.example.webConf.config.message.MessageType;
 import com.example.webConf.model.user.UserEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -26,13 +27,13 @@ public class Message {
 
 
     @JsonIgnore
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "chat_id")
     private Chat chat;
 
 
     // it is for "comment-list"
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author_id")
     private UserEntity user;
 }
