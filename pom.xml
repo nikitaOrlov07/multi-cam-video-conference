@@ -146,11 +146,16 @@
 			<artifactId>jackson-datatype-jsr310</artifactId>
 			<version>2.17.2</version>
 		</dependency>
-		<!-- pom.xml -->
 		<dependency>
 			<groupId>org.springdoc</groupId>
 			<artifactId>springdoc-openapi-ui</artifactId>
 			<version>1.7.0</version>
+		</dependency>
+		<!--For encrypting keys -->
+		<dependency>
+			<groupId>com.github.ulisesbocchio</groupId>
+			<artifactId>jasypt-spring-boot-starter</artifactId>
+			<version>3.0.5</version>
 		</dependency>
 
 	</dependencies>

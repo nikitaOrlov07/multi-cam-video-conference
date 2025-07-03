@@ -8,6 +8,7 @@
     <meta charset="UTF-8">
     <title>Registration Page</title>
     <link href="/css/registrationPage.css" rel="stylesheet">
+    <script src="https://www.google.com/recaptcha/api.js?render=6LcdjHYrAAAAABubcdIiHLZbl1II7YJt2Ju3tiZZ"></script>
 </head>
 <body layout:fragment="body">
 <div class="registration-wrapper">
@@ -15,9 +16,9 @@
         <div class="registration-form">
             <h2>Registration</h2>
             <div th:if="${errorMessage}" id="errorMessage" class="alert alert-danger">
-                <span th:text="${errorMessage}">Error</span>
+                <span th:text="${errorMessage}">Error during registration</span>
             </div>
-            <form th:action="@{/register/save}" th:method="post" th:object="${user}">
+            <form th:action="@{/register/save}" th:method="post" th:object="${user}" id="registrationForm">
                 <!-- Surname field -->
                 <div class="form-group">
                     <label for="surname">Surname</label>
@@ -27,7 +28,7 @@
                 <!-- Name field -->
                 <div class="form-group">
                     <label for="name">Name</label>
-                    <input type="text" id="name" th:field="*{name}" placeholder="Enter your surname" required>
+                    <input type="text" id="name" th:field="*{name}" placeholder="Enter your name" required>
                     <div th:if="${#fields.hasErrors('name')}" th:errors="*{name}" class="error"></div>
                 </div>
 
@@ -41,7 +42,8 @@
                 <!-- Password field -->
                 <div class="form-group">
                     <label for="password">Password</label>
-                    <input type="password" id="password" th:field="*{password}" placeholder="Enter your password" required>
+                    <input type="password" id="password" th:field="*{password}" placeholder="Enter your password"
+                           required>
                     <div th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="error"></div>
                 </div>
 
@@ -59,9 +61,13 @@
 
                 <!-- Address field-->
                 <div class="form-group">
-                    <label for="country">Address</label>
+                    <label for="address">Address</label>
                     <input type="text" id="address" th:field="*{address}" placeholder="Enter your address">
                 </div>
+
+                <!-- Hidden field for reCAPTCHA token -->
+                <input type="hidden" id="recaptcha-token" name="recaptcha-token">
+
 
                 <!-- Registration button -->
                 <div class="form-group">
@@ -72,7 +78,53 @@
     </div>
 </div>
 <script>
-    hideElementAfterDelay('errorMessage');
+    grecaptcha.ready(function () {
+        grecaptcha.execute('6LcdjHYrAAAAABubcdIiHLZbl1II7YJt2Ju3tiZZ', {action: 'register'})
+            .then(function (token) {
+                document.getElementById('recaptcha-token').value = token;
+
+                const indicator = document.createElement('div');
+                indicator.style.cssText = 'color: green; font-size: 12px; margin-top: 10px;';
+                indicator.textContent = '✓ reCAPTCHA verified';
+                document.querySelector('.registration-form').appendChild(indicator);
+            })
+            .catch(function (error) {
+                console.error('reCAPTCHA error:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'color: red; font-size: 12px; margin-top: 10px;';
+                errorDiv.textContent = '✗ reCAPTCHA failed to load';
+                document.querySelector('.registration-form').appendChild(errorDiv);
+            });
+    });
+
+    document.getElementById('registrationForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+
+        const submitButton = document.querySelector('button[type="submit"]');
+        submitButton.textContent = 'Verifying...';
+        submitButton.disabled = true;
+
+        grecaptcha.execute('6LcdjHYrAAAAABubcdIiHLZbl1II7YJt2Ju3tiZZ', {action: 'register'})
+            .then(function (token) {
+                document.getElementById('recaptcha-token').value = token;
+                e.target.submit();
+            })
+            .catch(function (error) {
+                console.error("Error while recaptcha verifying", error)
+            });
+    });
+</script>
+<script>
+    function hideElementAfterDelay(elementId) {
+        const element = document.getElementById(elementId);
+        if (element) {
+            setTimeout(function () {
+                element.style.display = 'none';
+            }, 5000);
+        }
+    } // TODO -> make that all templates wil use hideElementyId from common functions file
+
+    hideElementAfterDelay("errorMessage")
 </script>
 </body>
 </html>

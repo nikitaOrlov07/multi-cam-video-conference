@@ -104,6 +104,23 @@ public class UserEntity {
         }
     }
 
+    ///  Friends
+    @JsonIgnore
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "friends_invitation",joinColumns = {@JoinColumn(name ="user_id",referencedColumnName ="id")},
+            inverseJoinColumns ={@JoinColumn(name = "invited_id", referencedColumnName = "id")}
+    )
+    private List<UserEntity> invitedUsers = new ArrayList<>();
+
+    @JsonIgnore
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+    @JoinTable(
+            name = "friends",joinColumns = {@JoinColumn(name ="user_id",referencedColumnName ="id")},
+            inverseJoinColumns ={@JoinColumn(name = "friend_id", referencedColumnName = "id")}
+    )
+    private List<UserEntity> friends = new ArrayList<>();
+
 }
 
 

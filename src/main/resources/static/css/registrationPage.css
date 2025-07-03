@@ -86,3 +86,14 @@ h2 {
         padding: 1.5rem;
     }
 }
+.g-recaptcha {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+}
+
+.form-group .error {
+    color: #dc3545;
+    font-size: 14px;
+    margin-top: 5px;
+}

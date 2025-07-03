@@ -26,4 +26,10 @@ public class GlobalExceptionHandler {
         log.error("Chat Exception: {}" , ex.getMessage());
         return "redirect:/home?error";
     }
+    @ExceptionHandler(RegistrationException.class)
+    public String handleRegistrationException(RegistrationException ex, RedirectAttributes redirectAttributes) {
+        redirectAttributes.addFlashAttribute("errorMessage", ex.getMessage());
+        log.error("Registration Exception: {}" , ex.getMessage());
+        return "redirect:/register?error";
+    }
 }
