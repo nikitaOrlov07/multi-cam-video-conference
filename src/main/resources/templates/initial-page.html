@@ -109,7 +109,7 @@
                             </div>
                             <div class="account-info-item">
                                 <label for="edit-email">Email</label>
-                                <input type="email" id="edit-email" class="form-control" th:value="${user.email}">
+                                <input type="email" id="edit-email" style="pointer-events: none" class="form-control" th:value="${user.email}">
                             </div>
                             <div class="account-info-item">
                                 <label for="edit-city">City</label>
@@ -148,7 +148,8 @@
                 <div th:if="${chats != null}" class="chats-section">
                     <h3 class="text-center mb-4">Your Chats</h3>
 
-                    <div th:if="${not #lists.isEmpty(chats)}" class="chat-list-container" style="overflow-y: auto ; max-height: 1000px">
+                    <div th:if="${not #lists.isEmpty(chats)}" class="chat-list-container"
+                         style="overflow-y: auto ; max-height: 1000px">
                         <div th:each="chat : ${chats}" class="chat-item">
                             <div class="chat-details">
                                 <strong th:text="'Chat ID: ' + ${chat.id}">Chat Id</strong>
@@ -177,35 +178,179 @@
                     </div>
                 </div>
 
-                <!-- Users Section with Search -->
-                <div th:if="${users != null}" id="usersContainer" class="users-section" th:fragment="users" >
-                    <h3 class="text-center mb-4">Users</h3>
+                <div class="flex flex-row gap-5">
+                    <!-- Users/Friends Section with Search -->
+                    <div th:if="${users != null}" id="usersContainer" class="users-section" th:fragment="users">
+                        <h3 class="text-center mb-4">Users</h3>
 
-                    <!-- Search Form -->
-                    <form id="searchForm" class="search-form">
-                        <div class="input-group mb-3">
-                            <input type="text" style="width: 80%;" class="form-control" placeholder="Search users..."
-                                   id="searchQuery" name="search">
-                            <button class="btn btn-outline-primary" type="submit">Search</button>
+                        <!-- Friends Toggle -->
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" id="friendsToggle"
+                                   onchange="toggleFriends()">
+                            <label class="form-check-label" for="friendsToggle">
+                                Show only friends
+                            </label>
                         </div>
-                    </form>
 
-                    <div th:if="${not #lists.isEmpty(users)}" class="user-list-container" style="overflow-y: auto ; max-height: 1000px">
-                        <div th:each="otherUser : ${users}" class="user-item">
-                            <div class="user-details">
-                                <strong th:text="${otherUser.name + ' ' + otherUser.surname}">User Name</strong>
-                                <small th:text="${otherUser.email}">user@example.com</small>
+                        <!-- Search Form -->
+                        <form id="searchForm" class="search-form">
+                            <div class="input-group mb-3">
+                                <input type="text" style="width: 80%;" class="form-control"
+                                       placeholder="Search users..."
+                                       id="searchQuery" name="search">
+                                <button class="btn btn-outline-primary" type="submit">Search</button>
                             </div>
-                            <a th:href="@{/chat/findOrCreate/{userId}(userId=${otherUser.id})}"
-                               class="btn btn-primary btn-chat">
-                                Chat
-                            </a>
+                        </form>
+
+                        <!-- Users List -->
+                        <div th:if="${not #lists.isEmpty(users)}" class="user-list-container" id="usersList"
+                             style="overflow-y: auto ; max-height: 1000px">
+                            <div th:each="otherUser : ${users}" class="user-item">
+                                <div class="user-details">
+                                    <strong th:text="${(otherUser.name ?: '') + ' ' + (otherUser.surname ?: '')}">User Name</strong>
+                                    <small th:text="${otherUser.email}">user@example.com</small>
+                                </div>
+                                <a th:href="@{/chat/findOrCreate/{userId}(userId=${otherUser.id})}"
+                                   class="btn btn-primary btn-chat">
+                                    Chat
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Friends List -->
+                        <div th:if="${friends != null and not #lists.isEmpty(friends)}" class="user-list-container"
+                             id="friendsList"
+                             style="overflow-y: auto ; max-height: 1000px; display: none;">
+                            <div th:each="friend : ${friends}" class="user-item">
+                                <div class="user-details">
+                                    <strong th:text="${friend.name + ' ' + friend.surname}">Friend Name</strong>
+                                    <small th:text="${friend.email}">friend@example.com</small>
+                                </div>
+                                <a th:href="@{/chat/findOrCreate/{userId}(userId=${friend.id})}"
+                                   class="btn btn-primary btn-chat">
+                                    Chat
+                                </a>
+                            </div>
+                        </div>
+
+                        <!-- Empty States -->
+                        <div th:if="${#lists.isEmpty(users)}" class="text-center" id="noUsersMessage">
+                            <p>No users found.</p>
+                        </div>
+                        <div class="text-center" id="noFriendsMessage" style="display: none;">
+                            <p>No friends found.</p>
                         </div>
                     </div>
-                    <div th:if="${#lists.isEmpty(users)}" class="text-center">
-                        <p>No users found.</p>
+
+                    <!-- Blocked Users -->
+                    <div class="user-list-container">
+                        <h3 class="text-center mb-4">Blocked Users</h3>
+                        <div th:if="${blockedUsers != null and not #lists.isEmpty(blockedUsers)}"
+                             class="user-list-container"
+                             style="overflow-y: auto ; max-height: 1000px">
+                            <div th:each="blockedUser : ${blockedUsers}" class="user-item">
+                                <div class="user-details">
+                                    <strong th:text="${blockedUser.name + ' ' + blockedUser.surname}">Blocked User
+                                        Name</strong>
+                                    <small th:text="${blockedUser.email}">blocked@example.com</small>
+                                </div>
+                                <button class="btn btn-warning btn-sm"
+                                        th:onclick="'unblockUser(' + ${blockedUser.id} + ')'">
+                                    Unblock
+                                </button>
+                            </div>
+                        </div>
+                        <div th:if="${blockedUsers == null or #lists.isEmpty(blockedUsers)}" class="text-center">
+                            <p>No blocked users.</p>
+                        </div>
                     </div>
                 </div>
+                <script>
+                    function toggleFriends() {
+                        const friendsToggle = document.getElementById('friendsToggle');
+                        const usersList = document.getElementById('usersList');
+                        const friendsList = document.getElementById('friendsList');
+                        const noUsersMessage = document.getElementById('noUsersMessage');
+                        const noFriendsMessage = document.getElementById('noFriendsMessage');
+                        const searchQuery = document.getElementById('searchQuery');
+
+                        if (friendsToggle.checked) {
+                            // Show friends
+                            if (usersList) {
+                                usersList.style.display = 'none';
+                            }
+                            if (friendsList) {
+                                friendsList.style.display = 'block';
+                            }
+                            if (noUsersMessage) {
+                                noUsersMessage.style.display = 'none';
+                            }
+
+                            // Check if friends list exists and has items
+                            if (friendsList && friendsList.children.length === 0) {
+                                if (noFriendsMessage) {
+                                    noFriendsMessage.style.display = 'block';
+                                }
+                            } else {
+                                if (noFriendsMessage) {
+                                    noFriendsMessage.style.display = 'none';
+                                }
+                            }
+
+                            if (searchQuery) {
+                                searchQuery.placeholder = 'Search friends...';
+                            }
+                        } else {
+                            // Show users
+                            if (usersList) {
+                                usersList.style.display = 'block';
+                            }
+                            if (friendsList) {
+                                friendsList.style.display = 'none';
+                            }
+                            if (noFriendsMessage) {
+                                noFriendsMessage.style.display = 'none';
+                            }
+
+                            // Check if users list exists and has items
+                            if (usersList && usersList.children.length === 0) {
+                                if (noUsersMessage) {
+                                    noUsersMessage.style.display = 'block';
+                                }
+                            } else {
+                                if (noUsersMessage) {
+                                    noUsersMessage.style.display = 'none';
+                                }
+                            }
+
+                            if (searchQuery) {
+                                searchQuery.placeholder = 'Search users...';
+                            }
+                        }
+                    }
+
+                    function unblockUser(userId) {
+                        if (confirm('Are you sure you want to unblock this user?')) {
+                            fetch('/unblock/' + userId, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
+                            })
+                                .then(response => {
+                                    if (response.ok) {
+                                        location.reload();
+                                    } else {
+                                        alert('Error unblocking user');
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('Error unblocking user');
+                                });
+                        }
+                    }
+                </script>
 
                 <!-- Conference Section in your Thymeleaf template -->
                 <div th:if="${pastConferences != null}" class="past-conferences">
@@ -222,7 +367,8 @@
 
                     <!-- Conference Cards Container -->
                     <div id="pastConferencesContainer">
-                        <div th:if="${not #lists.isEmpty(pastConferences)}" class="conference-list-container" style="overflow-y: auto ; max-height: 1000px">
+                        <div th:if="${not #lists.isEmpty(pastConferences)}" class="conference-list-container"
+                             style="overflow-y: auto ; max-height: 1000px">
                             <div th:each="conference : ${pastConferences}" class="conference-item">
                                 <div class="conference-details">
                                     <div class="conference-header">
@@ -305,7 +451,7 @@
                             const day = String(dateArray[2]).padStart(2, '0');
                             return `${year}-${month}-${day}`;
                         }
-                        if(dateArray === null)
+                        if (dateArray === null)
                             return null;
 
                         return dateArray.toString();
@@ -476,17 +622,72 @@
             function loadUsers(query) {
                 $.ajax({
                     url: "/findUsers",
+                    method: 'GET',
                     data: {search: query || ""},
-                    success: function (fragment) {
-                        $("#usersContainer").replaceWith(fragment);
-
+                    success: function (users) {
+                        renderUsers(users);
                         $("#searchQuery").val(query);
-
                         $("#searchForm").on("submit", handleFormSubmit);
                     },
                     error: function (xhr, status, error) {
                         console.error("Error loading users:", error);
+                        $("#usersContainer .user-list-container").html(
+                            '<div class="text-center"><p class="text-danger">Error loading users. Please try again.</p></div>'
+                        );
                     }
+                });
+            }
+
+            function renderUsers(users) {
+                const container = $("#usersContainer .user-list-container");
+
+                if (!container.length) {
+                    // If container doesn't exist, create the whole users section
+                    const usersSection = `
+                <div id="usersContainer" class="users-section">
+                    <h3 class="text-center mb-4">Users</h3>
+                    <form id="searchForm" class="search-form">
+                        <div class="input-group mb-3">
+                            <input type="text" style="width: 80%;" class="form-control" placeholder="Search users..."
+                                   id="searchQuery" name="search">
+                            <button class="btn btn-outline-primary" type="submit">Search</button>
+                        </div>
+                    </form>
+                    <div class="user-list-container" style="overflow-y: auto; max-height: 1000px"></div>
+                </div>
+            `;
+
+                    // Find where to insert the users section (after chats section or before conferences)
+                    if ($(".chats-section").length) {
+                        $(".chats-section").after(usersSection);
+                    } else if ($(".past-conferences").length) {
+                        $(".past-conferences").before(usersSection);
+                    } else {
+                        $(".split-layout").after(usersSection);
+                    }
+                }
+
+                const userContainer = $("#usersContainer .user-list-container");
+                userContainer.empty();
+
+                if (users.length === 0) {
+                    userContainer.html('<div class="text-center"><p>No users found.</p></div>');
+                    return;
+                }
+
+                users.forEach(user => {
+                    const userItem = `
+                <div class="user-item">
+                    <div class="user-details">
+                        <strong>${user.name || ''} ${user.surname || ''}</strong>
+                        <small>${user.email || ''}</small>
+                    </div>
+                    <a href="/chat/findOrCreate/${user.id}" class="btn btn-primary btn-chat">
+                        Chat
+                    </a>
+                </div>
+            `;
+                    userContainer.append(userItem);
                 });
             }
 
@@ -496,21 +697,24 @@
                 return false;
             }
 
-            $("#searchForm").on("submit", handleFormSubmit);
+            // Event handlers
+            $(document).on("submit", "#searchForm", handleFormSubmit);
 
-            $("#searchQuery").on("keypress", function (e) {
-                if (e.which === 13) { // for enter
+            $(document).on("keypress", "#searchQuery", function (e) {
+                if (e.which === 13) { // Enter key
                     e.preventDefault();
                     loadUsers($(this).val());
                     return false;
                 }
             });
 
-            $("#searchQuery").on("input", function () {
+            $(document).on("input", "#searchQuery", function () {
                 if ($(this).val() === "") {
                     loadUsers("");
                 }
             });
+
+            loadUsers("");
         });
     } else {
         console.error("jQuery is not loaded!");
