@@ -81,12 +81,9 @@ function handleChatCleared() {
 }
 
 function connect() {
-    console.log("Connecting to WebSocket...");
     const socket = new SockJS('/ws');
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
-        console.log('Connected: ' + frame);
-        console.log('StompClient ready:', stompClient);
         subscribeToChat(chatId);
         addUser();
 
@@ -173,8 +170,6 @@ function showMessage(message) {
         messageDiv.style.fontStyle = 'italic';
         messageDiv.style.color = '#4a4a4a';
     } else if (message.type === 'CONFERENCE_INVITATION' || message.type === 'CHAT_INVITATION') {
-        console.log("sdsdsds" , message.type)
-
         messageDiv.className = "invitation-message";
         messageDiv.style.textAlign = 'center';
         messageDiv.style.backgroundColor = '#e6f3ff';

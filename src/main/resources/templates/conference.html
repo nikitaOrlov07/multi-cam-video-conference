@@ -192,7 +192,7 @@
         const chatId  = /*[[${chatId}]]*/ 'default-username';
         const allUsers = /*[[${allUsers}]]*/ [];
 
-        initInviteFunctionality(conferenceId, allUsers);
+        inviteToConferenceFunctionality(conferenceId, allUsers);
 
         // Initialize conference and chat
         const conference = new VideoConference(conferenceId, userName);
@@ -258,7 +258,7 @@
     });
 
 
-    function initInviteFunctionality(conferenceId, preloadedUsers) {
+    function inviteToConferenceFunctionality(conferenceId, preloadedUsers) {
         const inviteModal = document.getElementById('inviteModal');
         const inviteUserBtn = document.getElementById('inviteUserBtn');
         const closeInviteModal = document.getElementById('closeInviteModal');
@@ -350,7 +350,7 @@
 
         function sendInvitation(userId, conferenceId) {
             $.ajax({
-                url: `/chat/${userId}/${conferenceId}`,
+                url: `/chat/invitation/conference/${userId}/${conferenceId}`,
                 method: 'POST',
                 success: function () {
                     alert('Invitation sent successfully!');

@@ -2,11 +2,10 @@ package com.example.webConf.controller;
 
 import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.ChatException;
-import com.example.webConf.config.exception.ConferenceException;
 import com.example.webConf.config.message.DeleteMessageRequest;
 import com.example.webConf.config.message.MessageType;
-import com.example.webConf.model.Chat.Chat;
-import com.example.webConf.model.Chat.Message;
+import com.example.webConf.model.chat.Chat;
+import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.security.SecurityUtil;
@@ -16,10 +15,7 @@ import com.example.webConf.service.MessageService;
 import com.example.webConf.service.UserEntityService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import jakarta.transaction.Transactional;
-import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,11 +31,11 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 import java.security.Principal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -66,8 +62,8 @@ public class ChatController {
     // find existing chat or create new beetween two people for "home-page"
     @GetMapping("/chat/findOrCreate/{secondId}")
     public String findOrCreateChat(@PathVariable("secondId") Long secondId) {
-        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).get();
-        UserEntity secondUser = userService.findById(secondId).get();
+        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElseThrow(() -> new AuthException("User not found"));
+        UserEntity secondUser = userService.findById(secondId).orElseThrow(() -> new AuthException("User not found"));
 
         Chat chat = chatService.findOrCreateChat(currentUser, secondUser);
         return "redirect:/chat/" + chat.getId();
@@ -76,9 +72,9 @@ public class ChatController {
 
     @GetMapping("/chat/{chatId}")
     public String getChat(@PathVariable("chatId") Long chatId, Model model) throws JsonProcessingException {
-        Chat chat = chatService.findById(chatId).get();
+        Chat chat = chatService.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
         List<Message> messages = messageService.findAllChatMessage(chatId);
-        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).get();
+        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElseThrow(() -> new AuthException("User not found"));
         if (SecurityUtil.getSessionUserEmail() == null || SecurityUtil.getSessionUserEmail().isEmpty() || (!chat.getParticipants().contains(currentUser))) {
             return "redirect:/home";
         }
@@ -93,7 +89,7 @@ public class ChatController {
 
     @MessageMapping("/chat/{chatId}/sendMessage")
     @SendTo("/topic/chat/{chatId}")
-    public Message sendMessage(@DestinationVariable Long chatId, @Payload Message message, // TODO -> test conference chat for temporary users
+    public Message sendMessage(@DestinationVariable Long chatId, @Payload Message message,
                                SimpMessageHeaderAccessor headerAccessor) {
         String email = SecurityUtil.getSessionUserEmail(headerAccessor.getUser());
         UserEntity user = null;
@@ -117,44 +113,13 @@ public class ChatController {
 
         return message;
     }
-    @PostMapping("/chat/{userId}/{conferenceId}")
-    public ResponseEntity sendInvitationToConference(@PathVariable Long userId, @PathVariable String conferenceId) {
-        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail())
-                .orElseThrow(() -> new AuthException("User not found"));
-        UserEntity sendToUser = userService.findById(userId)
-                .orElseThrow(() -> new AuthException("User not found"));
-
-        logger.info("Sending invitation to user {} from user {} to conference {}",
-                sendToUser.getId(), currentUser.getId(), conferenceId);
-
-        Chat chat = chatService.findOrCreateChat(currentUser, sendToUser);
-
-        Message message = Message.builder()
-                .text(conferenceId.toString())
-                .author(currentUser.getName() + " " + currentUser.getSurname())
-                .user(currentUser)
-                .type(MessageType.INVITATION)
-                .pubDate(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
-                .chat(chat)
-                .build();
-
-        messageService.saveMessage(message, chat.getId(), currentUser);
-
-        // Send the message through WebSocket
-        messagingTemplate.convertAndSendToUser(
-                sendToUser.getEmail(),
-                "/topic/chat/" + chat.getId(),
-                message);
-
-        return ResponseEntity.ok().build();
-    }
 
     @MessageMapping("/chat/{chatId}/addUser")
     @SendTo("/topic/chat/{chatId}")
     public Message addUser(@DestinationVariable Long chatId, @Payload Message message,
                            SimpMessageHeaderAccessor headerAccessor) {
 
-        Chat chat = chatService.findById(chatId).orElse(null);
+        Chat chat = chatService.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
         UserEntity currentUser = null;
 
         if (chat.getConference() != null) { // if it is conference chat -> look user by userName
@@ -162,7 +127,7 @@ public class ChatController {
         } else {
             currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail(headerAccessor.getUser())).orElse(null);
         }
-        if(currentUser == null){
+        if (currentUser == null) {
             throw new AuthException("User not found");
         }
 
@@ -293,5 +258,47 @@ public class ChatController {
 
         logger.warn("Chat clearing failed");
         return null;
+    }
+
+    /// Invitations
+    @PostMapping("/chat/invitation/{type}/{userId}/{id}")
+    public ResponseEntity<?> sendInvitationToConference(@PathVariable Long userId,
+                                                        @PathVariable String id,
+                                                        @PathVariable String type) {
+        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail())
+                .orElseThrow(() -> new AuthException("User not found"));
+        UserEntity sendToUser = userService.findById(userId)
+                .orElseThrow(() -> new AuthException("User not found"));
+
+        logger.info("Sending invitation to user {} from user {} with {}: {}", sendToUser.getId(), currentUser.getId(), type, id);
+
+        Chat chat = chatService.findOrCreateChat(currentUser, sendToUser);
+        MessageType messageType = type.equals("conference") ? MessageType.CONFERENCE_INVITATION : MessageType.CHAT_INVITATION;
+        Message message = Message.builder()
+                .text(id)
+                .author(currentUser.getName() + " " + currentUser.getSurname())
+                .user(currentUser)
+                .type(messageType)
+                .pubDate(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")))
+                .chat(chat)
+                .build();
+
+        messageService.saveMessage(message, chat.getId(), currentUser);
+
+        // Send the message through WebSocket
+        messagingTemplate.convertAndSendToUser(
+                sendToUser.getEmail(),
+                "/topic/chat/" + chat.getId(),
+                message);
+
+        return ResponseEntity.ok("Successfully sent invitation");
+    }
+
+    /// Getting User Chats for refreshing "Chat section" on initial page
+    @GetMapping("/chat/getChats")
+    public ResponseEntity<List<Chat>> getChats() {
+        Optional<UserEntity> user = userService.findByEmail(SecurityUtil.getSessionUserEmail());
+        return user.map(userEntity -> ResponseEntity.ok(chatService.findAllByParticipant(userEntity))).orElseGet(() -> ResponseEntity.ok(Collections.emptyList()));
+
     }
 }
