@@ -73,6 +73,7 @@ body {
     color: #333;
     word-break: break-word;
     overflow-wrap: break-word;
+    white-space: pre-wrap;
 }
 
 .message p:last-child {
@@ -275,6 +276,7 @@ body {
 
     .message-text {
         font-size: 0.9rem;
+        white-space: pre-wrap;
     }
 
     .btn {
