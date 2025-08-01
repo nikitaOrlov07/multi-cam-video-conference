@@ -1,6 +1,6 @@
 package com.example.webConf.config.message;
 
-import com.example.webConf.model.Chat.Message;
+import com.example.webConf.model.chat.Message;
 import com.example.webConf.service.UserEntityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -1,7 +1,7 @@
 package com.example.webConf.service.impl;
 
-import com.example.webConf.model.Chat.Chat;
-import com.example.webConf.model.Chat.Message;
+import com.example.webConf.model.chat.Chat;
+import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.repository.ChatRepository;
@@ -114,8 +114,8 @@ public class ChatServiceImpl implements ChatService {
         chatRepository.delete(chat);
     }
     @Override
-    public List<Chat> findAllByParticipants(UserEntity deletedUser) {
-        return chatRepository.findByParticipantsContains(deletedUser);
+    public List<Chat> findAllByParticipant(UserEntity participant) {
+        return chatRepository.findByParticipantsContains(participant);
     }
 
     @Transactional

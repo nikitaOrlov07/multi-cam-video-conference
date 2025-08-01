@@ -1,6 +1,6 @@
 package com.example.webConf.model.conference;
 
-import com.example.webConf.model.Chat.Chat;
+import com.example.webConf.model.chat.Chat;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;

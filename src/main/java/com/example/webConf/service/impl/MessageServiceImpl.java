@@ -1,8 +1,8 @@
 package com.example.webConf.service.impl;
 
 import com.example.webConf.config.exception.AuthException;
-import com.example.webConf.model.Chat.Chat;
-import com.example.webConf.model.Chat.Message;
+import com.example.webConf.model.chat.Chat;
+import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.repository.MessageRepository;
 import com.example.webConf.service.ChatService;

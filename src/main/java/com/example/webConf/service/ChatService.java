@@ -1,6 +1,6 @@
 package com.example.webConf.service;
 
-import com.example.webConf.model.Chat.Chat;
+import com.example.webConf.model.chat.Chat;
 import com.example.webConf.model.user.UserEntity;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,7 +22,7 @@ public interface ChatService {
     @Transactional
     void delete(Chat chat);
 
-    List<Chat> findAllByParticipants(UserEntity deletedUser);
+    List<Chat> findAllByParticipant(UserEntity participant);
 
     @Transactional // In a @Transactional method, Hibernate automatically tracks changes to managed entities and persists them at the end of the transaction.
     void clearMessages(Chat chat);

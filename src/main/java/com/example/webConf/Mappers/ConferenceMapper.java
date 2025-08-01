@@ -1,6 +1,6 @@
 package com.example.webConf.mappers;
 
-import com.example.webConf.dto.Conference.ConferenceDto;
+import com.example.webConf.dto.conference.ConferenceDto;
 import com.example.webConf.model.conference.Conference;
 
 public class ConferenceMapper {

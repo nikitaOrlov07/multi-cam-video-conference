@@ -1,14 +1,10 @@
-package com.example.webConf.model.Chat;
+package com.example.webConf.model.chat;
 
 import com.example.webConf.config.message.MessageType;
 import com.example.webConf.model.user.UserEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 @Builder
 @Entity
@@ -29,9 +25,12 @@ public class Message {
     @JsonIgnore
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "chat_id")
+    @ToString.Exclude
     private Chat chat;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "author_id")
+    @ToString.Exclude
+    @JsonIgnore
     private UserEntity user;
 }

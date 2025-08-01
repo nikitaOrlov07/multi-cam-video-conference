@@ -1,4 +1,4 @@
-package com.example.webConf.dto.Conference;
+package com.example.webConf.dto.conference;
 
 import com.example.webConf.model.user.UserEntity;
 import lombok.*;

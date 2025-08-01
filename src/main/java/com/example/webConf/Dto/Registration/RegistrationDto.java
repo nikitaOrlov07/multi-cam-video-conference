@@ -1,4 +1,4 @@
-package com.example.webConf.dto.Registration;
+package com.example.webConf.dto.registration;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;

@@ -2,31 +2,17 @@ package com.example.webConf.controller;
 
 import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.RegistrationException;
-import com.example.webConf.dto.Registration.RegistrationDto;
-import com.example.webConf.model.conference.Conference;
-import com.example.webConf.model.role.RoleEntity;
-import com.example.webConf.model.user.UserEntity;
-import com.example.webConf.repository.RoleRepository;
-import com.example.webConf.repository.SettingsEntityRepository;
-import com.example.webConf.security.SecurityUtil;
-import com.example.webConf.service.ConferenceService;
+import com.example.webConf.dto.registration.RegistrationDto;
 import com.example.webConf.service.UserEntityService;
 //import com.example.webConf.service.impl.RecaptchaService;
 import com.example.webConf.service.impl.RecaptchaService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDateTime;
-import java.util.*;
 
 @Controller
 @RequiredArgsConstructor

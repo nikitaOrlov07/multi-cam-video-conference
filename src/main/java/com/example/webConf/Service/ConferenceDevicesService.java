@@ -1,7 +1,6 @@
 package com.example.webConf.service;
 
-import com.example.webConf.dto.Devices.DeviceSelectionDTO;
-import com.example.webConf.model.conference.Conference;
+import com.example.webConf.dto.devices.DeviceSelectionDTO;
 import com.example.webConf.model.devices.ConferenceDevices;
 
 import java.util.List;

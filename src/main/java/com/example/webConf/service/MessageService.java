@@ -1,7 +1,7 @@
 package com.example.webConf.service;
 
-import com.example.webConf.model.Chat.Chat;
-import com.example.webConf.model.Chat.Message;
+import com.example.webConf.model.chat.Chat;
+import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.user.UserEntity;
 import jakarta.transaction.Transactional;
 

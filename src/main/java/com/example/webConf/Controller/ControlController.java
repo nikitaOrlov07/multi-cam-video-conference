@@ -1,7 +1,7 @@
 package com.example.webConf.controller;
 
 import com.example.webConf.config.exception.AuthException;
-import com.example.webConf.dto.Registration.RegistrationDto;
+import com.example.webConf.dto.registration.RegistrationDto;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.role.RoleEntity;
 import com.example.webConf.model.settings.SettingsEntity;

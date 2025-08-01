@@ -1,19 +1,17 @@
 package com.example.webConf.model.user;
 
-import com.example.webConf.model.Chat.Chat;
-import com.example.webConf.model.Chat.Message;
+import com.example.webConf.model.attachment.Attachment;
+import com.example.webConf.model.chat.Chat;
+import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.role.RoleEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
-import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -104,22 +102,35 @@ public class UserEntity {
         }
     }
 
-    ///  Friends
-    @JsonIgnore
-    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-            name = "friends_invitation",joinColumns = {@JoinColumn(name ="user_id",referencedColumnName ="id")},
-            inverseJoinColumns ={@JoinColumn(name = "invited_id", referencedColumnName = "id")}
-    )
-    private List<UserEntity> invitedUsers = new ArrayList<>();
+    ///  Relationship logic
+//    @JsonIgnore
+//    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+//    @JoinTable(
+//            name = "friends_invitation",joinColumns = {@JoinColumn(name ="user_id",referencedColumnName ="id")},
+//            inverseJoinColumns ={@JoinColumn(name = "invited_id", referencedColumnName = "id")}
+//    )
+//    private List<UserEntity> invitedUsers = new ArrayList<>();
+//
+//    @JsonIgnore
+//    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
+//    @JoinTable(
+//            name = "friends",joinColumns = {@JoinColumn(name ="user_id",referencedColumnName ="id")},
+//            inverseJoinColumns ={@JoinColumn(name = "friend_id", referencedColumnName = "id")}
+//    )
+//    private List<UserEntity> friends = new ArrayList<>();
 
-    @JsonIgnore
-    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE})
-    @JoinTable(
-            name = "friends",joinColumns = {@JoinColumn(name ="user_id",referencedColumnName ="id")},
-            inverseJoinColumns ={@JoinColumn(name = "friend_id", referencedColumnName = "id")}
-    )
-    private List<UserEntity> friends = new ArrayList<>();
+    @OneToMany(mappedBy = "requester", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserRelationship> sentRequests = new ArrayList<>();
+
+    @OneToMany(mappedBy = "addressee", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<UserRelationship> receivedRequests = new ArrayList<>();
+
+    /// Attachments
+    @OneToMany(mappedBy = "user")
+    private List<Attachment> attachments;
+
+
+
 
 }
 

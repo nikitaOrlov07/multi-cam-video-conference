@@ -1,6 +1,6 @@
 package com.example.webConf.service;
 
-import com.example.webConf.dto.Registration.RegistrationDto;
+import com.example.webConf.dto.registration.RegistrationDto;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;

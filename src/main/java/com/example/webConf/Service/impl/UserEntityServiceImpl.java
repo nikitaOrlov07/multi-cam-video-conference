@@ -1,8 +1,8 @@
 package com.example.webConf.service.impl;
 
-import com.example.webConf.dto.Registration.RegistrationDto;
+import com.example.webConf.dto.registration.RegistrationDto;
 import com.example.webConf.mappers.UserEntityMapper;
-import com.example.webConf.model.Chat.Message;
+import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;
@@ -12,11 +12,9 @@ import com.example.webConf.repository.SettingsEntityRepository;
 import com.example.webConf.repository.UserConferenceJoinRepository;
 import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.security.SecurityUtil;
-import com.example.webConf.service.ChatService;
 import com.example.webConf.service.MessageService;
 import com.example.webConf.service.UserEntityService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -27,6 +25,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -186,7 +185,7 @@ public class UserEntityServiceImpl implements UserEntityService {
         for (String word : words) {
             users.addAll(userEntityRepository.searchByNameOrSurname(word));
         }
-        users = users.stream().distinct().toList();
+        users = users.stream().distinct().collect(Collectors.toList());
         log.info("Found {} users", users.size());
         return users;
     }

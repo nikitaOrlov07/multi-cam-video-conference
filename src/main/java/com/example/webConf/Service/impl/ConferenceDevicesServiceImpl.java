@@ -1,7 +1,7 @@
 package com.example.webConf.service.impl;
 
-import com.example.webConf.dto.Devices.CameraDTO;
-import com.example.webConf.dto.Devices.DeviceSelectionDTO;
+import com.example.webConf.dto.devices.CameraDTO;
+import com.example.webConf.dto.devices.DeviceSelectionDTO;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.repository.ConferenceDeviceRepository;
 import com.example.webConf.service.ConferenceDevicesService;
@@ -11,7 +11,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;

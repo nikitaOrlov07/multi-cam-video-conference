@@ -1,7 +1,7 @@
 package com.example.webConf.service;
 
-import com.example.webConf.dto.Conference.ConferenceDto;
-import com.example.webConf.model.Chat.Chat;
+import com.example.webConf.dto.conference.ConferenceDto;
+import com.example.webConf.model.chat.Chat;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.settings.SettingsEntity;
 import com.example.webConf.model.user.UserEntity;

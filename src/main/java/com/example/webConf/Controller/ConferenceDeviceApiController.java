@@ -1,8 +1,8 @@
 package com.example.webConf.controller;
 
 import com.example.webConf.config.exception.ConferenceException;
-import com.example.webConf.dto.Devices.AudioDeviceDTO;
-import com.example.webConf.dto.Devices.DeviceSelectionDTO;
+import com.example.webConf.dto.devices.AudioDeviceDTO;
+import com.example.webConf.dto.devices.DeviceSelectionDTO;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.repository.ConferenceDeviceRepository;
@@ -12,7 +12,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-import com.example.webConf.dto.Devices.CameraDTO;
+import com.example.webConf.dto.devices.CameraDTO;
 
 import java.util.*;
 

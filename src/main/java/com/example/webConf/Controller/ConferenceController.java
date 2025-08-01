@@ -2,9 +2,9 @@ package com.example.webConf.controller;
 
 import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.ConferenceException;
-import com.example.webConf.dto.Conference.ConferenceDto;
+import com.example.webConf.dto.conference.ConferenceDto;
 import com.example.webConf.mappers.ConferenceMapper;
-import com.example.webConf.model.Chat.Message;
+import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.devices.ConferenceDevices;
 import com.example.webConf.model.user.UserEntity;
@@ -13,7 +13,6 @@ import com.example.webConf.repository.ConferenceDeviceRepository;
 import com.example.webConf.repository.ConferenceRepository;
 import com.example.webConf.repository.UserConferenceJoinRepository;
 import com.example.webConf.repository.UserEntityRepository;
-import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ConferenceDevicesService;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.UserEntityService;
@@ -23,7 +22,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Controller;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
@@ -33,7 +31,6 @@ import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.net.URLDecoder;
-import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.util.Base64;
@@ -119,7 +116,6 @@ public class ConferenceController {
         model.addAttribute("userName", userName);
         model.addAttribute("conferenceId", conference.getId());
         model.addAttribute("password", conference.getPassword());
-        model.addAttribute("allUsers", userService.findAllUsers());
 
         ///  Chat logic
         if (conference.getChat() != null) {
