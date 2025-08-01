@@ -3,13 +3,280 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout}">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chat Room</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
-  <script th:src="@{/js/chatLogic.js}"></script>
-  <link rel="stylesheet" th:href="@{/css/chatStyles.css}" />
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Room</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <script th:src="@{/js/chatLogic.js}"></script>
+    <link rel="stylesheet" th:href="@{/css/chatStyles.css}"/>
+    <style>
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(4px);
+        }
+
+        .modal-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 5% auto;
+            padding: 0;
+            border: none;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-50px) scale(0.9);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .modal-header {
+            padding: 24px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            margin: 0;
+        }
+
+        .close {
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.2s ease;
+        }
+
+        .close:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: white;
+        }
+
+        .modal-body {
+            padding: 24px;
+            background: white;
+            border-radius: 0 0 16px 16px;
+        }
+
+        /* Toggle Switch */
+        .toggle-container {
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .toggle-label {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            margin: 0;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 52px;
+            height: 28px;
+            background: #ddd;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 2px solid #ddd;
+        }
+
+        .toggle-switch.active {
+            background: #667eea;
+            border-color: #667eea;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .toggle-switch.active .toggle-slider {
+            left: 26px;
+        }
+
+        .friends-label {
+            font-size: 14px;
+            color: #666;
+            margin: 0;
+        }
+
+        /* Search Input */
+        .search-container {
+            margin-bottom: 24px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            box-sizing: border-box;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* User List */
+        .user-list {
+            max-height: 300px;
+            overflow-y: auto;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+
+        .user-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.2s ease;
+        }
+
+        .user-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        .user-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .user-email {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .invite-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .invite-btn:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .invite-btn:active {
+            transform: translateY(0);
+        }
+
+        .no-users-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .invite-main-btn {
+            background: linear-gradient(135deg, #667eea 0%, #00449e 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 16px;
+            transition: all 0.2s ease;
+            margin-left: 12px;
+        }
+
+        .invite-main-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 </head>
 <body layout:fragment="body" id="chat">
 <div class="container" id="chat-page"
@@ -17,48 +284,231 @@
      th:data-username="${(user.name != null and not #strings.isEmpty(user.name)) ? user.name + ' ' + user.surname : user.surname}"
      th:data-chat-id="${chatId}"
      th:data-participants="${participants}">
-  <div class="projects-container">
-    <div class="projects-list">
-     <!--Messages -->
+    <div class="projects-container">
+        <div class="projects-list">
+            <!--Messages -->
+        </div>
     </div>
-  </div>
 </div>
 
 <div class="container controls-container">
-  <div class="admin-controls">
-      <form class="delete-btn" id="deleteChatForm">
-        <input type="submit" value="Delete Chat" class="btn btn-danger">
-      </form>
-    <form class="delete-btn" id="clearChatForm">
-      <input type="submit" value="Clear Messages" class="btn btn-danger">
-    </form>
-  </div>
+    <div class="admin-controls">
+        <form class="delete-btn" id="deleteChatForm">
+            <input type="submit" value="Delete Chat" class="btn btn-danger">
+        </form>
+        <form class="delete-btn" id="clearChatForm">
+            <input type="submit" value="Clear Messages" class="btn btn-danger">
+        </form>
+        <button type="button" class="invite-main-btn" onclick="openInviteModal()">
+            Invite Users
+        </button>
+    </div>
 
-  <div class="message-input-container">
-    <form id="messageForm">
-      <textarea id="commentText" name="text" placeholder="Write your message..." required rows="3" maxlength="300" oninput="updateCharCount()"></textarea>
-      <div class="char-count">
-        <span id="charCount">0</span>/300 characters
-      </div>
-      <input type="hidden" id="chatId" th:value="${chatId}" name="chat" />
-      <button type="submit" class="btn">Send Message</button>
-    </form>
-  </div>
+    <div class="message-input-container">
+        <form id="messageForm">
+            <textarea id="commentText" name="text" placeholder="Write your message..." required rows="3" maxlength="300"
+                      oninput="updateCharCount()"></textarea>
+            <div class="char-count">
+                <span id="charCount">0</span>/300 characters
+            </div>
+            <input type="hidden" id="chatId" th:value="${chatId}" name="chat"/>
+            <button type="submit" class="btn">Send Message</button>
+        </form>
+    </div>
 </div>
+<script>
+document.getElementById("messageForm").addEventListener("keydown" ,function(e) {
+    const textarea = document.getElementById("commentText");
 
+    // For just 'ENTER' -> submit form
+    if(e.key === "Enter" && !e.ctrlKey) {
+        e.preventDefault();
+        this.requestSubmit()
+    }
+    // For CTRL + ENTER -> move to next line
+    if(e.key === "Enter" && e.ctrlKey) {
+        e.preventDefault();
+        const cursorPos = textarea.selectionStart;
+        const text = textarea.value;
+        const newText = text.slice(0, cursorPos) + "\n" + text.slice(cursorPos);
+        textarea.value = newText;
+        const newCursorPos = cursorPos + 1;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
+        updateCharCount();
+    }
+})
+</script>
+<!--Invitation Window -->
+<div id="inviteModal" class="modal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h2 class="modal-title">Invite Users to Chat</h2>
+            <button class="close" onclick="closeInviteModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="toggle-container">
+                <label class="toggle-label">Search in:</label>
+                <div class="toggle-switch" id="friendsToggle" onclick="toggleFriendsFilter()">
+                    <div class="toggle-slider"></div>
+                </div>
+                <label class="friends-label">Friends only</label>
+            </div>
+
+            <div class="search-container">
+                <input type="text" id="userSearch" class="search-input" placeholder="Search users..."
+                       oninput="searchUsers()">
+            </div>
+
+            <div class="loading-spinner" id="loadingSpinner">
+                <div class="spinner"></div>
+                <p>Searching users...</p>
+            </div>
+
+            <div class="user-list" id="userList">
+                <div class="no-users-message">Enter a search term to find users</div>
+            </div>
+        </div>
+    </div>
+</div>
 <script th:inline="javascript">
-  /*<![CDATA[*/
-  var initialMessages = /*[[${messagesJson}]]*/ '[]'; // initial messages loaded
-  /*]]>*/
+    /*<![CDATA[*/
+    var initialMessages = /*[[${messagesJson}]]*/ '[]'; // initial messages loaded
+    var currentChatId = /*[[${chatId}]]*/ null;
+    /*]]>*/
 
-  function updateCharCount() {
-    const textarea = document.getElementById('commentText');
-    const charCount = textarea.value.length;
-    document.getElementById('charCount').textContent = charCount;
-  }
-  document.addEventListener('DOMContentLoaded', (event) => {
-    updateCharCount();
-  });
+    let isFriendsOnly = false;
+    let searchTimeout;
+
+    function updateCharCount() {
+        const textarea = document.getElementById('commentText');
+        const charCount = textarea.value.length;
+        document.getElementById('charCount').textContent = charCount;
+    }
+
+    function openInviteModal() {
+        document.getElementById('inviteModal').style.display = 'block';
+        document.body.style.overflow = 'hidden';
+    }
+
+    function closeInviteModal() {
+        document.getElementById('inviteModal').style.display = 'none';
+        document.body.style.overflow = 'auto';
+        // Reset modal state
+        document.getElementById('userSearch').value = '';
+        document.getElementById('userList').innerHTML = '<div class="no-users-message">Enter a search term to find users</div>';
+    }
+
+    function toggleFriendsFilter() {
+        const toggle = document.getElementById('friendsToggle');
+        isFriendsOnly = !isFriendsOnly;
+
+        if (isFriendsOnly) {
+            toggle.classList.add('active');
+        } else {
+            toggle.classList.remove('active');
+        }
+
+        // Re-search with new filter if there's a search term
+        const searchTerm = document.getElementById('userSearch').value.trim();
+        if (searchTerm) {
+            searchUsers();
+        }
+    }
+
+    function searchUsers() {
+        const searchTerm = document.getElementById('userSearch').value.trim();
+        const userList = document.getElementById('userList');
+        const loadingSpinner = document.getElementById('loadingSpinner');
+
+        if (searchTimeout) {
+            clearTimeout(searchTimeout);
+        }
+
+        if (searchTerm.length < 2) {
+            userList.innerHTML = '<div class="no-users-message">Enter at least 2 characters to search</div>';
+            return;
+        }
+
+        loadingSpinner.style.display = 'block';
+        userList.innerHTML = '';
+
+        searchTimeout = setTimeout(() => {
+            const params = new URLSearchParams({
+                search: searchTerm,
+                fromFriends: isFriendsOnly,
+                chatId: currentChatId
+            });
+
+            fetch(`/findUsers?${params}`)
+                .then(response => response.json())
+                .then(users => {
+                    loadingSpinner.style.display = 'none';
+                    displayUsers(users);
+                })
+                .catch(error => {
+                    console.error('Error searching users:', error);
+                    loadingSpinner.style.display = 'none';
+                    userList.innerHTML = '<div class="no-users-message">Error searching users. Please try again.</div>';
+                });
+        }, 300);
+    }
+
+    function displayUsers(users) {
+        const userList = document.getElementById('userList');
+
+        if (users.length === 0) {
+            userList.innerHTML = '<div class="no-users-message">No users found</div>';
+            return;
+        }
+
+        const userHTML = users.map(user => `
+      <div class="user-item">
+        <div class="user-info">
+          <div class="user-name">${user.surname || 'No Name'}</div>
+          <div class="user-email">${user.email}</div>
+        </div>
+        <button class="invite-btn" onclick="inviteUser(${user.id}, '${user.surname}')">
+          Invite to Chat
+        </button>
+      </div>
+    `).join('');
+
+        userList.innerHTML = userHTML;
+    }
+
+    function inviteUser(userId, userName) {
+
+        console.log(`Inviting user ${userId} (${userName}) to chat ${currentChatId}`);
+
+        fetch(`/chat/invitation/chat/${userId}/${currentChatId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        })
+            .then(response => {
+                if (response.ok) {
+                    alert(`${userName} has been invited to the chat!`);
+                } else {
+                    alert('Failed to invite user. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error inviting user:', error);
+                alert('Error inviting user. Please try again.');
+            });
+    }
+
+    window.onclick = function (event) {
+        const modal = document.getElementById('inviteModal');
+        if (event.target === modal) {
+            closeInviteModal();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', (event) => {
+        updateCharCount();
+    });
 </script>
 </body>
 </html>

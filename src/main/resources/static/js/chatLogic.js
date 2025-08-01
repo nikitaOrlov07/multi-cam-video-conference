@@ -4,7 +4,6 @@ let isFirstJoin = true;
 
 
 document.addEventListener('DOMContentLoaded', function () {
-    console.log("DOM fully loaded");
     const chatContainer = document.getElementById('chat-page');
     if (chatContainer) {
         console.log("Chat container found:", chatContainer);
@@ -12,9 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
         username = chatContainer.dataset.username;
         userEmail = chatContainer.dataset.useremail;
         participants = chatContainer.dataset.participants;
-        console.log("Chat info:", {chatId, username, userEmail, participants});
 
-        console.log("Username" , username)
         // Check if user have already logged in to this chat room for the first time (i store variable into localStorage, because every time the page refreshes, it'll be gone. )
         isFirstJoin = !localStorage.getItem(`hasJoined_${chatId}`);
         console.log("Is first join:", isFirstJoin);
@@ -148,9 +145,11 @@ function sendJoinMessage() {
         console.error("Cannot send join message: stompClient is not connected");
     }
 }
-function confirmAction(message){
+
+function confirmAction(message) {
     return confirm(message)
 }
+
 function showMessage(message) {
     if (!message.text || message.text.trim() === '') {
         console.log('Received empty message:', message);
@@ -173,8 +172,9 @@ function showMessage(message) {
         messageDiv.style.margin = '10px 0';
         messageDiv.style.fontStyle = 'italic';
         messageDiv.style.color = '#4a4a4a';
-    }
-    else if(message.type === 'INVITATION'){
+    } else if (message.type === 'CONFERENCE_INVITATION' || message.type === 'CHAT_INVITATION') {
+        console.log("sdsdsds" , message.type)
+
         messageDiv.className = "invitation-message";
         messageDiv.style.textAlign = 'center';
         messageDiv.style.backgroundColor = '#e6f3ff';
@@ -193,18 +193,29 @@ function showMessage(message) {
 
         const connectButton = document.createElement('button');
         connectButton.className = 'btn btn-primary';
-        connectButton.textContent = 'Connect';
         connectButton.style.padding = '8px 20px';
         connectButton.style.fontWeight = 'bold';
         connectButton.style.cursor = 'pointer';
-        connectButton.onclick = () => {
-            window.location.href = `/setDevices?userName=${username}&conferenceId=${message.text}`;
-        };
+        if (message.type === 'CONFERENCE_INVITATION') {
+            connectButton.textContent = 'Connect to the conference';
+            connectButton.onclick = () => {
+                window.location.href = `/setDevices?userName=${username}&conferenceId=${message.text}`;
+            };
+        } else {
+            console.log("Usernameand message author" , {username ,author: message.author})
+                if (username === message.author) {
+                connectButton.style.pointerEvents = 'none';
+                connectButton.textContent = 'Connect to the chat';
+                connectButton.onclick = () => {
+                    addUser()
+                };
+            }
+        }
+
 
         messageDiv.appendChild(inviteTitle);
         messageDiv.appendChild(connectButton);
-    }
-    else {
+    } else {
         const messageContent = document.createElement('div');
         const authorParagraph = document.createElement('p');
         const textParagraph = document.createElement('p');
@@ -219,7 +230,7 @@ function showMessage(message) {
             deleteButton.className = 'delete-message-btn';
             deleteButton.textContent = '✕';
             deleteButton.title = 'Delete message';
-            deleteButton.onclick = function(event) {
+            deleteButton.onclick = function (event) {
                 event.preventDefault();
                 event.stopPropagation();
                 if (confirmAction('Delete this message?')) {
@@ -276,6 +287,7 @@ function addUser() {
         }
     );
 }
+
 function sendMessage() {
     const messageInput = document.getElementById('commentText');
     const messageContent = messageInput.value.trim();
@@ -338,3 +350,36 @@ function updateCharCount() {
     const charCount = textarea.value.length;
     document.getElementById('charCount').textContent = charCount;
 }
+
+// async function sendFile() {
+//     const fileInput = document.getElementById('fileInput');
+//     const file = fileInput.files[0];
+//
+//     if (file) {
+//         const formData = new FormData();
+//         formData.append('file', file);
+//
+//         try {
+//             const response = await fetch('/api/upload', {
+//                 method: 'POST',
+//                 body: formData
+//             });
+//
+//             const fileInfo = await response.json();
+//
+//             const message = {
+//                 author: userEmail || username,
+//                 text: file.name,
+//                 type: 'FILE',
+//                 fileUrl: fileInfo.url,
+//                 fileName: file.name,
+//                 fileType: file.type,
+//                 fileSize: file.size
+//             };
+//
+//             stompClient.send("/app/chat/" + chatId + "/sendMessage", {}, JSON.stringify(message));
+//         } catch (error) {
+//             console.error('Ошибка загрузки файла:', error);
+//         }
+//     }
+// }

@@ -1,5 +1,6 @@
-package com.example.webConf.model.Chat;
+package com.example.webConf.model.chat;
 
+import com.example.webConf.model.attachment.Attachment;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -22,13 +23,14 @@ public class Chat {
     private Long id;
 
     @ToString.Exclude
-    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE , CascadeType.REFRESH})
+    @ManyToMany(fetch = FetchType.EAGER, cascade = {CascadeType.PERSIST, CascadeType.MERGE, CascadeType.REFRESH})
     @JoinTable(
             name = "users_chats",
             joinColumns = {@JoinColumn(name = "chat_id", referencedColumnName = "id")},
             inverseJoinColumns = {@JoinColumn(name = "user_id", referencedColumnName = "id")}
     )
     private List<UserEntity> participants = new ArrayList<>();
+
     public void addParticipant(UserEntity user) {
         if (!this.participants.contains(user)) {
             this.participants.add(user);
@@ -42,16 +44,19 @@ public class Chat {
             user.getChats().remove(this);
         }
     }
-  
-    @JsonIgnore
-    @ToString.Exclude
-    @OneToMany(mappedBy = "chat",fetch = FetchType.EAGER , cascade = CascadeType.ALL, orphanRemoval = true) // orphanRemoval child entities should be automatically deleted if they are no longer associated with the parent entity.
-    private List<Message> messages = new ArrayList<>();
-    @JsonIgnore
-    @ToString.Exclude
-    @OneToOne(mappedBy = "chat",fetch = FetchType.EAGER  , cascade = CascadeType.ALL)
-    private Conference conference;
 
+    // Message
+    @JsonIgnore
+    @ToString.Exclude
+    @OneToMany(mappedBy = "chat", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
+    // orphanRemoval child entities should be automatically deleted if they are no longer associated with the parent entity.
+    private List<Message> messages = new ArrayList<>();
+
+    // For Conference Chat
+    @JsonIgnore
+    @ToString.Exclude
+    @OneToOne(mappedBy = "chat", fetch = FetchType.EAGER, cascade = CascadeType.ALL)
+    private Conference conference;
 
     // without this -> will be error in ChatController - deleteChat
     @Override
@@ -66,4 +71,11 @@ public class Chat {
     public int hashCode() {
         return Objects.hash(getId());
     }
+
+    // Files
+    @ToString.Exclude
+    @JsonIgnore
+    @OneToMany(mappedBy = "chat", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Attachment> attachments = new ArrayList<>();
+
 }

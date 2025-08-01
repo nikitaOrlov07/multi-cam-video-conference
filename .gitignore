@@ -37,3 +37,4 @@ build/
 .jitsi-meet-cfg/jvb/
 .jitsi-meet-cfg/prosody/
 .jitsi-meet-cfg/web/
+/src/main/java/com/example/webConf/service/impl/EncryptionUtil.java
