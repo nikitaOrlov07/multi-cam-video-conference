@@ -64,10 +64,10 @@ function handleChatDeleted() {
     if (deleteChatForm) {
         deleteChatForm.style.display = 'none';
     }
-    // Add a delay before redirecting
+
     setTimeout(() => {
         window.location.href = '/home?chatWasDeleted';
-    }, 2000); // after 2 second will redirect to home page with parametr
+    }, 2000);
 }
 
 function handleChatCleared() {
@@ -78,6 +78,10 @@ function handleChatCleared() {
     clearedMessageDiv.className = 'chat-cleared-message';
     clearedMessageDiv.textContent = 'Chat was cleared';
     chatContainer.appendChild(clearedMessageDiv);
+
+    setTimeout(() => {
+        clearedMessageDiv.remove()
+    },5000)
 }
 
 function connect() {
@@ -99,13 +103,9 @@ function connect() {
 }
 
 function subscribeToChat(chatId) {
-    console.log("Subscribing to chat:", chatId);
     stompClient.subscribe('/topic/chat/' + chatId, function (response) {
-        console.log('Received message:', response.body);
         const message = JSON.parse(response.body);
-        console.log('Parsed message:', message);
         if (message.type === 'JOIN') {
-            console.log("Processing join message");
             showMessage(message);
         } else if (message.type === 'DELETE') {
             handleDeletedMessage(message);
@@ -120,7 +120,6 @@ function subscribeToChat(chatId) {
 }
 
 function handleDeletedMessage(message) {
-    console.log("Handling deleted message:", message);
     const messageId = message.text;
     const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
     if (messageElement) {
@@ -170,6 +169,7 @@ function showMessage(message) {
         messageDiv.style.fontStyle = 'italic';
         messageDiv.style.color = '#4a4a4a';
     } else if (message.type === 'CONFERENCE_INVITATION' || message.type === 'CHAT_INVITATION') {
+        console.log("Message type" , message.type)
         messageDiv.className = "invitation-message";
         messageDiv.style.textAlign = 'center';
         messageDiv.style.backgroundColor = '#e6f3ff';

@@ -20,6 +20,8 @@ public class Message {
     private String text;
     private String author;
     private String pubDate;
+
+    @Enumerated(EnumType.STRING)
     private MessageType type;
 
     @JsonIgnore

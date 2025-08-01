@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -26,10 +27,15 @@ public class MessageServiceImpl implements MessageService {
     private UserEntityService userService;
     @Autowired
     private ChatService chatService;
+    @Autowired
+    private EncoderService encoderService;
+    private MessageService messageService;
 
     @Override
-    public List<Message> findAllChatMessage(Long chaId) {
-        return messageRepository.findAllByChatId(chaId);
+    public List<Message> findAllChatMessage(Long chatId) {
+        return messageRepository.findAllByChatId(chatId).stream()
+                .peek(message -> message.setText(encoderService.decryptText(message.getText())))
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -45,8 +51,16 @@ public class MessageServiceImpl implements MessageService {
             message.setAuthor(user.getSurname()); // for temporary accounts
         }
 
+        // Encode message
+        String originalText = message.getText();
+        String encodedText = encoderService.encryptText(message.getText());
+        message.setText(encodedText);
+
         chatService.updateChat(chat);
-        return messageRepository.save(message);
+        messageRepository.save(message);
+
+        message.setText(originalText); // replace for displaying on page
+        return message;
     }
 
     @Override

@@ -13,6 +13,7 @@ import com.example.webConf.service.ChatService;
 import com.example.webConf.service.ConferenceService;
 import com.example.webConf.service.MessageService;
 import com.example.webConf.service.UserEntityService;
+import com.example.webConf.service.impl.EncoderService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.transaction.Transactional;
@@ -48,15 +49,17 @@ public class ChatController {
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
     private final SimpMessagingTemplate messagingTemplate;
+    private final EncoderService encoderService;
 
     @Autowired
-    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper, SimpMessagingTemplate messagingTemplate) {
+    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper, SimpMessagingTemplate messagingTemplate , EncoderService encoderService) {
         this.conferenceService = conferenceService;
         this.userService = userService;
         this.messageService = messageService;
         this.chatService = chatService;
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
+        this.encoderService = encoderService;
     }
 
     // find existing chat or create new beetween two people for "home-page"
