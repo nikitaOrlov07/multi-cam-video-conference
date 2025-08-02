@@ -146,54 +146,55 @@
                 </div>
 
                 <!-- Chats Section -->
-                <div th:if="${chats != null}" class="chats-section">
-                    <div>
+                <div class="chats-section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3 class="text-center mb-4">Your Chats</h3>
                         <button id="chat_refresh_button">🔂</button>
                     </div>
-                    <div th:if="${not #lists.isEmpty(chats)}" class="chat-list-container"
-                         style="overflow-y: auto ; max-height: 1000px" id="chat-list-container">
-                        <div th:each="chat : ${chats}" class="chat-item">
-                            <div class="chat-details">
-                                <strong th:text="'Chat ID: ' + ${chat.id}">Chat Id</strong>
-                                <!-- Participants Section -->
-                                <div class="chat-participants">
-                                    <strong>Participants:</strong>
-                                    <div class="participants-list">
-                                    <span th:each="participant : ${chat.participants}"
-                                          th:text="${participant.name}"
-                                          class="participant-name">
-                                        Participant Name
-                                    </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <!-- Open Chat Button -->
-                            <a th:href="@{/chat/{chatId}(chatId=${chat.id})}" class="btn btn-primary btn-chat">
-                                Open Chat
-                            </a>
-                        </div>
+
+                    <!-- Container for dynamic chat list -->
+                    <div class="chat-list-container"
+                         style="overflow-y: auto; max-height: 1000px"
+                         id="chat-list-container">
+                        <!-- Filled dynamically -->
                     </div>
 
-                    <!-- Message shown if there are no chats -->
-                    <div th:if="${#lists.isEmpty(chats)}" class="text-center">
+                    <!-- Placeholder for empty message -->
+                    <div id="empty-chats-message" class="text-center" style="display: none;">
                         <p>You don't have any active chats yet.</p>
                     </div>
                 </div>
 
                 <script>
-                    document.getElementById('chat_refresh_button').addEventListener('click', async () => {
+                    async function loadChats() {
                         try {
-                            const response = await fetch('/chats/getChats');
+                            console.log("Before Load Chats");
+                            const response = await fetch('/chat/getUserChats');
+                            console.log("After chat loads")
                             const chats = await response.json();
-                            const container = document.getElementById('chat_list_container');
-                            container.innerHTML = '';
 
-                            if (chats.length === 0) {
-                                container.innerHtml = `<p>You don\'t have any active chats yet.</p>`
+
+                            const container = document.getElementById('chat-list-container');
+                            const emptyMessage = document.getElementById('empty-chats-message');
+
+                            console.log("After container")
+                            container.innerHTML = ''; // Clear current chats
+
+                            if (chats.length === 0){
+                                console.log("No chats found.")
+                                emptyMessage.style.display = 'block';
+                                return;
                             }
+                            else
+                                console.log("Chats" , chats)
+
+                            emptyMessage.style.display = 'none';
+
                             chats.forEach(chat => {
-                                const participants = chat.participants.map(p => `<span class="participant-name">${p.name}</span>`); // string for participant info
+                                const participants = chat.participants
+                                    .map(p => `<span class="participant-name">${p.name}</span>`)
+                                    .join('');
+
                                 const chatHtml = `
           <div class="chat-item">
             <div class="chat-details">
@@ -208,12 +209,19 @@
             <a href="/chat/${chat.id}" class="btn btn-primary btn-chat">Open Chat</a>
           </div>
         `;
+
                                 container.innerHTML += chatHtml;
                             });
                         } catch (e) {
-                            console.error("Error while refreshing chat", e);
+                            console.error("Error while loading chats:", e);
                         }
-                    })
+                    }
+
+                    // Load chats on page load
+                    window.addEventListener('DOMContentLoaded', loadChats);
+
+                    // Refresh button
+                    document.getElementById('chat_refresh_button').addEventListener('click', loadChats);
                 </script>
                 <div class="flex flex-row gap-5">
                     <!-- Users/Friends Section with Search -->

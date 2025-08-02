@@ -150,10 +150,6 @@ class ChatManager {
             messageDiv.style.fontStyle = 'italic';
             messageDiv.style.color = '#4a4a4a';
         }
-        else if(message.type === 'INVITATION') {
-            messageDiv.className = "invitation-message";
-            messageDiv.textContent = messageText; // Исправляем эту строку
-        }
         else {
             const messageContent = document.createElement('div');
             const authorParagraph = document.createElement('p');

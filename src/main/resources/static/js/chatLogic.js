@@ -169,7 +169,6 @@ function showMessage(message) {
         messageDiv.style.fontStyle = 'italic';
         messageDiv.style.color = '#4a4a4a';
     } else if (message.type === 'CONFERENCE_INVITATION' || message.type === 'CHAT_INVITATION') {
-        console.log("Message type" , message.type)
         messageDiv.className = "invitation-message";
         messageDiv.style.textAlign = 'center';
         messageDiv.style.backgroundColor = '#e6f3ff';

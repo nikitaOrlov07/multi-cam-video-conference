@@ -330,8 +330,7 @@ document.getElementById("messageForm").addEventListener("keydown" ,function(e) {
         e.preventDefault();
         const cursorPos = textarea.selectionStart;
         const text = textarea.value;
-        const newText = text.slice(0, cursorPos) + "\n" + text.slice(cursorPos);
-        textarea.value = newText;
+        textarea.value = text.slice(0, cursorPos) + "\n" + text.slice(cursorPos);
         const newCursorPos = cursorPos + 1;
         textarea.setSelectionRange(newCursorPos, newCursorPos);
         updateCharCount();

@@ -298,7 +298,7 @@ public class ChatController {
     }
 
     /// Getting User Chats for refreshing "Chat section" on initial page
-    @GetMapping("/chat/getChats")
+    @GetMapping("/chat/getUserChats")
     public ResponseEntity<List<Chat>> getChats() {
         Optional<UserEntity> user = userService.findByEmail(SecurityUtil.getSessionUserEmail());
         return user.map(userEntity -> ResponseEntity.ok(chatService.findAllByParticipant(userEntity))).orElseGet(() -> ResponseEntity.ok(Collections.emptyList()));

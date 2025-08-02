@@ -175,6 +175,27 @@
         </div>
     </div>
 </div>
+<script>
+    document.getElementById("messageForm").addEventListener("keydown" ,function(e) {
+        const textarea = document.getElementById("commentText");
+
+        // For just 'ENTER' -> submit form
+        if(e.key === "Enter" && !e.ctrlKey) {
+            e.preventDefault();
+            this.requestSubmit()
+        }
+        // For CTRL + ENTER -> move to next line
+        if(e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault();
+            const cursorPos = textarea.selectionStart;
+            const text = textarea.value;
+            textarea.value = text.slice(0, cursorPos) + "\n" + text.slice(cursorPos);
+            const newCursorPos = cursorPos + 1;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+            updateCharCount();
+        }
+    })
+</script>
 
 <script th:inline="javascript">
     // Store any initial messages from the server
