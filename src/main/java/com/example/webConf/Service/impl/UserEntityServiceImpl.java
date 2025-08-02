@@ -171,7 +171,7 @@ public class UserEntityServiceImpl implements UserEntityService {
 
         user.setUserName(user.getName() + " " + user.getSurname());
 
-        if (registrationDto.getPassword() != null || !registrationDto.getPassword().isEmpty())
+        if (registrationDto.getPassword() != null  && !registrationDto.getPassword().trim().isEmpty())
             user.setPassword(passwordEncoder.encode(registrationDto.getPassword()));
 
     }
