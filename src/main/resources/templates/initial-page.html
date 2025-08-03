@@ -168,25 +168,19 @@
                 <script>
                     async function loadChats() {
                         try {
-                            console.log("Before Load Chats");
                             const response = await fetch('/chat/getUserChats');
-                            console.log("After chat loads")
                             const chats = await response.json();
 
 
                             const container = document.getElementById('chat-list-container');
                             const emptyMessage = document.getElementById('empty-chats-message');
 
-                            console.log("After container")
                             container.innerHTML = ''; // Clear current chats
 
                             if (chats.length === 0){
-                                console.log("No chats found.")
                                 emptyMessage.style.display = 'block';
                                 return;
                             }
-                            else
-                                console.log("Chats" , chats)
 
                             emptyMessage.style.display = 'none';
 
