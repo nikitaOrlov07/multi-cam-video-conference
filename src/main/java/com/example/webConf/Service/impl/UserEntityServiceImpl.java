@@ -142,7 +142,7 @@ public class UserEntityServiceImpl implements UserEntityService {
         ///  Find user messages
         List<Message> messages = messageService.findAllBySender_id(userEntity.getId());
         for (Message message : messages) {
-            messageService.deleteMessage(message, userEntity, message.getChat());
+            messageService.deleteMessage(message, message.getChat());
         }
         userEntityRepository.delete(userEntity);
     }

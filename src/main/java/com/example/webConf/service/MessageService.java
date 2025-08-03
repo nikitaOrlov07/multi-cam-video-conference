@@ -16,7 +16,7 @@ public interface MessageService {
     Optional<Message> findById(Long message);
 
     @Transactional
-    void deleteMessage(Message message, UserEntity user, Chat chat);
+    void deleteMessage(Message message, Chat chat);
 
     List<Message> findAllBySender_id(Long id);
 }

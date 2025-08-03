@@ -21,13 +21,10 @@ class ChatManager {
 
     connectChat() {
         return new Promise((resolve, reject) => {
-            console.log("Connecting to WebSocket...");
             const socket = new SockJS('/ws');
             this.stompClient = Stomp.over(socket);
 
             this.stompClient.connect({}, (frame) => {
-                console.log('Connected: ' + frame);
-                console.log('StompClient ready:', this.stompClient);
                 this.isConnected = true; // Устанавливаем флаг
 
                 if (this.chatId) {
@@ -60,15 +57,12 @@ class ChatManager {
 
     // Добавляем метод для подписки на конференцию
     subscribeToConferenceChat(conferenceId) {
-        console.log("Subscribing to conference chat:", conferenceId);
         this.stompClient.subscribe('/topic/conference/' + conferenceId + '/chat', (response) => {
-            console.log('Received conference chat message:', response.body);
             const message = JSON.parse(response.body);
 
             // Если получили chat ID от сервера
             if (message.chatId && !this.chatId) {
                 this.chatId = message.chatId;
-                console.log('Received chatId from server:', this.chatId);
                 this.subscribeToChat(this.chatId);
                 this.addUser();
             }
@@ -78,27 +72,21 @@ class ChatManager {
     // Subscribe to chat topic
     subscribeToChat(chatId) {
         if (!chatId) return;
-        console.log("Subscribing to chat:", chatId);
         this.chatId = chatId;
         this.stompClient.subscribe('/topic/chat/' + chatId, (response) => {
-            console.log('Received message:', response.body);
             const message = JSON.parse(response.body);
-            console.log('Parsed message:', message);
 
             if (message === null) {
-                console.log("User already in chat - no action needed");
                 return;
             }
 
             if (message.type === 'JOIN') {
-                console.log("Processing join message");
                 this.showMessage(message);
 
                 // If the message contains updated chat info, update our chatId
                 if (message.chat && message.chat.id && message.chat.id !== this.chatId) {
                     const oldChatId = this.chatId;
                     this.chatId = message.chat.id;
-                    console.log(`Changing chat ID from ${oldChatId} to ${this.chatId}`);
 
                     // Unsubscribe from old chat and subscribe to new one
                     this.stompClient.unsubscribe('/topic/chat/' + oldChatId);
@@ -122,7 +110,6 @@ class ChatManager {
     // Show message in chat
     showMessage(message) {
         if (!message.text && !message.content) {
-            console.log('Received empty message:', message);
             return;
         }
 
@@ -180,7 +167,6 @@ class ChatManager {
                 deleteButton.onclick = (event) => {
                     event.preventDefault();
                     event.stopPropagation();
-                    console.log("Delete button clicked for message:", message.id);
                     this.deleteMessage(message.id);
                 };
 
@@ -219,7 +205,6 @@ class ChatManager {
             return;
         }
 
-        console.log("Adding user to chat:", this.userName, this.chatId);
         console.debug("Sending data for add User", JSON.stringify({
             author: this.userName,
             type: 'JOIN',
@@ -239,7 +224,6 @@ class ChatManager {
 
     // Send message - улучшенная версия с проверками
     sendMessage() {
-        console.log("Conference Chat Sending message");
         const messageInput = document.getElementById('commentText');
 
         if (!messageInput) {
@@ -248,7 +232,6 @@ class ChatManager {
         }
 
         const messageContent = messageInput.value.trim();
-        console.log("Attempting to send message: " + messageContent);
 
         // Проверяем все необходимые условия
         if (!messageContent) {
@@ -271,7 +254,6 @@ class ChatManager {
             return;
         }
 
-        console.log("All checks passed, sending message");
         const message = {
             author: this.userName,
             text: messageContent,
@@ -281,7 +263,6 @@ class ChatManager {
         try {
             this.stompClient.send("/app/chat/" + this.chatId + "/sendMessage", {}, JSON.stringify(message));
             messageInput.value = '';
-            console.log("Message sent successfully");
         } catch (error) {
             console.error("Error sending message:", error);
         }
@@ -291,16 +272,10 @@ class ChatManager {
 
     // Delete message
     deleteMessage(messageId) {
-        console.log("deleteMessage function called with messageId:", messageId);
-        console.log("Current chatId:", this.chatId);
         if (this.stompClient && messageId && this.chatId) {
-            console.log("Attempting to delete message. ChatId:", this.chatId, "MessageId:", messageId);
             this.stompClient.send("/app/chat/" + this.chatId + "/deleteMessage", {}, JSON.stringify({messageId: messageId}));
         } else {
             console.error("Cannot delete message: stompClient is not connected, messageId is undefined, or chatId is undefined");
-            console.log("stompClient:", this.stompClient);
-            console.log("messageId:", messageId);
-            console.log("chatId:", this.chatId);
         }
     }
 
@@ -355,9 +330,7 @@ class ChatManager {
 
         const toggleChat = document.getElementById('toggleChat');
         if (toggleChat) {
-            console.log("Found toggle chat button, attaching event listener");
             toggleChat.addEventListener('click', () => {
-                console.log("Toggle chat button clicked");
                 this.toggleChatModal();
             });
         } else {
@@ -377,9 +350,7 @@ class ChatManager {
     toggleChatModal() {
         const modal = document.getElementById('chatModal');
         if (modal) {
-            console.log("Current display:", modal.style.display);
             modal.style.display = modal.style.display === 'block' ? 'none' : 'block';
-            console.log("New display:", modal.style.display);
         } else {
             console.error("Chat modal element not found");
         }

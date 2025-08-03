@@ -184,15 +184,23 @@
 
                             emptyMessage.style.display = 'none';
 
+                            console.log("Chats" , chats
+                            )
                             chats.forEach(chat => {
                                 const participants = chat.participants
                                     .map(p => `<span class="participant-name">${p.name}</span>`)
                                     .join('');
 
+                                const badgeLabel = chat.groupChat
+                                    ? `<span class="badge bg-primary">Group Chat</span>`
+                                    : `<span class="badge bg-secondary">Personal Chat</span>`;
                                 const chatHtml = `
           <div class="chat-item">
             <div class="chat-details">
+            <div style="display: flex; flex-direction: row; gap: 0.5rem">
               <strong>Chat ID: ${chat.id}</strong>
+              ${badgeLabel}
+            </div>
               <div class="chat-participants">
                 <strong>Participants:</strong>
                 <div class="participants-list">

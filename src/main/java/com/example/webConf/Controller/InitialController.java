@@ -72,8 +72,6 @@ public class InitialController {
                 model.addAttribute("userName", user.getUserName());
                 model.addAttribute("user", user);
 
-                // for chats section
-                model.addAttribute("chats", user.getChats());
 
                 // for user section
                 List<UserEntity> userWhoBlocked = userRelationshipRepository.findRequstersByAddresseeAndStatus(user, RelationshipStatus.BLOCKED);

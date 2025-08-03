@@ -70,9 +70,10 @@ public class MessageServiceImpl implements MessageService {
 
     @Transactional
     @Override
-    public void deleteMessage(Message message, UserEntity user, Chat chat) {
-        log.info("Deleting message with id {} , user {} , chat {}", message.getId(), user.getId(), chat.getId());
-        user.getMessages().remove(message);
+    public void deleteMessage(Message message, Chat chat) {
+        UserEntity user = message.getUser();
+        if(user != null)
+            user.getMessages().remove(message);
         chat.getMessages().remove(message);
         messageRepository.delete(message);
     }

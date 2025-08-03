@@ -463,7 +463,7 @@ document.getElementById("messageForm").addEventListener("keydown" ,function(e) {
         const userHTML = users.map(user => `
       <div class="user-item">
         <div class="user-info">
-          <div class="user-name">${user.surname || 'No Name'}</div>
+          <div class="user-name">${user.name || ''} ${user.surname || ''}</div>
           <div class="user-email">${user.email}</div>
         </div>
         <button class="invite-btn" onclick="inviteUser(${user.id}, '${user.surname}')">

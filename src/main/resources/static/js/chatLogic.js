@@ -6,7 +6,6 @@ let isFirstJoin = true;
 document.addEventListener('DOMContentLoaded', function () {
     const chatContainer = document.getElementById('chat-page');
     if (chatContainer) {
-        console.log("Chat container found:", chatContainer);
         chatId = chatContainer.dataset.chatId;
         username = chatContainer.dataset.username;
         userEmail = chatContainer.dataset.useremail;
@@ -14,7 +13,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         // Check if user have already logged in to this chat room for the first time (i store variable into localStorage, because every time the page refreshes, it'll be gone. )
         isFirstJoin = !localStorage.getItem(`hasJoined_${chatId}`);
-        console.log("Is first join:", isFirstJoin);
 
         connect();
 
@@ -81,15 +79,14 @@ function handleChatCleared() {
 
     setTimeout(() => {
         clearedMessageDiv.remove()
-    },5000)
+    }, 5000)
 }
 
 function connect() {
     const socket = new SockJS('/ws');
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
-        subscribeToChat(chatId);
-        addUser();
+        addUserToTheChat()
 
         if (isFirstJoin) {
             sendJoinMessage();
@@ -99,6 +96,49 @@ function connect() {
         JSON.parse(initialMessages).forEach(showMessage); // display saved messages from database
     }, function (error) {
         console.error('STOMP error:', error);
+    });
+}
+function addUserToTheChat(newChatId) {
+    const targetChatId = newChatId != null ? newChatId : chatId;
+
+    if (targetChatId !== chatId) {
+        console.log("Redirect to new chat");
+
+        addUserAndWait(targetChatId)
+            .then(() => {
+                console.log("User added successfully, redirecting...");
+                window.location.href = '/chat/' + targetChatId;
+            })
+            .catch((error) => {
+                console.error("Failed to add user:", error);
+                window.location.href = '/chat/' + targetChatId;
+            });
+        return;
+    }
+
+    subscribeToChat(targetChatId);
+    addUser(targetChatId);
+}
+function addUserAndWait(targetChatId) {
+    return new Promise((resolve, reject) => {
+        let resolved = false;
+        const subscription = stompClient.subscribe('/topic/chat/' + targetChatId, function(message) {
+            if (resolved) return;
+            const messageData = JSON.parse(message.body);
+            if (messageData.type === 'JOIN' && messageData.author === username) {
+                resolved = true;
+                subscription.unsubscribe();
+                setTimeout(() => resolve(), 200);
+            }
+        });
+        addUser(targetChatId, true);
+        setTimeout(() => {
+            if (!resolved) {
+                resolved = true;
+                subscription.unsubscribe();
+                reject(new Error("Timeout waiting for user to be added"));
+            }
+        }, 4000);
     });
 }
 
@@ -154,10 +194,8 @@ function showMessage(message) {
 
     const chatContainer = document.querySelector('.projects-list');
 
-
     const messageDiv = document.createElement('div');
     messageDiv.dataset.messageId = message.id;
-
     if (message.type === 'JOIN') {
         messageDiv.className = 'join-message';
         messageDiv.textContent = message.text;
@@ -181,32 +219,29 @@ function showMessage(message) {
         messageDiv.style.height = 'fit';
 
         const inviteTitle = document.createElement('h4');
-        inviteTitle.textContent = `${message.author} invites to join conference`
-        inviteTitle.style.margin = '0 0 15px 0';
-        inviteTitle.style.color = '#002352';
-
         const connectButton = document.createElement('button');
         connectButton.className = 'btn btn-primary';
         connectButton.style.padding = '8px 20px';
         connectButton.style.fontWeight = 'bold';
         connectButton.style.cursor = 'pointer';
         if (message.type === 'CONFERENCE_INVITATION') {
+            inviteTitle.textContent = `${message.author} invites to join conference`
+            inviteTitle.style.margin = '0 0 15px 0';
+            inviteTitle.style.color = '#002352';
             connectButton.textContent = 'Connect to the conference';
             connectButton.onclick = () => {
                 window.location.href = `/setDevices?userName=${username}&conferenceId=${message.text}`;
             };
         } else {
-            console.log("Usernameand message author" , {username ,author: message.author})
-                if (username === message.author) {
-                connectButton.style.pointerEvents = 'none';
-                connectButton.textContent = 'Connect to the chat';
-                connectButton.onclick = () => {
-                    addUser()
-                };
-            }
+            inviteTitle.textContent = `${message.author} invites to join chat`
+            inviteTitle.style.margin = '0 0 15px 0';
+            inviteTitle.style.color = '#002352';
+            connectButton.textContent = 'Connect to the chat';
+            connectButton.onclick = () => {
+                console.log("ChatId", message.text)
+                addUserToTheChat(message.text)
+            };
         }
-
-
         messageDiv.appendChild(inviteTitle);
         messageDiv.appendChild(connectButton);
     } else {
@@ -253,39 +288,16 @@ function showMessage(message) {
     chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
-function addUser() {
-    console.log("Adding user to chat:", username, chatId);
-    stompClient.send("/app/chat/" + chatId + "/addUser",
-        {},
-        JSON.stringify({author: username, type: 'JOIN', chat: {id: chatId}}),
-        function (response) {
-            console.log("Server response to addUser:", response);
-            if (response.body) {
-                let message = JSON.parse(response.body);
-                console.log("Parsed server response:", message);
-                if (message) {
-                    console.log('User added to chat or chat created');
-                    if (message.chat && message.chat.id !== chatId) {
-                        chatId = message.chat.id;
-                        stompClient.unsubscribe('/topic/chat/' + chatId);
-                        subscribeToChat(chatId);
-                        console.log("User added to new chat:", chatId);
-                        window.history.pushState({}, '', '/chat/' + chatId);
-                        isFirstJoin = true;
-                    }
-                } else {
-                    console.log('User already in chat');
-                    isFirstJoin = false;
-                }
-            }
-        }
-    );
+function addUser(targetChatId, addInvitation) {
+    console.log('addUser called:', {targetChatId , addInvitation})
+    const destination = "/app/chat/" + targetChatId + "/addUser";
+    stompClient.send(destination, {}, JSON.stringify({author: username, type: 'JOIN',invitation: addInvitation}));
+
 }
 
 function sendMessage() {
     const messageInput = document.getElementById('commentText');
     const messageContent = messageInput.value.trim();
-    console.log("Sent message: " + messageContent);
     if (messageContent && stompClient) {
         let message
         if (userEmail && userEmail.trim() !== '') // userEmail -> check if not null and not undefined
@@ -303,23 +315,16 @@ function sendMessage() {
             }
         }
         stompClient.send("/app/chat/" + chatId + "/sendMessage", {}, JSON.stringify(message));
-        console.log('Json message', JSON.stringify(message))
         messageInput.value = '';
     }
     updateCharCount();
 }
 
 function deleteMessage(messageId) {
-    console.log("deleteMessage function called with messageId:", messageId);
-    console.log("Current chatId:", chatId);
     if (stompClient && messageId && chatId) {
-        console.log("Attempting to delete message. ChatId:", chatId, "MessageId:", messageId);
         stompClient.send("/app/chat/" + chatId + "/deleteMessage", {}, JSON.stringify({messageId: messageId}));
     } else {
         console.error("Cannot delete message: stompClient is not connected, messageId is undefined, or chatId is undefined");
-        console.log("stompClient:", stompClient);
-        console.log("messageId:", messageId);
-        console.log("chatId:", chatId);
     }
 }
 

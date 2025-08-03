@@ -15,7 +15,9 @@ import com.example.webConf.repository.UserConferenceJoinRepository;
 import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.service.ConferenceDevicesService;
 import com.example.webConf.service.ConferenceService;
+import com.example.webConf.service.MessageService;
 import com.example.webConf.service.UserEntityService;
+import com.example.webConf.service.impl.EncoderService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
@@ -49,8 +51,7 @@ public class ConferenceController {
     private final UserConferenceJoinRepository userConferenceJoinRepository;
     private final UserEntityService userService;
     private final ObjectMapper objectMapper;
-    private final ConferenceDevicesService conferenceDevicesService;
-
+    private final MessageService messageService;
 
     @GetMapping("/join")
     public String joinConference(@RequestParam(value = "userName", required = false) String userName,
@@ -119,7 +120,7 @@ public class ConferenceController {
 
         ///  Chat logic
         if (conference.getChat() != null) {
-            List<Message> messages = conference.getChat().getMessages();
+            List<Message> messages = messageService.findAllChatMessage(conference.getChat().getId());
             model.addAttribute("messagesJson", objectMapper.writeValueAsString(messages));
             model.addAttribute("chatId", conference.getChat().getId());
         }

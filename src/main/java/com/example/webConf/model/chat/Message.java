@@ -35,4 +35,8 @@ public class Message {
     @ToString.Exclude
     @JsonIgnore
     private UserEntity user;
+
+    public Message(String text) {
+        this.text = text;
+    }
 }

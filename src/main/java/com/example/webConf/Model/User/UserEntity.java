@@ -119,14 +119,17 @@ public class UserEntity {
 //    )
 //    private List<UserEntity> friends = new ArrayList<>();
 
-    @OneToMany(mappedBy = "requester", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "requester", cascade = CascadeType.ALL, orphanRemoval = true , fetch = FetchType.EAGER)
+    @ToString.Exclude
     private List<UserRelationship> sentRequests = new ArrayList<>();
 
-    @OneToMany(mappedBy = "addressee", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "addressee", cascade = CascadeType.ALL, orphanRemoval = true , fetch = FetchType.EAGER)
+    @ToString.Exclude
     private List<UserRelationship> receivedRequests = new ArrayList<>();
 
     /// Attachments
     @OneToMany(mappedBy = "user")
+    @ToString.Exclude
     private List<Attachment> attachments;
 
 

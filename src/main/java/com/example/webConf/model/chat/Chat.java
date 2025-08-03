@@ -31,17 +31,21 @@ public class Chat {
     )
     private List<UserEntity> participants = new ArrayList<>();
 
+    private boolean groupChat = false;
     public void addParticipant(UserEntity user) {
         if (!this.participants.contains(user)) {
+            System.out.println("Adding participant " + user + " to chat " + this.id);
             this.participants.add(user);
             user.getChats().add(this);
         }
+        this.groupChat = participants != null && this.participants.size() > 2;
     }
 
     public void removeParticipant(UserEntity user) {
         if (this.participants.contains(user)) {
             this.participants.remove(user);
             user.getChats().remove(this);
+            this.groupChat = participants == null || this.participants.size() >= 2;
         }
     }
 
@@ -51,6 +55,13 @@ public class Chat {
     @OneToMany(mappedBy = "chat", fetch = FetchType.EAGER, cascade = CascadeType.ALL, orphanRemoval = true)
     // orphanRemoval child entities should be automatically deleted if they are no longer associated with the parent entity.
     private List<Message> messages = new ArrayList<>();
+
+    public void addMessage(Message message) {
+        if (!this.messages.contains(message)) {
+            this.messages.add(message);
+            message.setChat(this);
+        }
+    }
 
     // For Conference Chat
     @JsonIgnore

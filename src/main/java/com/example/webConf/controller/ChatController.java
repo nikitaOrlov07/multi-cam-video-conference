@@ -4,10 +4,14 @@ import com.example.webConf.config.exception.AuthException;
 import com.example.webConf.config.exception.ChatException;
 import com.example.webConf.config.message.DeleteMessageRequest;
 import com.example.webConf.config.message.MessageType;
+import com.example.webConf.dto.message.MessageView;
+import com.example.webConf.mappers.ConferenceMapper;
+import com.example.webConf.mappers.MessageMapper;
 import com.example.webConf.model.chat.Chat;
 import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
+import com.example.webConf.repository.ChatRepository;
 import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ChatService;
 import com.example.webConf.service.ConferenceService;
@@ -49,17 +53,17 @@ public class ChatController {
     private final ObjectMapper objectMapper;
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
     private final SimpMessagingTemplate messagingTemplate;
-    private final EncoderService encoderService;
+    private final ChatRepository chatRepository;
 
     @Autowired
-    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper, SimpMessagingTemplate messagingTemplate , EncoderService encoderService) {
+    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper, SimpMessagingTemplate messagingTemplate, ChatRepository chatRepository) {
         this.conferenceService = conferenceService;
         this.userService = userService;
         this.messageService = messageService;
         this.chatService = chatService;
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
-        this.encoderService = encoderService;
+        this.chatRepository = chatRepository;
     }
 
     // find existing chat or create new beetween two people for "home-page"
@@ -112,18 +116,21 @@ public class ChatController {
         message.setUser(user);
         message.setPubDate(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
-        messageService.saveMessage(message, chatId, user);
+        messageService.saveMessage(message, chatId , user);
 
         return message;
     }
 
     @MessageMapping("/chat/{chatId}/addUser")
     @SendTo("/topic/chat/{chatId}")
-    public Message addUser(@DestinationVariable Long chatId, @Payload Message message,
+    @Transactional
+    public MessageView addUser(@DestinationVariable Long chatId,
+                           @Payload MessageView messageView,
                            SimpMessageHeaderAccessor headerAccessor) {
 
         Chat chat = chatService.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
         UserEntity currentUser = null;
+        Message message = MessageMapper.getMessageFromMessageView(messageView);
 
         if (chat.getConference() != null) { // if it is conference chat -> look user by userName
             currentUser = userService.findUserByUsername(message.getAuthor()).orElse(null);
@@ -136,35 +143,42 @@ public class ChatController {
 
         String author = message.getAuthor();
 
-        Conference project = conferenceService.findConferenceByChat(chat);
+        Conference conference = conferenceService.findConferenceByChat(chat);
 
         // Check if the user is already in the chat
-        if (!chat.getParticipants().contains(currentUser) && project == null) {
-            Optional<UserEntity> otherUser = userService.findById(
-                    chat.getParticipants().stream()
-                            .filter(u -> !u.getEmail().equals(author) && !u.getUserName().equals(author))
-                            .findFirst()
-                            .orElseThrow()
-                            .getId()
-            );
+        if (conference == null && !chat.getParticipants().contains(currentUser)) {
+            if (!messageView.isInvitation()) {
+                Optional<UserEntity> otherUser = userService.findById(
+                        chat.getParticipants().stream()
+                                .filter(u -> !u.getEmail().equals(author) && !u.getUserName().equals(author))
+                                .findFirst()
+                                .orElseThrow()
+                                .getId()
+                );
 
-            chat = chatService.findOrCreateChat(currentUser, otherUser.get());
+                chat = chatService.findOrCreateChat(currentUser, otherUser.get());
 
-            // if a new chat was created -> update id
-            if (!chat.getId().equals(chatId)) {
-                message.setChat(chat);
+                // if a new chat was created -> update id
+                if (!chat.getId().equals(chatId)) {
+                    message.setChat(chat);
+                }
+
+                return MessageMapper.getMessageViewFromMessage(message);
+            } else {
+                // User want to join to chat by invitation
+                chat.addParticipant(currentUser);
+                chat.addMessage(message);
+                chatRepository.save(chat);
+                return MessageMapper.getMessageViewFromMessage(message);
             }
-
-            return message;
-        } else {
-            // user is already a member of the chat
-            return null;
         }
+
+        return null;
     }
 
     @MessageMapping("/chat/{chatId}/delete")
-    @SendTo("/topic/chat/{chatId}") // TODO -> fix
-    public Message deleteChat(@DestinationVariable Long chatId, Principal principal) {
+    @SendTo("/topic/chat/{chatId}")
+    public MessageView deleteChat(@DestinationVariable Long chatId, Principal principal) {
         String email = SecurityUtil.getSessionUserEmail(principal);
         UserEntity user = userService.findByEmail(email).orElseThrow(() -> new AuthException("User not found"));
         Chat chat = chatService.findById(chatId).orElseThrow();
@@ -180,7 +194,7 @@ public class ChatController {
         if (chat != null && userInChat && chatInUserChats) {
             chatService.delete(chat);
             logger.info("Chat was deleted successfully");
-            return Message.builder()
+            return MessageView.builder()
                     .type(MessageType.CHAT_DELETED)
                     .author(email)
                     .text("Chat deleted")
@@ -194,22 +208,22 @@ public class ChatController {
     @MessageMapping("/chat/{chatId}/deleteMessage")
     @SendTo("/topic/chat/{chatId}")
     @Transactional
-    public Message deleteMessage(@DestinationVariable Long chatId, @Payload DeleteMessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
+    public MessageView deleteMessage(@DestinationVariable Long chatId, @Payload DeleteMessageRequest request, SimpMessageHeaderAccessor headerAccessor) {
         UserEntity user = userService.findByEmail(SecurityUtil.getSessionUserEmail(headerAccessor.getUser())).orElseThrow(() -> new AuthException("User not found"));
         Message message = messageService.findById(request.getMessageId()).orElseThrow(() -> new ChatException("Message not found"));
         Chat chat = chatService.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
         if (message != null && chat != null && message.getUser().equals(user)) {
-            messageService.deleteMessage(message, user, chat);
+            messageService.deleteMessage(message, chat);
             logger.info("Message deleted successfully");
             if (user.getEmail() != null && !user.getEmail().isEmpty()) {
-                return Message.builder() // for permanent users
+                return MessageView.builder() // for permanent users
                         .type(MessageType.DELETE)
                         .author(user.getEmail())
                         .id(request.getMessageId())
                         .text(request.getMessageId().toString())
                         .build();
             } else {
-                return Message.builder() // for temporary users
+                return MessageView.builder() // for temporary users
                         .type(MessageType.DELETE)
                         .author(user.getSurname())
                         .id(request.getMessageId())
@@ -226,7 +240,7 @@ public class ChatController {
 
     @MessageMapping("/chat/{chatId}/clear")
     @SendTo("/topic/chat/{chatId}")
-    public Message clearChat(@DestinationVariable Long chatId,
+    public MessageView clearChat(@DestinationVariable Long chatId,
                              SimpMessageHeaderAccessor headerAccessor) {
         String email = SecurityUtil.getSessionUserEmail(headerAccessor.getUser());
         UserEntity currentUser = userService.findByEmail(email).orElseThrow(() -> new AuthException("User not found"));
@@ -251,7 +265,7 @@ public class ChatController {
 
         if (chat != null && ((chatInUserChats && userInChat) || (conference != null && userInProject))) {
             chatService.clearMessages(chat);
-            return Message.builder()
+            return MessageView.builder()
                     .type(MessageType.CLEAR)
                     .author("")
                     .text("Chat was cleared")
@@ -265,9 +279,9 @@ public class ChatController {
 
     /// Invitations
     @PostMapping("/chat/invitation/{type}/{userId}/{id}")
-    public ResponseEntity<?> sendInvitationToConference(@PathVariable Long userId,
-                                                        @PathVariable String id,
-                                                        @PathVariable String type) {
+    public ResponseEntity<?> sendInvitation(@PathVariable Long userId,
+                                            @PathVariable String id,
+                                            @PathVariable String type) {
         UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail())
                 .orElseThrow(() -> new AuthException("User not found"));
         UserEntity sendToUser = userService.findById(userId)

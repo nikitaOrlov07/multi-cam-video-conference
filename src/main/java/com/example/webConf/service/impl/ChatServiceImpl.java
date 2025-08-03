@@ -106,7 +106,7 @@ public class ChatServiceImpl implements ChatService {
         if (chat.getMessages() != null) {
             List<Message> messagesToDelete = new ArrayList<>(chat.getMessages());
             for (Message message : messagesToDelete) {
-                messageService.deleteMessage(message, message.getUser(), chat);
+                messageService.deleteMessage(message , chat);
             }
             chat.getMessages().clear();
         }
@@ -127,7 +127,7 @@ public class ChatServiceImpl implements ChatService {
         List<Message> messages = new ArrayList<>(managedChat.getMessages());
         for (Message message : messages) {
             managedChat.getMessages().remove(message);
-            messageService.deleteMessage(message,message.getUser(),chat);
+            messageService.deleteMessage(message, chat);
         }
 
         managedChat.getMessages().clear();
