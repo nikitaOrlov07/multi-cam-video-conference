@@ -25,6 +25,7 @@ import jakarta.transaction.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -56,9 +57,10 @@ public class ChatController {
     private static final Logger logger = LoggerFactory.getLogger(ChatController.class);
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatRepository chatRepository;
+    private final UserEntityRepository userRepository;
 
     @Autowired
-    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper, SimpMessagingTemplate messagingTemplate, ChatRepository chatRepository) {
+    public ChatController(ConferenceService conferenceService, UserEntityService userService, MessageService messageService, ChatService chatService, ObjectMapper objectMapper, SimpMessagingTemplate messagingTemplate, ChatRepository chatRepository, UserEntityRepository userRepository) {
         this.conferenceService = conferenceService;
         this.userService = userService;
         this.messageService = messageService;
@@ -66,6 +68,7 @@ public class ChatController {
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
         this.chatRepository = chatRepository;
+        this.userRepository = userRepository;
     }
 
     // find existing chat or create new beetween two people for "home-page"
@@ -326,13 +329,17 @@ public class ChatController {
     public ResponseEntity<?> createChat() {
         UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElseThrow(() -> new AuthException("User not found"));
         // User can have only one single chat (for saving resources)
-        List<Chat> singleChats = currentUser.getChats().stream().filter(chat -> chat.getType().equals(Chat.ChatType.SINGLE)).toList();
-        if (singleChats.size() >= 2) {
-            throw new ChatException("You can have only one single chat");
+        List<Chat> singleChats = currentUser.getChats().stream().filter(chat -> (chat.getType() != null && chat.getType().equals(Chat.ChatType.SINGLE))).toList();
+        if (singleChats.size() > 1) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         Chat chat = new Chat();
-        chat.setParticipants(Collections.singletonList(currentUser));
+        chat.addParticipant(currentUser);
         chat = chatRepository.save(chat);
+        userRepository.save(currentUser);
         return ResponseEntity.ok(chat.getId());
     }
+    /// Get List of users for chat
+//    @GetMapping()
+//    publiv Respo
 }

@@ -174,7 +174,7 @@
                 <script>
                     async function createChat() {
                         try {
-                            if(!confirm("Are you sure you want to create chat\n(It can only be a single member chat)?"))
+                            if (!confirm("Are you sure you want to create chat\n(It can only be a single member chat)?"))
                                 return;
 
                             const response = await fetch(`/chat/create`, {
@@ -185,7 +185,11 @@
                             })
 
                             if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
+                                if (response.status === 403) {
+                                    alert("You can create only one SINGLE chat\nAdd users to the existing SINGLE chat before creating new ones.")
+                                    return
+                                } else
+                                    alert("Error while creating chat")
                             }
                             const chatId = await response.text()
 
