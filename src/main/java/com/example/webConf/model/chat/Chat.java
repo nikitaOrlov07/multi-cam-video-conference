@@ -31,22 +31,42 @@ public class Chat {
     )
     private List<UserEntity> participants = new ArrayList<>();
 
-    private boolean groupChat = false;
+    @Enumerated(EnumType.STRING)
+    private ChatType type = ChatType.SINGLE;
+
+    public enum ChatType {
+        SINGLE, // for one user (can be only one chat)
+        PERSONAL, // for two users
+        GROUP // for more than two users
+    }
+
     public void addParticipant(UserEntity user) {
         if (!this.participants.contains(user)) {
             System.out.println("Adding participant " + user + " to chat " + this.id);
             this.participants.add(user);
             user.getChats().add(this);
         }
-        this.groupChat = participants != null && this.participants.size() > 2;
+        // Setting chat type
+        if(participants.size() == 1)
+            this.type = ChatType.SINGLE;
+        else if(participants.size() == 2)
+            this.type = ChatType.PERSONAL;
+        else if(participants.size() >= 3)
+            this.type = ChatType.GROUP;
     }
 
     public void removeParticipant(UserEntity user) {
         if (this.participants.contains(user)) {
             this.participants.remove(user);
             user.getChats().remove(this);
-            this.groupChat = participants == null || this.participants.size() >= 2;
         }
+        // Setting chat type
+        if(participants.size() == 1)
+            this.type = ChatType.SINGLE;
+        else if(participants.size() == 2)
+            this.type = ChatType.PERSONAL;
+        else if(participants.size() >= 3)
+            this.type = ChatType.GROUP;
     }
 
     // Message
@@ -90,3 +110,4 @@ public class Chat {
     private List<Attachment> attachments = new ArrayList<>();
 
 }
+

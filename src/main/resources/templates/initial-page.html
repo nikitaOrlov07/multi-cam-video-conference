@@ -149,10 +149,12 @@
                 <div class="chats-section">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h3 class="text-center mb-4">Your Chats</h3>
-                        <button id="chat_refresh_button">🔂</button>
-                        <button id="create_new_chat"
-                                onclick="createChat()">Create Chat
-                        </button>
+                        <div>
+                            <button id="chat_refresh_button">🔂</button>
+                            <button id="create_new_chat"
+                                    onclick="createChat()">Create Chat
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Container for dynamic chat list -->
@@ -170,20 +172,25 @@
 
                 <!--Script for creating new chat-->
                 <script>
-                    async function createChat(){
-                        try{
-                        const response = await fetch(`/chat/create`,{
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
+                    async function createChat() {
+                        try {
+                            if(!confirm("Are you sure you want to create chat\n(It can only be a single member chat)?"))
+                                return;
+
+                            const response = await fetch(`/chat/create`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                }
+                            })
+
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
                             }
-                        })
-                        if (!response.ok) {
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        const chatId = await response.text()
-                        window.location.href = `/chat/${chatId}`}
-                        catch (e){
+                            const chatId = await response.text()
+
+                            window.location.href = `/chat/${chatId}`
+                        } catch (e) {
                             console.error("Error while creating chat: ", e);
                         }
                     }
@@ -213,10 +220,13 @@
                                 const participants = chat.participants
                                     .map(p => `<span class="participant-name">${p.name}</span>`)
                                     .join('');
+                                const badges = {
+                                    GROUP: `<span class="badge bg-primary">Group Chat</span>`,
+                                    PERSONAL: `<span class="badge bg-secondary">Personal Chat</span>`,
+                                    SINGLE: `<span class="badge bg-success">Single Chat</span>`
+                                };
 
-                                const badgeLabel = chat.groupChat
-                                    ? `<span class="badge bg-primary">Group Chat</span>`
-                                    : `<span class="badge bg-secondary">Personal Chat</span>`;
+                                const badgeLabel = badges[chat.type] ?? `<span class="badge bg-secondary">Unknown type</span>`
                                 const chatHtml = `
           <div class="chat-item">
             <div class="chat-details">
@@ -482,6 +492,7 @@
                     </div>
                 </div>
             </div>
+            <!--Conferences -->
             <script th:inline="javascript">
                 $(document).ready(function () {
                     const pastConferences = /*[[${pastConferences}]]*/ [];
@@ -681,6 +692,7 @@
         </div>
     </div>
 </div>
+<!-- Script for users section -->
 <script>
     if (typeof jQuery !== 'undefined') {
         $(document).ready(function () {

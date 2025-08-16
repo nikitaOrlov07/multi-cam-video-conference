@@ -44,6 +44,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Controller
 public class ChatController {
@@ -324,6 +325,11 @@ public class ChatController {
     @PostMapping("/chat/create")
     public ResponseEntity<?> createChat() {
         UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElseThrow(() -> new AuthException("User not found"));
+        // User can have only one single chat (for saving resources)
+        List<Chat> singleChats = currentUser.getChats().stream().filter(chat -> chat.getType().equals(Chat.ChatType.SINGLE)).toList();
+        if (singleChats.size() >= 2) {
+            throw new ChatException("You can have only one single chat");
+        }
         Chat chat = new Chat();
         chat.setParticipants(Collections.singletonList(currentUser));
         chat = chatRepository.save(chat);
