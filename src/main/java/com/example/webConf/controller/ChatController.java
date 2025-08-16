@@ -12,6 +12,7 @@ import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.repository.ChatRepository;
+import com.example.webConf.repository.UserEntityRepository;
 import com.example.webConf.security.SecurityUtil;
 import com.example.webConf.service.ChatService;
 import com.example.webConf.service.ConferenceService;
@@ -116,7 +117,7 @@ public class ChatController {
         message.setUser(user);
         message.setPubDate(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
 
-        messageService.saveMessage(message, chatId , user);
+        messageService.saveMessage(message, chatId, user);
 
         return message;
     }
@@ -125,8 +126,8 @@ public class ChatController {
     @SendTo("/topic/chat/{chatId}")
     @Transactional
     public MessageView addUser(@DestinationVariable Long chatId,
-                           @Payload MessageView messageView,
-                           SimpMessageHeaderAccessor headerAccessor) {
+                               @Payload MessageView messageView,
+                               SimpMessageHeaderAccessor headerAccessor) {
 
         Chat chat = chatService.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
         UserEntity currentUser = null;
@@ -241,7 +242,7 @@ public class ChatController {
     @MessageMapping("/chat/{chatId}/clear")
     @SendTo("/topic/chat/{chatId}")
     public MessageView clearChat(@DestinationVariable Long chatId,
-                             SimpMessageHeaderAccessor headerAccessor) {
+                                 SimpMessageHeaderAccessor headerAccessor) {
         String email = SecurityUtil.getSessionUserEmail(headerAccessor.getUser());
         UserEntity currentUser = userService.findByEmail(email).orElseThrow(() -> new AuthException("User not found"));
         Chat chat = chatService.findById(chatId).orElseThrow();
@@ -317,5 +318,15 @@ public class ChatController {
         Optional<UserEntity> user = userService.findByEmail(SecurityUtil.getSessionUserEmail());
         return user.map(userEntity -> ResponseEntity.ok(chatService.findAllByParticipant(userEntity))).orElseGet(() -> ResponseEntity.ok(Collections.emptyList()));
 
+    }
+
+    /// Create new chat
+    @PostMapping("/chat/create")
+    public ResponseEntity<?> createChat() {
+        UserEntity currentUser = userService.findByEmail(SecurityUtil.getSessionUserEmail()).orElseThrow(() -> new AuthException("User not found"));
+        Chat chat = new Chat();
+        chat.setParticipants(Collections.singletonList(currentUser));
+        chat = chatRepository.save(chat);
+        return ResponseEntity.ok(chat.getId());
     }
 }
