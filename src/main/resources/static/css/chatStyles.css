@@ -594,3 +594,295 @@ body {
 .message-right .file-container {
     align-items: flex-end;
 }
+.message-input-container {
+    padding: 15px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+/* Скрытый file input */
+.file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* Стиль кнопки выбора файла */
+.file-select-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 18px;
+    text-decoration: none;
+    color: #495057;
+}
+
+.file-select-btn:hover {
+    background: #e9ecef;
+    border-color: #007bff;
+    color: #007bff;
+    transform: scale(1.05);
+}
+
+/* Стили для предпросмотра файла */
+.selected-file-preview {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f8f9fa;
+    border: 1px solid #dee2e6;
+    border-radius: 6px;
+    display: none;
+}
+
+.selected-file {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.file-icon {
+    font-size: 24px;
+    min-width: 30px;
+    text-align: center;
+}
+
+.file-info {
+    flex: 1;
+}
+
+.file-name {
+    font-weight: 500;
+    color: #333;
+    word-break: break-word;
+    margin-bottom: 4px;
+}
+
+.file-size {
+    font-size: 12px;
+    color: #666;
+}
+
+.clear-file-btn {
+    background: #dc3545;
+    color: white;
+    border: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.3s;
+}
+
+.clear-file-btn:hover {
+    background: #c82333;
+}
+
+/* Прогресс-бар загрузки */
+.upload-progress-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.7);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.upload-progress-content {
+    background: white;
+    padding: 30px;
+    border-radius: 10px;
+    min-width: 350px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.upload-progress-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+    font-weight: 500;
+}
+
+.upload-progress-bar {
+    width: 100%;
+    height: 8px;
+    background: #e9ecef;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 15px;
+}
+
+.upload-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #28a745, #20c997);
+    width: 0%;
+    transition: width 0.3s ease;
+}
+
+.upload-cancel-btn {
+    padding: 8px 16px;
+    background: #6c757d;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.upload-cancel-btn:hover {
+    background: #5a6268;
+}
+
+/* Адаптивность */
+@media (max-width: 600px) {
+    .form-buttons {
+        flex-wrap: wrap;
+    }
+
+    .file-select-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+}
+.participants-container {
+    margin-top: 20px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+}
+
+.participants-container h3 {
+    margin-bottom: 10px;
+    font-size: 1.2em;
+    color: #333;
+}
+
+.participants-list {
+    list-style: none;
+    padding: 0;
+}
+
+.participants-list li {
+    padding: 5px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 1em;
+    color: #555;
+}
+
+.participants-list li:last-child {
+    border-bottom: none;
+}
+
+.participant-name {
+    font-weight: 500;
+}
+.main-layout {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.chat-section {
+    flex: 1;
+    min-width: 0;
+}
+
+.sidebar {
+    width: 250px;
+    flex-shrink: 0;
+}
+
+.desktop-only {
+    display: block;
+}
+
+.mobile-only {
+    display: none;
+}
+
+.participants-container {
+    padding: 20px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.95);
+    height: fit-content;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.participants-container h3 {
+    margin-bottom: 15px;
+    font-size: 1.2em;
+    color: #333;
+    border-bottom: 2px solid #007bff;
+    padding-bottom: 8px;
+}
+
+.participants-list {
+    list-style: none;
+    padding: 0;
+}
+
+.participants-list li {
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
+    font-size: 1em;
+    color: #555;
+}
+
+.participants-list li:last-child {
+    border-bottom: none;
+}
+
+.participant-name {
+    font-weight: 500;
+}
+
+@media (max-width: 992px) {
+    .main-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+    }
+
+    .desktop-only {
+        display: none;
+    }
+
+    .mobile-only {
+        display: block;
+    }
+}

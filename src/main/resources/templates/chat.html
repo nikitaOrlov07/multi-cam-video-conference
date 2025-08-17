@@ -191,6 +191,119 @@
                 font-size: 16px;
             }
         }
+        .participants-container {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+
+        .participants-container h3 {
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            color: #333;
+        }
+
+        .participants-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .participants-list li {
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 1em;
+            color: #555;
+        }
+
+        .participants-list li:last-child {
+            border-bottom: none;
+        }
+
+        .participant-name {
+            font-weight: 500;
+        }
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            align-items: flex-start;
+        }
+
+        .chat-section {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .sidebar {
+            width: 250px;
+            flex-shrink: 0;
+        }
+
+        .desktop-only {
+            display: block;
+        }
+
+        .mobile-only {
+            display: none;
+        }
+
+        .participants-container {
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: rgba(255, 255, 255, 0.95);
+            height: fit-content;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .participants-container h3 {
+            margin-bottom: 15px;
+            font-size: 1.2em;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 8px;
+        }
+
+        .participants-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .participants-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 1em;
+            color: #555;
+        }
+
+        .participants-list li:last-child {
+            border-bottom: none;
+        }
+
+        .participant-name {
+            font-weight: 500;
+        }
+
+        @media (max-width: 992px) {
+            .main-layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .desktop-only {
+                display: none;
+            }
+
+            .mobile-only {
+                display: block;
+            }
+        }
+
     </style>
 </head>
 <body layout:fragment="body" id="chat">
@@ -206,44 +319,68 @@
     </div>
 </div>
 
-<div class="container controls-container">
-    <div class="admin-controls">
-        <form class="delete-btn" id="deleteChatForm">
-            <input type="submit" value="Delete Chat" class="btn btn-danger">
-        </form>
-        <form class="delete-btn" id="clearChatForm">
-            <input type="submit" value="Clear Messages" class="btn btn-danger">
-        </form>
-        <button type="button" class="invite-main-btn" onclick="openInviteModal()">
-            Invite Users
-        </button>
-    </div>
+<div class="container">
+    <div class="main-layout">
+        <div class="chat-section">
+            <div class="controls-container">
+                <div class="admin-controls">
+                    <form class="delete-btn" id="deleteChatForm">
+                        <input type="submit" value="Delete Chat" class="btn btn-danger">
+                    </form>
+                    <form class="delete-btn" id="clearChatForm">
+                        <input type="submit" value="Clear Messages" class="btn btn-danger">
+                    </form>
+                    <button type="button" class="invite-main-btn" onclick="openInviteModal()">
+                        Invite Users
+                    </button>
+                </div>
 
-    <div class="message-input-container">
-        <form id="messageForm">
-        <textarea id="commentText" name="text" placeholder="Write your message..."  rows="3" maxlength="300"
-                  oninput="updateCharCount()"></textarea>
-            <div class="char-count">
-                <span id="charCount">0</span>/300 characters
+                <div class="message-input-container">
+                    <form id="messageForm">
+                        <textarea id="commentText" name="text" placeholder="Write your message..." rows="3" maxlength="300"
+                                  oninput="updateCharCount()"></textarea>
+                        <div class="char-count">
+                            <span id="charCount">0</span>/300 characters
+                        </div>
+                        <input type="hidden" id="chatId" th:value="${chatId}" name="chat"/>
+
+                        <div class="form-buttons">
+                            <input type="file" id="fileInput" class="file-input" accept="*/*" onchange="handleFileSelect(event)">
+                            <label for="fileInput" class="file-select-btn" title="Прикрепить файл">
+                                📎
+                            </label>
+                            <button type="submit" class="btn">Send Message</button>
+                        </div>
+                    </form>
+
+                    <div id="selectedFilePreview" class="selected-file-preview" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="participants-container mobile-only">
+                    <h3>Participants</h3>
+                    <ul class="participants-list">
+                        <li th:each="participant : ${participants}">
+                            <span class="participant-name" th:text="${participant.id} == ${user.id} ? 'You' : ${participant.name} + ' ' + ${participant.surname}"></span>
+                        </li>
+                    </ul>
+                </div>
             </div>
-            <input type="hidden" id="chatId" th:value="${chatId}" name="chat"/>
+        </div>
 
-            <div class="form-buttons">
-                <input type="file" id="fileInput" class="file-input" accept="*/*" onchange="handleFileSelect(event)">
-
-                <label for="fileInput" class="file-select-btn" title="Прикрепить файл">
-                    📎
-                </label>
-
-                <button type="submit" class="btn">Send Message</button>
+        <div class="sidebar desktop-only">
+            <div class="participants-container">
+                <h3>Participants</h3>
+                <ul class="participants-list">
+                    <li th:each="participant : ${participants}">
+                        <span class="participant-name" th:text="${participant.id} == ${user.id} ? 'You' : ${participant.name} + ' ' + ${participant.surname}"></span>
+                    </li>
+                </ul>
             </div>
-        </form>
-
-        <div id="selectedFilePreview" class="selected-file-preview" style="display: none;">
         </div>
     </div>
-
 </div>
+
 <script>
     document.getElementById("messageForm").addEventListener("keydown", function (e) {
         const textarea = document.getElementById("commentText");
@@ -349,7 +486,7 @@
             sendFile();
         } else if (messageText && !selectedFile) {
             sendMessage();
-        } else{
+        } else {
             alert("You need to write message or choose file")
         }
 
@@ -357,7 +494,7 @@
 
     async function sendFile() {
         const messageText = document.getElementById('commentText').value.trim();
-        console.log("MessageText" , messageText);
+        console.log("MessageText", messageText);
         try {
             showUploadProgress(true);
             const chatId = document.getElementById('chatId').value;
@@ -378,7 +515,6 @@
                 viewUrl: fileInfo.viewUrl
             };
 
-            console.log("Object" , message)
 
             if (stompClient && stompClient.connected) {
                 stompClient.send(`/app/chat/${chatId}/sendMessage`, {}, JSON.stringify(message));

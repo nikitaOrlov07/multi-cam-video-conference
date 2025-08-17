@@ -94,7 +94,7 @@ public class ChatController {
         model.addAttribute("messages", messages);
         model.addAttribute("messagesJson", objectMapper.writeValueAsString(messages));
         model.addAttribute("user", currentUser);
-        model.addAttribute("participants", chat.getParticipants().remove(currentUser));
+        model.addAttribute("participants", chat.getParticipants());
         model.addAttribute("chat", chat);
         return "chat";
     }
