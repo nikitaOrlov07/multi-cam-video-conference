@@ -16,11 +16,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
         connect();
 
-        document.getElementById('messageForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            sendMessage();
-        });
-
         const deleteChatForm = document.getElementById('deleteChatForm');
         if (deleteChatForm) {
             deleteChatForm.addEventListener('submit', function (e) {
@@ -98,6 +93,7 @@ function connect() {
         console.error('STOMP error:', error);
     });
 }
+
 function addUserToTheChat(newChatId) {
     const targetChatId = newChatId != null ? newChatId : chatId;
 
@@ -119,10 +115,11 @@ function addUserToTheChat(newChatId) {
     subscribeToChat(targetChatId);
     addUser(targetChatId);
 }
+
 function addUserAndWait(targetChatId) {
     return new Promise((resolve, reject) => {
         let resolved = false;
-        const subscription = stompClient.subscribe('/topic/chat/' + targetChatId, function(message) {
+        const subscription = stompClient.subscribe('/topic/chat/' + targetChatId, function (message) {
             if (resolved) return;
             const messageData = JSON.parse(message.body);
             if (messageData.type === 'JOIN' && messageData.author === username) {
@@ -193,7 +190,6 @@ function showMessage(message) {
     }
 
     const chatContainer = document.querySelector('.projects-list');
-
     const messageDiv = document.createElement('div');
     messageDiv.dataset.messageId = message.id;
     if (message.type === 'JOIN') {
@@ -230,7 +226,7 @@ function showMessage(message) {
             inviteTitle.style.color = '#002352';
             connectButton.textContent = 'Connect to the conference';
             connectButton.onclick = () => {
-                window.location.href = `/setDevices?userName=${username}&conferenceId=${message.text}`;
+                window.location.href = `/setDeices?userName=${username}&conferenceId=${message.text}`;
             };
         } else {
             inviteTitle.textContent = `${message.author} invites to join chat`
@@ -238,12 +234,124 @@ function showMessage(message) {
             inviteTitle.style.color = '#002352';
             connectButton.textContent = 'Connect to the chat';
             connectButton.onclick = () => {
-                console.log("ChatId", message.text)
                 addUserToTheChat(message.text)
             };
         }
         messageDiv.appendChild(inviteTitle);
         messageDiv.appendChild(connectButton);
+    } else if (message.type === 'MESSAGE_WITH_FILE') {
+        const messageContent = document.createElement('div');
+        messageContent.dataset.messageId = message.id;
+
+        const authorParagraph = document.createElement('p');
+        const textParagraph = document.createElement('p');
+        const dateParagraph = document.createElement('p');
+        const fileContainer = document.createElement('div');
+
+        authorParagraph.className = 'message-author';
+        textParagraph.className = 'message-text';
+        dateParagraph.className = 'message-text';
+        fileContainer.className = 'file-container';
+
+        textParagraph.textContent = message.text || '';
+        dateParagraph.textContent = message.pubDate;
+
+        const downloadButton = document.createElement('a');
+        downloadButton.href = message.downloadUrl;
+        downloadButton.download = message.fileName;
+        downloadButton.textContent = '⬇ Download';
+        downloadButton.className = 'download-button';
+
+        let imgPreview = null;
+
+        if (message.viewUrl && /\.(jpg|jpeg|png|gif|webp)$/i.test(message.fileName)) {
+            imgPreview = document.createElement('img');
+            imgPreview.src = message.viewUrl;
+            imgPreview.alt = message.fileName;
+            imgPreview.className = 'file-preview';
+            imgPreview.style.cursor = 'pointer';
+            fileContainer.appendChild(imgPreview);
+        } else {
+            const fileLink = document.createElement('a');
+            fileLink.href = message.viewUrl;
+            fileLink.textContent = message.fileName;
+            fileLink.target = '_blank';
+            fileContainer.appendChild(fileLink);
+        }
+
+        fileContainer.appendChild(downloadButton);
+
+        if (message.author === username || message.author === userEmail) {
+            messageContent.className = 'message message-right';
+            authorParagraph.textContent = 'You:';
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-message-btn';
+            deleteButton.textContent = '✕';
+            deleteButton.title = 'Delete message';
+            deleteButton.onclick = function (event) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (confirmAction('Delete this message?')) {
+                    deleteMessage(message.id);
+                }
+            };
+            messageContent.appendChild(deleteButton);
+        } else {
+            messageContent.className = 'message message-left';
+            authorParagraph.textContent = message.author;
+        }
+
+        if (imgPreview) {
+            let imageModal = document.getElementById('image-modal');
+
+            if (!imageModal) {
+                imageModal = document.createElement('div');
+                imageModal.id = 'image-modal';
+                imageModal.style.position = 'fixed';
+                imageModal.style.top = '0';
+                imageModal.style.left = '0';
+                imageModal.style.width = '100%';
+                imageModal.style.height = '100%';
+                imageModal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+                imageModal.style.display = 'none';
+                imageModal.style.alignItems = 'center';
+                imageModal.style.justifyContent = 'center';
+                imageModal.style.zIndex = '1000';
+
+                const modalImage = document.createElement('img');
+                modalImage.id = 'modal-image';
+                modalImage.style.maxWidth = '90%';
+                modalImage.style.maxHeight = '90%';
+                modalImage.style.borderRadius = '10px';
+                modalImage.style.boxShadow = '0 4px 20px rgba(0,0,0,0.5)';
+                imageModal.appendChild(modalImage);
+
+                imageModal.addEventListener('click', () => {
+                    imageModal.style.display = 'none';
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape' && imageModal.style.display === 'flex') {
+                        imageModal.style.display = 'none';
+                    }
+                });
+
+                document.body.appendChild(imageModal);
+            }
+
+            imgPreview.addEventListener('dblclick', () => {
+                const modalImage = document.getElementById('modal-image');
+                modalImage.src = imgPreview.src;
+                modalImage.alt = imgPreview.alt;
+                imageModal.style.display = 'flex';
+            });
+        }
+
+        messageContent.appendChild(authorParagraph);
+        messageContent.appendChild(textParagraph);
+        messageContent.appendChild(fileContainer);
+        messageContent.appendChild(dateParagraph);
+        chatContainer.appendChild(messageContent);
     } else {
         const messageContent = document.createElement('div');
         const authorParagraph = document.createElement('p');
@@ -289,9 +397,8 @@ function showMessage(message) {
 }
 
 function addUser(targetChatId, addInvitation) {
-    console.log('addUser called:', {targetChatId , addInvitation})
     const destination = "/app/chat/" + targetChatId + "/addUser";
-    stompClient.send(destination, {}, JSON.stringify({author: username, type: 'JOIN',invitation: addInvitation}));
+    stompClient.send(destination, {}, JSON.stringify({author: username, type: 'JOIN', invitation: addInvitation}));
 
 }
 
@@ -349,36 +456,3 @@ function updateCharCount() {
     const charCount = textarea.value.length;
     document.getElementById('charCount').textContent = charCount;
 }
-
-// async function sendFile() {
-//     const fileInput = document.getElementById('fileInput');
-//     const file = fileInput.files[0];
-//
-//     if (file) {
-//         const formData = new FormData();
-//         formData.append('file', file);
-//
-//         try {
-//             const response = await fetch('/api/upload', {
-//                 method: 'POST',
-//                 body: formData
-//             });
-//
-//             const fileInfo = await response.json();
-//
-//             const message = {
-//                 author: userEmail || username,
-//                 text: file.name,
-//                 type: 'FILE',
-//                 fileUrl: fileInfo.url,
-//                 fileName: file.name,
-//                 fileType: file.type,
-//                 fileSize: file.size
-//             };
-//
-//             stompClient.send("/app/chat/" + chatId + "/sendMessage", {}, JSON.stringify(message));
-//         } catch (error) {
-//             console.error('Ошибка загрузки файла:', error);
-//         }
-//     }
-// }

@@ -2,7 +2,7 @@ package com.example.webConf.config.message;
 
 public enum MessageType {
     CHAT,
-    CHAT_FILE,
+    FILE,
     CONFERENCE_INVITATION,
     CHAT_INVITATION,
     JOIN,
@@ -10,5 +10,6 @@ public enum MessageType {
     DELETE,
     CLEAR,
     CHAT_DELETED,
-    FIRST_JOIN
+    FIRST_JOIN,
+    MESSAGE_WITH_FILE
 }

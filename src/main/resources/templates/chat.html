@@ -11,269 +11,184 @@
     <script th:src="@{/js/chatLogic.js}"></script>
     <link rel="stylesheet" th:href="@{/css/chatStyles.css}"/>
     <style>
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            backdrop-filter: blur(4px);
+        .message-input-container {
+            padding: 15px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 20px;
         }
 
-        .modal-content {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            margin: 5% auto;
-            padding: 0;
-            border: none;
-            border-radius: 16px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-            animation: modalSlideIn 0.3s ease-out;
-        }
-
-        @keyframes modalSlideIn {
-            from {
-                opacity: 0;
-                transform: translateY(-50px) scale(0.9);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0) scale(1);
-            }
-        }
-
-        .modal-header {
-            padding: 24px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        .form-buttons {
             display: flex;
-            justify-content: space-between;
+            gap: 10px;
             align-items: center;
+            margin-top: 10px;
         }
 
-        .modal-title {
-            color: white;
-            font-size: 24px;
-            font-weight: 600;
-            margin: 0;
-        }
-
-        .close {
-            color: rgba(255, 255, 255, 0.8);
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-            background: none;
-            border: none;
+        /* Скрытый file input */
+        .file-input {
+            position: absolute;
+            width: 1px;
+            height: 1px;
             padding: 0;
-            width: 32px;
-            height: 32px;
-            display: flex;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border: 0;
+        }
+
+        /* Стиль кнопки выбора файла */
+        .file-select-btn {
+            display: inline-flex;
             align-items: center;
             justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
             border-radius: 50%;
-            transition: all 0.2s ease;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 18px;
+            text-decoration: none;
+            color: #495057;
         }
 
-        .close:hover {
-            background-color: rgba(255, 255, 255, 0.1);
-            color: white;
+        .file-select-btn:hover {
+            background: #e9ecef;
+            border-color: #007bff;
+            color: #007bff;
+            transform: scale(1.05);
         }
 
-        .modal-body {
-            padding: 24px;
-            background: white;
-            border-radius: 0 0 16px 16px;
+        /* Стили для предпросмотра файла */
+        .selected-file-preview {
+            margin-top: 15px;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+            display: none;
         }
 
-        /* Toggle Switch */
-        .toggle-container {
-            margin-bottom: 20px;
+        .selected-file {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .toggle-label {
-            font-weight: 600;
+        .file-icon {
+            font-size: 24px;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .file-info {
+            flex: 1;
+        }
+
+        .file-name {
+            font-weight: 500;
             color: #333;
-            font-size: 14px;
-            margin: 0;
-        }
-
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 52px;
-            height: 28px;
-            background: #ddd;
-            border-radius: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            border: 2px solid #ddd;
-        }
-
-        .toggle-switch.active {
-            background: #667eea;
-            border-color: #667eea;
-        }
-
-        .toggle-slider {
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 20px;
-            height: 20px;
-            background: white;
-            border-radius: 50%;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        }
-
-        .toggle-switch.active .toggle-slider {
-            left: 26px;
-        }
-
-        .friends-label {
-            font-size: 14px;
-            color: #666;
-            margin: 0;
-        }
-
-        /* Search Input */
-        .search-container {
-            margin-bottom: 24px;
-        }
-
-        .search-input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-        }
-
-        .search-input:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        /* User List */
-        .user-list {
-            max-height: 300px;
-            overflow-y: auto;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            background: #fafafa;
-        }
-
-        .user-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px;
-            border-bottom: 1px solid #e0e0e0;
-            transition: background-color 0.2s ease;
-        }
-
-        .user-item:last-child {
-            border-bottom: none;
-        }
-
-        .user-item:hover {
-            background-color: #f0f0f0;
-        }
-
-        .user-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .user-name {
-            font-weight: 600;
-            color: #333;
+            word-break: break-word;
             margin-bottom: 4px;
         }
 
-        .user-email {
+        .file-size {
+            font-size: 12px;
             color: #666;
-            font-size: 14px;
         }
 
-        .invite-btn {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .clear-file-btn {
+            background: #dc3545;
             color: white;
             border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s ease;
-            font-size: 14px;
-        }
-
-        .invite-btn:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-        }
-
-        .invite-btn:active {
-            transform: translateY(0);
-        }
-
-        .no-users-message {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-            font-style: italic;
-        }
-
-        .invite-main-btn {
-            background: linear-gradient(135deg, #667eea 0%, #00449e 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 16px;
-            transition: all 0.2s ease;
-            margin-left: 12px;
-        }
-
-        .invite-main-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-        }
-
-        .loading-spinner {
-            display: none;
-            text-align: center;
-            padding: 20px;
-        }
-
-        .spinner {
-            border: 3px solid #f3f3f3;
-            border-top: 3px solid #667eea;
+            width: 24px;
+            height: 24px;
             border-radius: 50%;
-            width: 30px;
-            height: 30px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto;
+            cursor: pointer;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
         }
 
-        @keyframes spin {
-            0% {
-                transform: rotate(0deg);
+        .clear-file-btn:hover {
+            background: #c82333;
+        }
+
+        /* Прогресс-бар загрузки */
+        .upload-progress-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+
+        .upload-progress-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            min-width: 350px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+
+        .upload-progress-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            font-weight: 500;
+        }
+
+        .upload-progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e9ecef;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-bottom: 15px;
+        }
+
+        .upload-progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #28a745, #20c997);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .upload-cancel-btn {
+            padding: 8px 16px;
+            background: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .upload-cancel-btn:hover {
+            background: #5a6268;
+        }
+
+        /* Адаптивность */
+        @media (max-width: 600px) {
+            .form-buttons {
+                flex-wrap: wrap;
             }
-            100% {
-                transform: rotate(360deg);
+
+            .file-select-btn {
+                width: 35px;
+                height: 35px;
+                font-size: 16px;
             }
         }
     </style>
@@ -306,36 +221,49 @@
 
     <div class="message-input-container">
         <form id="messageForm">
-            <textarea id="commentText" name="text" placeholder="Write your message..." required rows="3" maxlength="300"
-                      oninput="updateCharCount()"></textarea>
+        <textarea id="commentText" name="text" placeholder="Write your message..."  rows="3" maxlength="300"
+                  oninput="updateCharCount()"></textarea>
             <div class="char-count">
                 <span id="charCount">0</span>/300 characters
             </div>
             <input type="hidden" id="chatId" th:value="${chatId}" name="chat"/>
-            <button type="submit" class="btn">Send Message</button>
+
+            <div class="form-buttons">
+                <input type="file" id="fileInput" class="file-input" accept="*/*" onchange="handleFileSelect(event)">
+
+                <label for="fileInput" class="file-select-btn" title="Прикрепить файл">
+                    📎
+                </label>
+
+                <button type="submit" class="btn">Send Message</button>
+            </div>
         </form>
+
+        <div id="selectedFilePreview" class="selected-file-preview" style="display: none;">
+        </div>
     </div>
+
 </div>
 <script>
-document.getElementById("messageForm").addEventListener("keydown" ,function(e) {
-    const textarea = document.getElementById("commentText");
+    document.getElementById("messageForm").addEventListener("keydown", function (e) {
+        const textarea = document.getElementById("commentText");
 
-    // For just 'ENTER' -> submit form
-    if(e.key === "Enter" && !e.ctrlKey) {
-        e.preventDefault();
-        this.requestSubmit()
-    }
-    // For CTRL + ENTER -> move to next line
-    if(e.key === "Enter" && e.ctrlKey) {
-        e.preventDefault();
-        const cursorPos = textarea.selectionStart;
-        const text = textarea.value;
-        textarea.value = text.slice(0, cursorPos) + "\n" + text.slice(cursorPos);
-        const newCursorPos = cursorPos + 1;
-        textarea.setSelectionRange(newCursorPos, newCursorPos);
-        updateCharCount();
-    }
-})
+        // For just 'ENTER' -> submit form
+        if (e.key === "Enter" && !e.ctrlKey) {
+            e.preventDefault();
+            this.requestSubmit()
+        }
+        // For CTRL + ENTER -> move to next line
+        if (e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault();
+            const cursorPos = textarea.selectionStart;
+            const text = textarea.value;
+            textarea.value = text.slice(0, cursorPos) + "\n" + text.slice(cursorPos);
+            const newCursorPos = cursorPos + 1;
+            textarea.setSelectionRange(newCursorPos, newCursorPos);
+            updateCharCount();
+        }
+    })
 </script>
 <!--Invitation Window -->
 <div id="inviteModal" class="modal">
@@ -369,6 +297,191 @@ document.getElementById("messageForm").addEventListener("keydown" ,function(e) {
         </div>
     </div>
 </div>
+<script>
+    let selectedFile = null;
+
+    function handleFileSelect(event) {
+        const file = event.target.files[0];
+        selectedFile = file;
+        if (file) {
+            showFilePreview(file);
+        } else {
+            hideFilePreview();
+        }
+    }
+
+    function showFilePreview(file) {
+        const preview = document.getElementById('selectedFilePreview');
+        const fileName = file.name;
+        const fileSize = formatFileSize(file.size);
+        const fileIcon = getFileIcon(file.type);
+
+        preview.innerHTML = `
+        <div class="selected-file">
+            <span class="file-icon">${fileIcon}</span>
+            <div class="file-info">
+                <div class="file-name" title="${fileName}">${fileName}</div>
+                <div class="file-size">${fileSize}</div>
+            </div>
+            <button type="button" onclick="clearFileSelection()" class="clear-file-btn" title="Delete file">✕</button>
+        </div>
+    `;
+
+        preview.style.display = 'block';
+    }
+
+    function hideFilePreview() {
+        const preview = document.getElementById('selectedFilePreview');
+        preview.style.display = 'none';
+        selectedFile = null;
+    }
+
+    function clearFileSelection() {
+        const fileInput = document.getElementById('fileInput');
+        fileInput.value = '';
+        hideFilePreview();
+    }
+
+    document.getElementById('messageForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const messageText = document.getElementById('commentText').value.trim();
+        if (selectedFile) {
+            sendFile();
+        } else if (messageText && !selectedFile) {
+            sendMessage();
+        } else{
+            alert("You need to write message or choose file")
+        }
+
+    });
+
+    async function sendFile() {
+        const messageText = document.getElementById('commentText').value.trim();
+        console.log("MessageText" , messageText);
+        try {
+            showUploadProgress(true);
+            const chatId = document.getElementById('chatId').value;
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            const response = await uploadFileWithProgress(`/files/upload/${chatId}`, formData);
+
+            const fileInfo = await response.json();
+
+            const message = {
+                author: userEmail || username,
+                text: messageText || selectedFile.name,
+                type: messageText ? 'MESSAGE_WITH_FILE' : "FILE",
+                fileId: fileInfo.fileId,
+                fileName: fileInfo.fileName,
+                downloadUrl: fileInfo.downloadUrl,
+                viewUrl: fileInfo.viewUrl
+            };
+
+            console.log("Object" , message)
+
+            if (stompClient && stompClient.connected) {
+                stompClient.send(`/app/chat/${chatId}/sendMessage`, {}, JSON.stringify(message));
+            }
+
+            document.getElementById('commentText').value = '';
+            clearFileSelection();
+            updateCharCount();
+            updateUploadProgress(100, 'File successfully sent!');
+            setTimeout(() => showUploadProgress(false), 1500);
+
+            return message;
+        } catch (error) {
+            console.error('Error while file uploading:', error);
+            updateUploadProgress(0, `Error: ${error.message}`);
+            setTimeout(() => showUploadProgress(false), 3000);
+        }
+    }
+
+    function uploadFileWithProgress(url, formData) {
+        return new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest(); // Used for sending files , receive response , track progress
+            xhr.upload.onprogress = function (e) {
+                if (e.lengthComputable) {
+                    const percent = Math.round((e.loaded / e.total) * 100);
+                    updateUploadProgress(percent, `Uploading... ${percent}%`);
+                }
+            };
+            xhr.onload = function () {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    resolve({
+                        ok: true,
+                        status: xhr.status,
+                        json: () => Promise.resolve(JSON.parse(xhr.responseText))
+                    });
+                } else {
+                    reject(new Error(`HTTP ${xhr.status}`));
+                }
+            };
+            xhr.onerror = () => reject(new Error("Network error"));
+            xhr.onabort = () => reject(new Error("Upload aborded"));
+            xhr.open('POST', url, true);
+            xhr.send(formData);
+        });
+    }
+
+    function showUploadProgress(show) {
+        let container = document.getElementById('uploadProgressContainer');
+
+        if (show && !container) {
+            container = document.createElement('div');
+            container.id = 'uploadProgressContainer';
+            container.className = 'upload-progress-container';
+            container.innerHTML = `
+            <div class="upload-progress-content">
+                <div class="upload-progress-info">
+                    <span id="uploadProgressText">Loading ...</span>
+                    <span id="uploadProgressPercent">0%</span>
+                </div>
+                <div class="upload-progress-bar">
+                    <div id="uploadProgressFill" class="upload-progress-fill"></div>
+                </div>
+                <button type="button" class="upload-cancel-btn" onclick="cancelUpload()">Discard</button>
+            </div>
+        `;
+            document.body.appendChild(container);
+        }
+
+        if (container) {
+            container.style.display = show ? 'flex' : 'none';
+        }
+    }
+
+    function updateUploadProgress(percent, text) {
+        const progressText = document.getElementById('uploadProgressText');
+        const progressPercent = document.getElementById('uploadProgressPercent');
+        const progressFill = document.getElementById('uploadProgressFill');
+        if (progressText) progressText.textContent = text;
+        if (progressPercent) progressPercent.textContent = `${percent}%`;
+        if (progressFill) progressFill.style.width = `${percent}%`;
+    }
+
+    function getFileIcon(fileType) {
+        if (!fileType) return '📄';
+        if (fileType.startsWith('image/')) return '🖼️';
+        if (fileType.startsWith('video/')) return '🎥';
+        if (fileType.startsWith('audio/')) return '🎵';
+        if (fileType.includes('pdf')) return '📕';
+        if (fileType.includes('word') || fileType.includes('document')) return '📘';
+        if (fileType.includes('excel') || fileType.includes('spreadsheet')) return '📊';
+        if (fileType.includes('zip') || fileType.includes('rar')) return '🗜️';
+        if (fileType.startsWith('text/')) return '📝';
+        return '📄';
+    }
+
+    function formatFileSize(bytes) {
+        if (bytes === 0) return '0 byte';
+        const k = 1024;
+        const sizes = ['byte', 'kb', 'mb', 'gb'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+</script>
 <script th:inline="javascript">
     /*<![CDATA[*/
     var initialMessages = /*[[${messagesJson}]]*/ '[]'; // initial messages loaded

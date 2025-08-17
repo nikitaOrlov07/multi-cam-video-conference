@@ -1,6 +1,8 @@
 package com.example.webConf.dto.message;
 
 import com.example.webConf.config.message.MessageType;
+import com.example.webConf.dto.AttachmentUploadResponse;
+import jakarta.persistence.Embedded;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,4 +19,6 @@ public class MessageView {
     private String pubDate;
     private MessageType type;
     private boolean invitation;
+    @Embedded
+    private AttachmentUploadResponse attachmentUploadResponse;
 }

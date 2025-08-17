@@ -219,7 +219,6 @@ public class ChatController {
         Chat chat = chatService.findById(chatId).orElseThrow(() -> new ChatException("Chat not found"));
         if (message != null && chat != null && message.getUser().equals(user)) {
             messageService.deleteMessage(message, chat);
-            logger.info("Message deleted successfully");
             if (user.getEmail() != null && !user.getEmail().isEmpty()) {
                 return MessageView.builder() // for permanent users
                         .type(MessageType.DELETE)
@@ -318,6 +317,7 @@ public class ChatController {
 
     /// Getting User Chats for refreshing "Chat section" on initial page
     @GetMapping("/chat/getUserChats")
+    @Transactional
     public ResponseEntity<List<Chat>> getChats() {
         Optional<UserEntity> user = userService.findByEmail(SecurityUtil.getSessionUserEmail());
         return user.map(userEntity -> ResponseEntity.ok(chatService.findAllByParticipant(userEntity))).orElseGet(() -> ResponseEntity.ok(Collections.emptyList()));

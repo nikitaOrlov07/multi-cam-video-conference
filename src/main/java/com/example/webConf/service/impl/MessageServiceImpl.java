@@ -5,6 +5,7 @@ import com.example.webConf.model.chat.Chat;
 import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.user.UserEntity;
 import com.example.webConf.repository.MessageRepository;
+import com.example.webConf.service.AttachmentService;
 import com.example.webConf.service.ChatService;
 import com.example.webConf.service.MessageService;
 import com.example.webConf.service.UserEntityService;
@@ -29,7 +30,8 @@ public class MessageServiceImpl implements MessageService {
     private ChatService chatService;
     @Autowired
     private EncoderService encoderService;
-    private MessageService messageService;
+    @Autowired
+    private AttachmentService attachmentService;
 
     @Override
     public List<Message> findAllChatMessage(Long chatId) {
@@ -72,8 +74,15 @@ public class MessageServiceImpl implements MessageService {
     @Override
     public void deleteMessage(Message message, Chat chat) {
         UserEntity user = message.getUser();
-        if(user != null)
+        if (user != null)
             user.getMessages().remove(message);
+        if (message.getFileId() != null) {
+            try {
+                attachmentService.deleteAttachment(chat.getId(), message.getFileId());
+            } catch (Exception e) {
+                log.error("Unable to delete file {}: {}" , message.getFileId(),e.getMessage());
+            }
+        }
         chat.getMessages().remove(message);
         messageRepository.delete(message);
     }

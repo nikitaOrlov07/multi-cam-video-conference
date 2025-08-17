@@ -1,6 +1,7 @@
 package com.example.webConf.model.chat;
 
 import com.example.webConf.config.message.MessageType;
+import com.example.webConf.dto.AttachmentUploadResponse;
 import com.example.webConf.model.user.UserEntity;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
@@ -39,4 +40,9 @@ public class Message {
     public Message(String text) {
         this.text = text;
     }
+
+    private Long fileId;
+    private String fileName;
+    private String viewUrl;
+    private String downloadUrl;
 }

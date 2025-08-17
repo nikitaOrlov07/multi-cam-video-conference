@@ -6,7 +6,9 @@ import com.example.webConf.model.chat.Message;
 import com.example.webConf.model.conference.Conference;
 import com.example.webConf.model.role.RoleEntity;
 import com.example.webConf.model.userJoinConference.UserConferenceJoin;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -130,11 +132,8 @@ public class UserEntity {
     /// Attachments
     @OneToMany(mappedBy = "user")
     @ToString.Exclude
+    @JsonManagedReference
     private List<Attachment> attachments;
-
-
-
-
 }
 
 
