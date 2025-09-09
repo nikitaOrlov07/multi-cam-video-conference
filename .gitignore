@@ -32,8 +32,13 @@ build/
 ### VS Code ###
 .vscode/
 
-#Jitsi generating files
+# Jitsi generating files
 .jitsi-meet-cfg/jicofo/
 .jitsi-meet-cfg/jvb/
 .jitsi-meet-cfg/prosody/
 .jitsi-meet-cfg/web/
+
+# Encryptor
+/src/main/java/com/example/webConf/service/impl/EncryptRunner.java
+
+# ! in this file means that git wont ingnore this file
